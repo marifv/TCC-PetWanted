@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Homepage from './Homepage';
 import Perfil from './Perfil';
+import EdicaoPerfil from './EdicaoPerfil';
 
 export default function App() {
   const [telaSelecionada, setTelaSelecionada] = useState(null);
@@ -26,6 +27,14 @@ export default function App() {
       duration: 300,
       useNativeDriver: true,
     }).start();
+  };
+
+  const abrirEdicaoPerfil = () => {
+    setTelaAtual('edicaoPerfil');
+  };
+
+  const voltarParaPerfil = () => {
+    setTelaAtual('perfil');
   };
 
   const voltarParaHome = () => {
@@ -95,7 +104,7 @@ export default function App() {
           )}
 
           {telaSelecionada === 'criarConta' && (
-            <View style={styles.formulario}>
+            <View style={styles.form}>
               <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor={"gray"} />
               <TextInput style={styles.input} placeholder="Senha" placeholderTextColor={"gray"} secureTextEntry />
               <TextInput style={styles.input} placeholder="Confirmar senha" placeholderTextColor={"gray"} secureTextEntry />
@@ -121,7 +130,18 @@ export default function App() {
             { transform: [{ translateX: perfilOffset }] },
           ]}
         >
-          <Perfil onVoltar={voltarParaHome} />
+          {telaAtual === 'perfil' && (
+            <Perfil
+              onVoltar={voltarParaHome}
+              setTelaEdicao={abrirEdicaoPerfil}
+            />
+          )}
+
+          {telaAtual === 'edicaoPerfil' && (
+            <EdicaoPerfil
+              onVoltar={voltarParaPerfil}
+            />
+          )}
         </Animated.View>
       )}
     </View>

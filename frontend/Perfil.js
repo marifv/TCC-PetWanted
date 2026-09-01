@@ -2,7 +2,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Image, StyleSheet, Text, View, Pressable } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
-export default function Perfil({ onVoltar }) {
+export default function Perfil({ onVoltar, setTelaEdicao }) {
     return (
         <View style={styles.container}>
             <StatusBar style="dark" />
@@ -15,21 +15,51 @@ export default function Perfil({ onVoltar }) {
 
                 <Text style={styles.titulo}>Meu Perfil</Text>
 
+                <View style={styles.acoesHeader}>
+                    <FontAwesome name="bell" size={20} color="#555" />
+                </View>
+
                 <View style={styles.headerRight}>
-                    <Pressable>
+                    <Pressable onPress={setTelaEdicao}>
                         <FontAwesome name="pencil" size={22} color="#292929" />
                     </Pressable>
                 </View>
             </View>
+
             <View style={styles.conteudo}>
                 <View style={styles.avatar}>
                     <Text style={styles.textoAvatar}>U</Text>
                 </View>
+
                 <Text style={styles.nome}>Seu Nome</Text>
                 <Text style={styles.email}>seu.email@exemplo.com</Text>
-                <Text style={styles.telefone}>Telefone</Text>
-                <Text style={styles.localizacao}>Sua Localização</Text>
-                <Text style={styles.cpf}>CPF</Text>
+
+                <View style={styles.cardInfo}>
+                    <FontAwesome name="phone" size={20} color="#45a9d5" />
+
+                    <View>
+                        <Text style={styles.label}>Telefone</Text>
+                        <Text style={styles.valor}>Seu telefone</Text>
+                    </View>
+                </View>
+
+                <View style={styles.cardInfo}>
+                    <FontAwesome name="map-marker" size={20} color="#45a9d5" />
+
+                    <View>
+                        <Text style={styles.label}>Localização</Text>
+                        <Text style={styles.valor}>Sua localização</Text>
+                    </View>
+                </View>
+
+                <View style={styles.cardInfo}>
+                    <FontAwesome name="id-card" size={20} color="#45a9d5" />
+
+                    <View>
+                        <Text style={styles.label}>CPF</Text>
+                        <Text style={styles.valor}>CPF</Text>
+                    </View>
+                </View>
             </View>
         </View>
     );
@@ -67,45 +97,62 @@ const styles = StyleSheet.create({
         color: '#292929',
         textAlign: 'center',
     },
+    acoesHeader: {
+        width: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     conteudo: {
         flex: 1,
         alignItems: 'center',
         paddingTop: 40,
+        paddingHorizontal: 20,
     },
     avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 90,
+        height: 90,
+        borderRadius: 45,
         backgroundColor: '#f8b385',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 16,
+        marginBottom: 14,
     },
     textoAvatar: {
-        fontSize: 32,
+        fontSize: 34,
         fontWeight: 'bold',
         color: '#fff',
     },
     nome: {
-        fontSize: 20,
+        fontSize: 22,
         fontWeight: 'bold',
-        color: '#000',
-        marginBottom: 8,
+        color: '#292929',
+        marginBottom: 5,
     },
     email: {
         fontSize: 14,
-        color: '#666',
+        color: '#888888',
+        marginBottom: 28,
     },
-	localizacao: {
-        fontSize: 14,
-        color: '#666',
+    cardInfo: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 16,
+        marginBottom: 12,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#eeeeee',
+        gap: 14,
     },
-	cpf: {
-        fontSize: 14,
-        color: '#666',
+    label: {
+        fontSize: 12,
+        color: '#999999',
+        marginBottom: 3,
     },
-	telefone: {
-        fontSize: 14,
-        color: '#666',
+    valor: {
+        fontSize: 15,
+        color: '#292929',
+        fontWeight: '500',
     },
 });
