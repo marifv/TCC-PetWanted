@@ -2,26 +2,29 @@ import { StatusBar } from 'expo-status-bar';
 import { Image, StyleSheet, Text, View, Pressable } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
-export default function Homepage() {
+export default function Homepage({ setTelaAtual, telaAtual }) {
 	return (
 		<View style={styles.container}>
 			<StatusBar style="dark" />
-			<View style={styles.cabecalho}>
-				<View style={styles.marca}>
+			<View style={styles.header}>
+				<View style={styles.petWanted}>
 					<Image source={require('./assets/dog2.jpg')} style={styles.logo} />
-					<Text style={styles.nomeAplicativo}>PetWanted</Text>
+					<Text style={styles.appName}>PetWanted</Text>
 				</View>
-				<View style={styles.acoesCabecalho}>
+				<View style={styles.acoesHeader}>
 					<FontAwesome name="bell" size={20} color="#555" />
-					<View style={styles.avatar}>
-						<Text style={styles.textoAvatar}>U</Text>
-					</View>
+
+					<Pressable onPress={setTelaAtual}>
+						<View style={styles.avatar}>
+							<Text style={styles.avatarText}>U</Text>
+						</View>
+					</Pressable>
 				</View>
 			</View>
 
-			<View style={styles.conteudo}>
-				<Text style={styles.titulo}>Encontre seu pet</Text>
-				<Text style={styles.subtitulo}>Veja pedidos de ajuda perto de voce.</Text>
+			<View style={styles.content}>
+				<Text style={styles.title}>Encontre seu pet</Text>
+				<Text style={styles.subtitle}>Veja pedidos de ajuda perto de voce.</Text>
 			</View>
 
 			<View style={styles.rodape}>
@@ -51,7 +54,7 @@ const styles = StyleSheet.create({
 		flex: 1,
 		backgroundColor: '#ffffff',
 	},
-	cabecalho: {
+	header: {
 		height: 58,
 		paddingHorizontal: 12,
 		flexDirection: 'row',
@@ -61,7 +64,7 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 		borderBottomColor: '#e1e1e1',
 	},
-	marca: {
+	petWanted: {
 		flexDirection: 'row',
 		alignItems: 'center',
 	},
@@ -71,17 +74,17 @@ const styles = StyleSheet.create({
 		marginRight: 8,
 		borderRadius: 17,
 	},
-	nomeAplicativo: {
+	appName: {
 		fontSize: 15,
 		fontWeight: 'bold',
 		color: '#292929',
 	},
-	acoesCabecalho: {
+	acoesHeader: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: 14,
 	},
-	sino: {
+	bell: {
 		fontSize: 12,
 		color: '#555555',
 	},
@@ -93,24 +96,24 @@ const styles = StyleSheet.create({
 		backgroundColor: '#45a9d5',
 		borderRadius: 15,
 	},
-	textoAvatar: {
+	avatarText: {
 		fontSize: 15,
 		fontWeight: 'bold',
 		color: '#ffffff',
 	},
-	conteudo: {
+	content: {
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
 		backgroundColor: '#f2f2f2',
 	},
-	titulo: {
+	title: {
 		fontSize: 24,
 		fontWeight: 'bold',
 		color: '#292929',
 		marginBottom: 8,
 	},
-	subtitulo: {
+	subtitle: {
 		fontSize: 16,
 		color: '#666666',
 	},
