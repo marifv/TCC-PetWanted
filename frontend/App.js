@@ -1,17 +1,38 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Homepage from './Homepage';
 import Perfil from './Perfil';
 import EdicaoPerfil from './EdicaoPerfil';
+
+const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/usuarios' : 'http://localhost:3000/api/usuarios';
 
 export default function App() {
   const [telaSelecionada, setTelaSelecionada] = useState(null);
   const [telaAtual, setTelaAtual] = useState('login');
   const [perfilAtivo, setPerfilAtivo] = useState(false);
   const [larguraContainer, setLarguraContainer] = useState(0);
+
+  const [tipoPerfil, setTipoPerfil] = useState('');
+  const [nome, setNome] = useState('');
+  const [documento, setDocumento] = useState('');
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [alertaVisivel, setAlertaVisivel] = useState(false);
+  const [alertaTitulo, setAlertaTitulo] = useState('');
+  const [alertaMensagem, setAlertaMensagem] = useState('');
+  const [alertaTipo, setAlertaTipo] = useState('info');
+
   const deslocamentoBotao = useRef(new Animated.Value(0)).current;
   const perfilOffset = useRef(new Animated.Value(400)).current;
+
+  const mostrarAlerta = (titulo, mensagem, tipo = 'info') => {
+    setAlertaTitulo(titulo);
+    setAlertaMensagem(mensagem);
+    setAlertaTipo(tipo);
+    setAlertaVisivel(true);
+  };
 
   const handleLayoutAcoes = (event) => {
     const { width } = event.nativeEvent.layout;
@@ -22,6 +43,7 @@ export default function App() {
     setTelaAtual('perfil');
     setPerfilAtivo(true);
     perfilOffset.setValue(400);
+
     Animated.timing(perfilOffset, {
       toValue: 0,
       duration: 300,
@@ -48,12 +70,67 @@ export default function App() {
     });
   };
 
+  const cadastrarUsuario = async () => {
+    if (!nome || !documento || !email || !senha || !confirmarSenha) {
+      mostrarAlerta('Atenção', 'Preencha todos os campos.', 'warning');
+      return;
+    }
+
+    if (senha !== confirmarSenha) {
+      mostrarAlerta('Atenção', 'As senhas não são iguais.', 'warning');
+      return;
+    }
+
+    const documentoLimpo = documento.replace(/\D/g, '');
+    const tamanhoDocumento = tipoPerfil === 'Tutor' ? 11 : 14;
+
+    if (documentoLimpo.length !== tamanhoDocumento) {
+      mostrarAlerta('Atenção', tipoPerfil === 'Tutor' ? 'O CPF deve possuir 11 dígitos.' : 'O CNPJ deve possuir 14 dígitos.', 'warning');
+      return;
+    }
+
+    try {
+      const resposta = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: nome,
+          email: email,
+          documento: documentoLimpo,
+          senha: senha,
+          tipo_perfil: tipoPerfil,
+        }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        mostrarAlerta('Erro', dados.mensagem || 'Não foi possível realizar o cadastro.', 'error');
+        return;
+      }
+
+      mostrarAlerta('Sucesso', 'Conta criada com sucesso!', 'success');
+
+      console.log('Usuário cadastrado:', dados);
+
+      setNome('');
+      setDocumento('');
+      setEmail('');
+      setSenha('');
+      setConfirmarSenha('');
+      setTelaSelecionada('entrar');
+    } catch (erro) {
+      console.error('Erro ao cadastrar:', erro);
+      mostrarAlerta('Erro', 'Não foi possível conectar ao servidor.', 'error');
+    }
+  };
+
   useEffect(() => {
     if (larguraContainer === 0) return;
 
-    const deslocamento = telaSelecionada === 'criarConta'
-      ? larguraContainer / 2 + 2
-      : 0;
+    const deslocamento = telaSelecionada === 'criarConta' ? larguraContainer / 2 + 2 : 0;
 
     Animated.timing(deslocamentoBotao, {
       toValue: deslocamento,
@@ -65,20 +142,33 @@ export default function App() {
   if (telaAtual === 'login') {
     return (
       <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.container}>
+        <Modal
+          transparent
+          animationType="fade"
+          visible={alertaVisivel}
+          onRequestClose={() => setAlertaVisivel(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalCard, alertaTipo === 'success' && styles.modalCardSuccess, alertaTipo === 'error' && styles.modalCardError, alertaTipo === 'warning' && styles.modalCardWarning]}>
+              <Text style={styles.modalTitle}>{alertaTitulo}</Text>
+              <Text style={styles.modalMessage}>{alertaMensagem}</Text>
+              <Pressable style={styles.modalButton} onPress={() => setAlertaVisivel(false)}>
+                <Text style={styles.modalButtonText}>OK</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+
         <View style={styles.content}>
           <Image source={require('./assets/dog2.jpg')} style={styles.logo} />
+
           <Text style={styles.title}>PetWanted</Text>
+
           <Text style={styles.subtitle}>Entre ou crie sua conta para continuar</Text>
 
           <View style={styles.actions} onLayout={handleLayoutAcoes}>
             {telaSelecionada && (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.selected,
-                  { transform: [{ translateX: deslocamentoBotao }] },
-                ]}
-              />
+              <Animated.View pointerEvents="none" style={[styles.selected, { transform: [{ translateX: deslocamentoBotao }] }]} />
             )}
 
             <Pressable style={styles.button} onPress={() => setTelaSelecionada('entrar')}>
@@ -92,11 +182,14 @@ export default function App() {
 
           {telaSelecionada === 'entrar' && (
             <View style={styles.form}>
-              <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor={"gray"} keyboardType="email-address" />
-              <TextInput style={styles.input} placeholder="Senha" placeholderTextColor={"gray"} secureTextEntry />
+              <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="gray" keyboardType="email-address" autoCapitalize="none" />
+
+              <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="gray" secureTextEntry />
+
               <Pressable style={styles.forgotPassword}>
                 <Text style={styles.textForgotPassword}>Esqueceu sua senha?</Text>
               </Pressable>
+
               <Pressable style={styles.formButton} onPress={() => setTelaAtual('homepage')}>
                 <Text style={styles.textFormButton}>Acessar conta</Text>
               </Pressable>
@@ -105,15 +198,37 @@ export default function App() {
 
           {telaSelecionada === 'criarConta' && (
             <View style={styles.form}>
-              <TextInput style={styles.input} placeholder="Nome Completo" placeholderTextColor={"gray"} />
-              <TextInput style={styles.input} placeholder="Senha" placeholderTextColor={"gray"} secureTextEntry />
-              <TextInput style={styles.input} placeholder="Confirmar senha" placeholderTextColor={"gray"} secureTextEntry />
-              <Pressable style={styles.formButton}>
+              <Text style={styles.formTitle}>Criar Conta</Text>
+
+              <Text style={styles.label}>Tipo de perfil</Text>
+
+              <View style={styles.tipoPerfilContainer}>
+                <Pressable style={[styles.tipoPerfilButton, tipoPerfil === 'Tutor' && styles.tipoPerfilSelecionado]} onPress={() => { setTipoPerfil('Tutor'); setDocumento(''); }}>
+                  <Text style={[styles.tipoPerfilTexto, tipoPerfil === 'Tutor' && styles.tipoPerfilTextoSelecionado]}>Tutor</Text>
+                </Pressable>
+
+                <Pressable style={[styles.tipoPerfilButton, tipoPerfil === 'ONG' && styles.tipoPerfilSelecionado]} onPress={() => { setTipoPerfil('ONG'); setDocumento(''); }}>
+                  <Text style={[styles.tipoPerfilTexto, tipoPerfil === 'ONG' && styles.tipoPerfilTextoSelecionado]}>ONG</Text>
+                </Pressable>
+              </View>
+
+              <TextInput style={styles.input} placeholder={tipoPerfil === 'Tutor' ? 'Nome Completo' : 'Nome da ONG'} placeholderTextColor="gray" value={nome} onChangeText={setNome} />
+
+              <TextInput style={styles.input} placeholder={tipoPerfil === 'Tutor' ? 'CPF' : 'CNPJ'} placeholderTextColor="gray" keyboardType="numeric" value={documento} onChangeText={setDocumento} />
+
+              <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="gray" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
+
+              <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="gray" secureTextEntry value={senha} onChangeText={setSenha} />
+
+              <TextInput style={styles.input} placeholder="Confirmar senha" placeholderTextColor="gray" secureTextEntry value={confirmarSenha} onChangeText={setConfirmarSenha} />
+
+              <Pressable style={styles.formButton} onPress={cadastrarUsuario}>
                 <Text style={styles.textFormButton}>Cadastrar</Text>
               </Pressable>
             </View>
           )}
         </View>
+
         <StatusBar style="auto" />
       </ScrollView>
     );
@@ -124,24 +239,9 @@ export default function App() {
       <Homepage setTelaAtual={abrirPerfil} telaAtual={telaAtual} />
 
       {perfilAtivo && (
-        <Animated.View
-          style={[
-            styles.overlay,
-            { transform: [{ translateX: perfilOffset }] },
-          ]}
-        >
-          {telaAtual === 'perfil' && (
-            <Perfil
-              onVoltar={voltarParaHome}
-              setTelaEdicao={abrirEdicaoPerfil}
-            />
-          )}
-
-          {telaAtual === 'edicaoPerfil' && (
-            <EdicaoPerfil
-              onVoltar={voltarParaPerfil}
-            />
-          )}
+        <Animated.View style={[styles.overlay, { transform: [{ translateX: perfilOffset }] }]}>
+          {telaAtual === 'perfil' && <Perfil onVoltar={voltarParaHome} setTelaEdicao={abrirEdicaoPerfil} />}
+          {telaAtual === 'edicaoPerfil' && <EdicaoPerfil onVoltar={voltarParaPerfil} />}
         </Animated.View>
       )}
     </View>
@@ -153,16 +253,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8b385',
   },
+
   scrollContainer: {
     flexGrow: 1,
     alignItems: 'center',
     paddingVertical: 20,
   },
+
   content: {
     width: '100%',
     alignItems: 'center',
     paddingHorizontal: 16,
   },
+
   logo: {
     width: 100,
     height: 100,
@@ -170,6 +273,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 50,
   },
+
   title: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -177,6 +281,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textAlign: 'center',
   },
+
   subtitle: {
     fontSize: 14,
     color: '#060200',
@@ -184,6 +289,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingHorizontal: 12,
   },
+
   actions: {
     flexDirection: 'row',
     width: '100%',
@@ -194,6 +300,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     height: 52,
   },
+
   button: {
     flex: 1,
     height: 52,
@@ -201,6 +308,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 1,
   },
+
   selected: {
     position: 'absolute',
     top: 4,
@@ -210,11 +318,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 25,
   },
+
   textButton: {
     color: '#060000',
     fontSize: 16,
     fontWeight: 'bold',
   },
+
   form: {
     width: '100%',
     maxWidth: 350,
@@ -224,12 +334,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff4e8',
     borderRadius: 12,
   },
+
   formTitle: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#060000',
     marginBottom: 16,
   },
+
+  label: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#060000',
+    marginBottom: 8,
+  },
+
+  tipoPerfilContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+  },
+
+  tipoPerfilButton: {
+    flex: 1,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#d5b39b',
+    borderRadius: 6,
+  },
+
+  tipoPerfilSelecionado: {
+    backgroundColor: '#7a4b2a',
+    borderColor: '#7a4b2a',
+  },
+
+  tipoPerfilTexto: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#7a4b2a',
+  },
+
+  tipoPerfilTextoSelecionado: {
+    color: '#ffffff',
+  },
+
   input: {
     height: 44,
     marginBottom: 12,
@@ -240,6 +391,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     fontSize: 14,
   },
+
   formButton: {
     height: 44,
     marginTop: 16,
@@ -248,18 +400,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#7a4b2a',
     borderRadius: 6,
   },
+
   textFormButton: {
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
+
   forgotPassword: {
     marginTop: 8,
     marginBottom: 16,
+  },
+
+  textForgotPassword: {
     color: '#7a4b2a',
     fontSize: 12,
     textAlign: 'left',
   },
+
   overlay: {
     position: 'absolute',
     top: 0,
@@ -267,5 +425,70 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     backgroundColor: '#ffffff',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(17, 12, 9, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#fffaf5',
+    borderRadius: 18,
+    padding: 22,
+    borderWidth: 1,
+    borderColor: '#f0d6c2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+
+  modalCardSuccess: {
+    borderColor: '#7abf87',
+  },
+
+  modalCardError: {
+    borderColor: '#d97b65',
+  },
+
+  modalCardWarning: {
+    borderColor: '#e3a85a',
+  },
+
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2b1a13',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+
+  modalMessage: {
+    fontSize: 15,
+    color: '#4a3428',
+    lineHeight: 22,
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+
+  modalButton: {
+    backgroundColor: '#7a4b2a',
+    borderRadius: 10,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  modalButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 });
