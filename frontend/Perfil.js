@@ -1,32 +1,30 @@
 import { StatusBar } from 'expo-status-bar';
-import { Image, StyleSheet, Text, View, Pressable } from 'react-native';
+import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function Perfil({ onVoltar, setTelaEdicao }) {
     return (
-        <View style={styles.container}>
-            <StatusBar style="dark" />
+        <SafeAreaView style={styles.container}>
+            <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
             <View style={styles.cabecalho}>
                 <View style={styles.headerLeft}>
                     <Pressable onPress={onVoltar}>
                         <FontAwesome name="arrow-left" size={24} color="#292929" />
                     </Pressable>
-                </View>
-
-                <Text style={styles.titulo}>Meu Perfil</Text>
-
-                <View style={styles.acoesHeader}>
-                    <FontAwesome name="bell" size={20} color="#555" />
+                    <Text style={styles.appName}>PetWanted</Text>
                 </View>
 
                 <View style={styles.headerRight}>
+                    <FontAwesome name="bell" size={20} color="#555" />
                     <Pressable onPress={setTelaEdicao}>
                         <FontAwesome name="pencil" size={22} color="#292929" />
                     </Pressable>
                 </View>
+
             </View>
 
             <View style={styles.conteudo}>
+                <Text style={styles.titulo}>Meu Perfil</Text>
                 <View style={styles.avatar}>
                     <Text style={styles.textoAvatar}>U</Text>
                 </View>
@@ -61,9 +59,10 @@ export default function Perfil({ onVoltar, setTelaEdicao }) {
                     </View>
                 </View>
             </View>
-        </View>
+        </SafeAreaView>
     );
 }
+
 
 const styles = StyleSheet.create({
     container: {
@@ -71,7 +70,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fafafa',
     },
     cabecalho: {
-        height: 58,
+        height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
+        paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
         paddingHorizontal: 12,
         flexDirection: 'row',
         alignItems: 'center',
@@ -81,17 +81,18 @@ const styles = StyleSheet.create({
         borderBottomColor: '#e1e1e1',
     },
     headerLeft: {
-        width: 40,
-        alignItems: 'flex-start',
-        justifyContent: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
     },
     headerRight: {
-        width: 40,
-        alignItems: 'flex-end',
-        justifyContent: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
     },
     titulo: {
-        flex: 1,
+        marginTop: 20,
+        marginBottom: 20,
         fontSize: 18,
         fontWeight: 'bold',
         color: '#292929',
@@ -105,7 +106,6 @@ const styles = StyleSheet.create({
     conteudo: {
         flex: 1,
         alignItems: 'center',
-        paddingTop: 40,
         paddingHorizontal: 20,
     },
     avatar: {
@@ -154,5 +154,10 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#292929',
         fontWeight: '500',
+    },
+    appName: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#292929',
     },
 });

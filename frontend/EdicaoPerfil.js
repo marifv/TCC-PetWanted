@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, Pressable, TextInput, Alert, ScrollView } from 'react-native';
+import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Alert, ScrollView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
 export default function EdicaoPerfil({ onVoltar }) {
     return (
-        <View style={styles.container}>
-            <StatusBar style="dark" />
+        <SafeAreaView style={styles.container}>
+            <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
 
             <View style={styles.cabecalho}>
                 <View style={styles.headerLeft}>
@@ -78,7 +78,7 @@ export default function EdicaoPerfil({ onVoltar }) {
                     <Text style={styles.textoBotaoSalvar}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
@@ -88,7 +88,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#fafafa',
     },
     cabecalho: {
-        height: 58,
+        height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
+        paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
         paddingHorizontal: 12,
         flexDirection: 'row',
         alignItems: 'center',

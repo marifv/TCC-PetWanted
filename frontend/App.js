@@ -4,6 +4,8 @@ import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Te
 import Homepage from './Homepage';
 import Perfil from './Perfil';
 import EdicaoPerfil from './EdicaoPerfil';
+import AnimalPerdido from './AnimalPerdido';
+import AnimalEncontrado from './AnimalEncontrado';
 
 const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/usuarios' : 'http://localhost:3000/api/usuarios';
 
@@ -11,8 +13,9 @@ export default function App() {
   const [telaSelecionada, setTelaSelecionada] = useState(null);
   const [telaAtual, setTelaAtual] = useState('login');
   const [perfilAtivo, setPerfilAtivo] = useState(false);
+  const [animalPerdidoAtivo, setAnimalPerdidoAtivo] = useState(false);
+  const [animalEncontradoAtivo, setAnimalEncontradoAtivo] = useState(false);
   const [larguraContainer, setLarguraContainer] = useState(0);
-
   const [tipoPerfil, setTipoPerfil] = useState('');
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState('');
@@ -42,6 +45,8 @@ export default function App() {
   const abrirPerfil = () => {
     setTelaAtual('perfil');
     setPerfilAtivo(true);
+    setAnimalPerdidoAtivo(false);
+    setAnimalEncontradoAtivo(false);
     perfilOffset.setValue(400);
 
     Animated.timing(perfilOffset, {
@@ -49,6 +54,24 @@ export default function App() {
       duration: 300,
       useNativeDriver: true,
     }).start();
+  };
+
+  const abrirAnimalPerdido = () => {
+    setAnimalPerdidoAtivo(true);
+    setAnimalEncontradoAtivo(false);
+  };
+
+  const voltarParaHomeAnimalPerdido = () => {
+    setAnimalPerdidoAtivo(false);
+  };
+
+  const abrirAnimalEncontrado = () => {
+    setAnimalEncontradoAtivo(true);
+    setAnimalPerdidoAtivo(false);
+  };
+
+  const voltarParaHomeAnimalEncontrado = () => {
+    setAnimalEncontradoAtivo(false);
   };
 
   const abrirEdicaoPerfil = () => {
@@ -229,49 +252,63 @@ export default function App() {
           )}
         </View>
 
-        <StatusBar style="auto" />
+        <StatusBar hidden />
       </ScrollView>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Homepage setTelaAtual={abrirPerfil} telaAtual={telaAtual} />
+      <Homepage 
+        setTelaAtual={abrirPerfil} 
+        telaAtual={telaAtual}
+        abrirAnimalPerdido={abrirAnimalPerdido}
+        abrirAnimalEncontrado={abrirAnimalEncontrado}
+      />
 
       {perfilAtivo && (
         <Animated.View style={[styles.overlay, { transform: [{ translateX: perfilOffset }] }]}>
-          {telaAtual === 'perfil' && <Perfil onVoltar={voltarParaHome} setTelaEdicao={abrirEdicaoPerfil} />}
-          {telaAtual === 'edicaoPerfil' && <EdicaoPerfil onVoltar={voltarParaPerfil} />}
+          {telaAtual === 'perfil' && (
+            <Perfil 
+              onVoltar={voltarParaHome}
+              setTelaEdicao={abrirEdicaoPerfil} 
+            />
+          )}
+
+          {telaAtual === 'edicaoPerfil' && (
+            <EdicaoPerfil onVoltar={voltarParaPerfil} />
+          )}
         </Animated.View>
+      )}
+
+      {animalPerdidoAtivo && (
+        <View style={styles.overlay}>
+          <AnimalPerdido
+            onVoltar={voltarParaHomeAnimalPerdido}
+            setTelaAtual={abrirPerfil}
+            abrirAnimalEncontrado={abrirAnimalEncontrado}
+          />
+        </View>
+      )}
+
+      {animalEncontradoAtivo && (
+        <View style={styles.overlay}>
+          <AnimalEncontrado
+            onVoltar={voltarParaHomeAnimalEncontrado}
+            setTelaAtual={abrirPerfil}
+            abrirAnimalPerdido={abrirAnimalPerdido}
+          />
+        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
     backgroundColor: '#f8b385',
-  },
-
-  scrollContainer: {
-    flexGrow: 1,
-    alignItems: 'center',
-    paddingVertical: 20,
-  },
-
-  content: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-  },
-
-  logo: {
-    width: 100,
-    height: 100,
-    marginTop: 20,
-    marginBottom: 16,
-    borderRadius: 50,
   },
 
   title: {
@@ -288,6 +325,26 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textAlign: 'center',
     paddingHorizontal: 12,
+  },
+
+  logo: {
+    width: 100,
+    height: 100,
+    marginTop: 20,
+    marginBottom: 16,
+    borderRadius: 50,
+  },
+
+  scrollContainer: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+
+  content: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 16,
   },
 
   actions: {
