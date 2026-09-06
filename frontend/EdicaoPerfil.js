@@ -1,19 +1,30 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Alert, ScrollView, Image } from 'react-native';
+import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Modal, ScrollView, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
-export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, fotoPerfil, onSalvar }) {
+export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, telefone, localizacao, fotoPerfil, onSalvar }) {
     const [novoNome, setNovoNome] = useState(nome || '');
     const [novoTipoPerfil, setNovoTipoPerfil] = useState(tipoPerfil || '');
+    const [novoTelefone, setNovoTelefone] = useState(telefone || '');
+    const [novaLocalizacao, setNovaLocalizacao] = useState(localizacao || '');
     const [novaFotoPerfil, setNovaFotoPerfil] = useState(fotoPerfil || null);
+    const [modalVisivel, setModalVisivel] = useState(false);
+    const [modalTitulo, setModalTitulo] = useState('');
+    const [modalMensagem, setModalMensagem] = useState('');
+
+    const mostrarModal = (titulo, mensagem) => {
+        setModalTitulo(titulo);
+        setModalMensagem(mensagem);
+        setModalVisivel(true);
+    };
 
     const escolherFoto = async () => {
         const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permissao.granted) {
-            Alert.alert(
+            mostrarModal(
                 'Permissão necessária',
                 'Precisamos de acesso à sua galeria para escolher uma foto.'
             );
@@ -34,58 +45,68 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, fotoPerfil, o
 
     const salvarAlteracoes = () => {
         if (!novoNome.trim()) {
-            Alert.alert('Atenção', 'Digite um nome para o perfil.');
+            mostrarModal('Atenção', 'Digite um nome para o perfil.');
             return;
         }
 
         if (!novoTipoPerfil) {
-            Alert.alert('Atenção', 'Selecione o tipo de perfil.');
+            mostrarModal('Atenção', 'Selecione o tipo de perfil.');
             return;
         }
 
-        onSalvar(novoNome.trim(), novoTipoPerfil, novaFotoPerfil);
+        if (!novoTelefone.trim()) {
+            mostrarModal('Atenção', 'Digite um telefone para o perfil.');
+            return;
+        }
+
+        if (!novaLocalizacao.trim()) {
+            mostrarModal('Atenção', 'Digite uma localização para o perfil.');
+            return;
+        }
+
+        onSalvar(novoNome.trim(), novoTipoPerfil, novoTelefone.trim(), novaLocalizacao.trim(), novaFotoPerfil);
     };
 
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
 
-            <View style={styles.cabecalho}>
+            <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <Pressable onPress={onVoltar}>
                         <FontAwesome name="arrow-left" size={24} color="#292929" />
                     </Pressable>
                 </View>
 
-                <Text style={styles.titulo}>Editar Perfil</Text>
+                <Text style={styles.title}>Editar Perfil</Text>
 
                 <View style={styles.headerRight}>
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.conteudo}>
+            <ScrollView contentContainerStyle={styles.content}>
                 <Pressable style={styles.avatar} onPress={escolherFoto}>
                     {novaFotoPerfil ? (
                         <Image
                             source={{ uri: novaFotoPerfil }}
-                            style={styles.imagemPerfil}
+                            style={styles.profileImage}
                         />
                     ) : (
-                        <Text style={styles.textoAvatar}>
+                        <Text style={styles.avatarText}>
                             {novoNome ? novoNome.charAt(0).toUpperCase() : 'U'}
                         </Text>
                     )}
                 </Pressable>
 
-                <Text style={styles.textoTrocarFoto}>
+                <Text style={styles.changePhotoText}>
                     Toque na foto para alterar
                 </Text>
 
-                <Text style={styles.nome}>
+                <Text style={styles.name}>
                     {novoNome || 'Seu Nome'}
                 </Text>
 
-                <Text style={styles.labelPrincipal}>Nome</Text>
+                <Text style={styles.primaryLabel}>Nome</Text>
 
                 <View style={styles.info}>
                     <View style={styles.infoTexto}>
@@ -99,31 +120,9 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, fotoPerfil, o
                     </View>
                 </View>
 
-                <Text style={styles.labelPrincipal}>Tipo de perfil</Text>
-
-                <View style={styles.tipoPerfilContainer}>
-                    <Pressable
-                        style={[styles.tipoPerfilButton, novoTipoPerfil === 'Tutor' && styles.tipoPerfilSelecionado]}
-                        onPress={() => setNovoTipoPerfil('Tutor')}
-                    >
-                        <Text style={[styles.tipoPerfilTexto, novoTipoPerfil === 'Tutor' && styles.tipoPerfilTextoSelecionado]}>
-                            Tutor
-                        </Text>
-                    </Pressable>
-
-                    <Pressable
-                        style={[styles.tipoPerfilButton, novoTipoPerfil === 'ONG' && styles.tipoPerfilSelecionado]}
-                        onPress={() => setNovoTipoPerfil('ONG')}
-                    >
-                        <Text style={[styles.tipoPerfilTexto, novoTipoPerfil === 'ONG' && styles.tipoPerfilTextoSelecionado]}>
-                            ONG
-                        </Text>
-                    </Pressable>
-                </View>
-
                 <Pressable
                     style={styles.info}
-                    onPress={() => Alert.alert('E-mail', 'O e-mail não pode ser modificado.')}
+                    onPress={() => mostrarModal('E-mail', 'O e-mail não pode ser modificado.')}
                 >
                     <View style={styles.infoTexto}>
                         <Text style={styles.label}>E-mail</Text>
@@ -135,7 +134,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, fotoPerfil, o
 
                 <Pressable
                     style={styles.info}
-                    onPress={() => Alert.alert('Documento', 'O CPF/CNPJ não pode ser modificado.')}
+                    onPress={() => mostrarModal('Documento', 'O CPF/CNPJ não pode ser modificado.')}
                 >
                     <View style={styles.infoTexto}>
                         <Text style={styles.label}>
@@ -159,6 +158,8 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, fotoPerfil, o
                             placeholder="Digite seu telefone"
                             placeholderTextColor="#999"
                             keyboardType="phone-pad"
+                            value={novoTelefone}
+                            onChangeText={setNovoTelefone}
                         />
                     </View>
                 </View>
@@ -171,17 +172,40 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, fotoPerfil, o
                             style={styles.valorInput}
                             placeholder="Digite sua localização"
                             placeholderTextColor="#999"
+                            value={novaLocalizacao}
+                            onChangeText={setNovaLocalizacao}
                         />
                     </View>
                 </View>
 
                 <Pressable
-                    style={styles.botaoSalvar}
+                    style={styles.saveButton}
                     onPress={salvarAlteracoes}
                 >
-                    <Text style={styles.textoBotaoSalvar}>Salvar alterações</Text>
+                    <Text style={styles.saveButtonText}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
+
+            <Modal
+                visible={modalVisivel}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setModalVisivel(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitulo}>{modalTitulo}</Text>
+                        <Text style={styles.modalMensagem}>{modalMensagem}</Text>
+
+                        <Pressable
+                            style={styles.modalButton}
+                            onPress={() => setModalVisivel(false)}
+                        >
+                            <Text style={styles.modalButtonText}>OK</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -192,7 +216,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fafafa',
     },
 
-    cabecalho: {
+    header: {
         height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
         paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
         paddingHorizontal: 12,
@@ -216,7 +240,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
 
-    titulo: {
+    title: {
         flex: 1,
         fontSize: 18,
         fontWeight: 'bold',
@@ -224,7 +248,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-    conteudo: {
+    content: {
         paddingHorizontal: 30,
         paddingTop: 30,
         paddingBottom: 30,
@@ -242,26 +266,26 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
 
-    imagemPerfil: {
+    profileImage: {
         width: 80,
         height: 80,
         borderRadius: 40,
     },
 
-    textoAvatar: {
+    avatarText: {
         fontSize: 32,
         fontWeight: 'bold',
         color: '#fff',
     },
 
-    textoTrocarFoto: {
+    changePhotoText: {
         fontSize: 12,
         color: '#888888',
         textAlign: 'center',
         marginBottom: 10,
     },
 
-    nome: {
+    name: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#000',
@@ -269,7 +293,7 @@ const styles = StyleSheet.create({
         marginBottom: 25,
     },
 
-    labelPrincipal: {
+    primaryLabel: {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#292929',
@@ -309,13 +333,13 @@ const styles = StyleSheet.create({
         margin: 0,
     },
 
-    tipoPerfilContainer: {
+    profileTypeContainer: {
         flexDirection: 'row',
         marginBottom: 12,
         gap: 8,
     },
 
-    tipoPerfilButton: {
+    profileTypeButton: {
         flex: 1,
         height: 44,
         alignItems: 'center',
@@ -326,22 +350,66 @@ const styles = StyleSheet.create({
         borderRadius: 6,
     },
 
-    tipoPerfilSelecionado: {
+    selectedProfileType: {
         backgroundColor: '#7a4b2a',
         borderColor: '#7a4b2a',
     },
 
-    tipoPerfilTexto: {
+    profileTypeText: {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#7a4b2a',
     },
 
-    tipoPerfilTextoSelecionado: {
+    selectedProfileTypeText: {
         color: '#ffffff',
     },
 
-    botaoSalvar: {
+    modalOverlay: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    },
+
+    modalContainer: {
+        width: '100%',
+        maxWidth: 360,
+        padding: 22,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+    },
+
+    modalTitulo: {
+        marginBottom: 8,
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#292929',
+    },
+
+    modalMensagem: {
+        marginBottom: 20,
+        fontSize: 15,
+        lineHeight: 21,
+        color: '#555555',
+    },
+
+    modalButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 42,
+        backgroundColor: '#7a4b2a',
+        borderRadius: 6,
+    },
+
+    modalButtonText: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#ffffff',
+    },
+
+    saveButton: {
         height: 46,
         alignItems: 'center',
         justifyContent: 'center',
@@ -350,7 +418,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
 
-    textoBotaoSalvar: {
+    saveButtonText: {
         color: '#ffffff',
         fontSize: 16,
         fontWeight: 'bold',

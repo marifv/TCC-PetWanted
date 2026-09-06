@@ -1,13 +1,16 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, Image, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { Modal, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, Image, ScrollView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 
-export default function Perfil({ onVoltar, setTelaEdicao, nome, tipoPerfil, email, documento, fotoPerfil }) {
+export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil }) {
+    const [confirmacaoExclusaoVisivel, setConfirmacaoExclusaoVisivel] = useState(false);
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
 
-            <View style={styles.cabecalho}>
+            <View style={styles.header}>
                 <View style={styles.headerLeft}>
                     <Pressable onPress={onVoltar}>
                         <FontAwesome name="arrow-left" size={24} color="#292929" />
@@ -25,17 +28,17 @@ export default function Perfil({ onVoltar, setTelaEdicao, nome, tipoPerfil, emai
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.conteudo}>
-                <Text style={styles.titulo}>Meu Perfil</Text>
+            <ScrollView contentContainerStyle={styles.content}>
+                <Text style={styles.title}>Meu Perfil</Text>
 
                 <View style={styles.avatar}>
                     {fotoPerfil ? (
                         <Image
                             source={{ uri: fotoPerfil }}
-                            style={styles.imagemPerfil}
+                            style={styles.profileImage}
                         />
                     ) : (
-                        <Text style={styles.textoAvatar}>
+                        <Text style={styles.avatarText}>
                             {nome ? nome.charAt(0).toUpperCase() : 'U'}
                         </Text>
                     )}
@@ -79,7 +82,7 @@ export default function Perfil({ onVoltar, setTelaEdicao, nome, tipoPerfil, emai
 
                     <View style={styles.infoTexto}>
                         <Text style={styles.label}>Telefone</Text>
-                        <Text style={styles.valor}>Seu telefone</Text>
+                        <Text style={styles.valor}>{telefone || 'Seu telefone'}</Text>
                     </View>
                 </View>
 
@@ -88,7 +91,7 @@ export default function Perfil({ onVoltar, setTelaEdicao, nome, tipoPerfil, emai
 
                     <View style={styles.infoTexto}>
                         <Text style={styles.label}>Localização</Text>
-                        <Text style={styles.valor}>Sua localização</Text>
+                        <Text style={styles.valor}>{localizacao || 'Sua localização'}</Text>
                     </View>
                 </View>
 
@@ -105,7 +108,55 @@ export default function Perfil({ onVoltar, setTelaEdicao, nome, tipoPerfil, emai
                         </Text>
                     </View>
                 </View>
+
+                <Pressable
+                    style={styles.deleteButton}
+                    onPress={() => setConfirmacaoExclusaoVisivel(true)}
+                >
+                    <FontAwesome name="trash" size={16} color="#d9534f" />
+                    <Text style={styles.deleteButtonText}>Excluir perfil</Text>
+                </Pressable>
+
+                <Pressable style={styles.logoutButton} onPress={onDeslogar}>
+                    <FontAwesome name="sign-out" size={16} color="#7a4b2a" />
+                    <Text style={styles.logoutButtonText}>Sair da conta</Text>
+                </Pressable>
             </ScrollView>
+
+            <Modal
+                transparent
+                animationType="fade"
+                visible={confirmacaoExclusaoVisivel}
+                onRequestClose={() => setConfirmacaoExclusaoVisivel(false)}
+            >
+                <View style={styles.confirmationOverlay}>
+                    <View style={styles.confirmationCard}>
+                        <Text style={styles.confirmationTitle}>Excluir perfil</Text>
+                        <Text style={styles.confirmationMessage}>
+                            Tem certeza de que deseja excluir seu perfil? Essa ação não pode ser desfeita.
+                        </Text>
+
+                        <View style={styles.confirmationActions}>
+                            <Pressable
+                                style={styles.cancelButton}
+                                onPress={() => setConfirmacaoExclusaoVisivel(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            </Pressable>
+
+                            <Pressable
+                                style={styles.confirmButton}
+                                onPress={() => {
+                                    setConfirmacaoExclusaoVisivel(false);
+                                    onExcluir();
+                                }}
+                            >
+                                <Text style={styles.confirmButtonText}>Excluir</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -116,7 +167,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fafafa',
     },
 
-    cabecalho: {
+    header: {
         height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
         paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
         paddingHorizontal: 12,
@@ -140,7 +191,7 @@ const styles = StyleSheet.create({
         gap: 16,
     },
 
-    titulo: {
+    title: {
         marginTop: 20,
         marginBottom: 20,
         fontSize: 18,
@@ -149,7 +200,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 
-    conteudo: {
+    content: {
         flexGrow: 1,
         alignItems: 'center',
         paddingHorizontal: 20,
@@ -168,13 +219,13 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
 
-    imagemPerfil: {
+    profileImage: {
         width: 90,
         height: 90,
         borderRadius: 45,
     },
 
-    textoAvatar: {
+    avatarText: {
         fontSize: 34,
         fontWeight: 'bold',
         color: '#fff',
@@ -213,5 +264,104 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
         color: '#292929',
+    },
+
+    deleteButton: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 13,
+        marginTop: 8,
+        borderWidth: 1,
+        borderColor: '#d9534f',
+        borderRadius: 8,
+    },
+
+    deleteButtonText: {
+        color: '#d9534f',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+
+    logoutButton: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 13,
+        marginTop: 10,
+        borderWidth: 1,
+        borderColor: '#7a4b2a',
+        borderRadius: 8,
+    },
+
+    logoutButtonText: {
+        color: '#7a4b2a',
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+
+    confirmationOverlay: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    },
+
+    confirmationCard: {
+        width: '100%',
+        maxWidth: 380,
+        padding: 22,
+        backgroundColor: '#ffffff',
+        borderRadius: 12,
+    },
+
+    confirmationTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#292929',
+        marginBottom: 10,
+    },
+
+    confirmationMessage: {
+        fontSize: 14,
+        lineHeight: 20,
+        color: '#666666',
+        marginBottom: 20,
+    },
+
+    confirmationActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 10,
+    },
+
+    cancelButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#cccccc',
+    },
+
+    cancelButtonText: {
+        color: '#555555',
+        fontWeight: 'bold',
+    },
+
+    confirmButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 10,
+        borderRadius: 6,
+        backgroundColor: '#d9534f',
+    },
+
+    confirmButtonText: {
+        color: '#ffffff',
+        fontWeight: 'bold',
     },
 });

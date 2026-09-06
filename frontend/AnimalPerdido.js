@@ -10,30 +10,26 @@ const SEXOS = ['Macho', 'Fêmea'];
 
 const AREA_BUSCA_PADRAO = 5;
 
+const STATUS_PERDIDO = 'Perdido';
+const STATUS_ENCONTRADO = 'Encontrado';
+
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
     { chave: 'meus', label: 'Meus animais', icone: 'user' },
 ];
 
-function formatarDataAtual() {
-    const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const ano = hoje.getFullYear();
-    return `${dia}/${mes}/${ano}`;
-}
-
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', descricao: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', data: '', descricao: '', foto: null };
 }
 
-export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncontrado }) {
+export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao }) {
     const [animais, setAnimais] = useState([]);
     const [busca, setBusca] = useState('');
     const [visualizacao, setVisualizacao] = useState('todos');
     const [areaExpandida, setAreaExpandida] = useState({});
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
+    const [confirmacaoAlvo, setConfirmacaoAlvo] = useState(null);
 
     const animaisFiltrados = animais.filter((animal) => {
         if (visualizacao === 'meus' && !animal.meuAnimal) return false;
@@ -47,12 +43,24 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
         setAreaExpandida((atual) => ({ ...atual, [id]: !atual[id] }));
     };
 
-    const marcarComoEncontrado = (id) => {
-        setAnimais((atual) => atual.map((animal) => (animal.id === id ? { ...animal, status: 'Encontrado' } : animal)));
-    };
-
     const excluirAnimal = (id) => {
         setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+    };
+
+    const solicitarAlteracaoStatus = (id, novoStatus) => {
+        const animal = animais.find((item) => item.id === id);
+        if (!animal || animal.status === novoStatus) return;
+        setConfirmacaoAlvo({ id, novoStatus });
+    };
+
+    const cancelarAlteracaoStatus = () => {
+        setConfirmacaoAlvo(null);
+    };
+
+    const confirmarAlteracaoStatus = () => {
+        if (!confirmacaoAlvo) return;
+        setAnimais((atual) => atual.map((animal) => (animal.id === confirmacaoAlvo.id ? { ...animal, status: confirmacaoAlvo.novoStatus } : animal)));
+        setConfirmacaoAlvo(null);
     };
 
     const atualizarCampo = (campo, valor) => {
@@ -84,12 +92,12 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
     };
 
     const salvarAnimal = () => {
-        if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.local) {
-            Alert.alert('Atenção', 'Preencha ao menos nome, espécie, raça e local do desaparecimento.');
+        if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
+            Alert.alert('Atenção', 'Preencha nome, espécie, raça, cor, porte, sexo, local e data do desaparecimento.');
             return;
         }
 
-        const novoAnimal = { id: Date.now().toString(), nome: formulario.nome, especie: formulario.especie, raca: formulario.raca, cor: formulario.cor, porte: formulario.porte, sexo: formulario.sexo, local: formulario.local, descricao: formulario.descricao, foto: formulario.foto, data: formatarDataAtual(), areaBusca: AREA_BUSCA_PADRAO, status: 'Perdido', meuAnimal: true };
+        const novoAnimal = { id: Date.now().toString(), nome: formulario.nome, especie: formulario.especie, raca: formulario.raca, cor: formulario.cor, porte: formulario.porte, sexo: formulario.sexo, local: formulario.local, descricao: formulario.descricao, foto: formulario.foto, data: formulario.data, areaBusca: AREA_BUSCA_PADRAO, status: STATUS_PERDIDO, meuAnimal: true };
 
         setAnimais((atual) => [...atual, novoAnimal]);
         setModalVisivel(false);
@@ -167,7 +175,7 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                                 <Text style={styles.especieAnimal}>{animal.especie}{animal.raca ? ` • ${animal.raca}` : ''}</Text>
                             </View>
 
-                            <View style={[styles.badgeStatus, animal.status === 'Encontrado' && styles.badgeStatusEncontrado]}>
+                            <View style={[styles.badgeStatus, animal.status === STATUS_ENCONTRADO && styles.badgeStatusEncontrado]}>
                                 <Text style={styles.badgeStatusTexto}>{animal.status}</Text>
                             </View>
                         </View>
@@ -207,9 +215,21 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                                     <Text style={styles.botaoEditarTexto}>Editar</Text>
                                 </Pressable>
 
-                                <Pressable style={styles.botaoEncontrado} onPress={() => marcarComoEncontrado(animal.id)}>
-                                    <Text style={styles.botaoEncontradoTexto}>Encontrado</Text>
-                                </Pressable>
+                                <View style={styles.statusToggleContainer}>
+                                    <Pressable
+                                        style={[styles.statusToggleBotao, animal.status === STATUS_PERDIDO && styles.statusToggleBotaoPerdidoAtivo]}
+                                        onPress={() => solicitarAlteracaoStatus(animal.id, STATUS_PERDIDO)}
+                                    >
+                                        <Text style={[styles.statusToggleTexto, animal.status === STATUS_PERDIDO && styles.statusToggleTextoAtivo]}>Perdido</Text>
+                                    </Pressable>
+
+                                    <Pressable
+                                        style={[styles.statusToggleBotao, animal.status === STATUS_ENCONTRADO && styles.statusToggleBotaoEncontradoAtivo]}
+                                        onPress={() => solicitarAlteracaoStatus(animal.id, STATUS_ENCONTRADO)}
+                                    >
+                                        <Text style={[styles.statusToggleTexto, animal.status === STATUS_ENCONTRADO && styles.statusToggleTextoAtivo]}>Encontrado</Text>
+                                    </Pressable>
+                                </View>
 
                                 <Pressable style={styles.botaoExcluir} onPress={() => excluirAnimal(animal.id)}>
                                     <FontAwesome name="trash" size={16} color="#d9534f" />
@@ -236,7 +256,7 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                     <Text style={styles.textoRodape}>Chat</Text>
                 </Pressable>
 
-                <Pressable style={styles.itemRodapeAdocao}>
+                <Pressable style={styles.itemRodapeAdocao} onPress={abrirAdocao}>
                     <FontAwesome name="heart" size={20} color="#6b6b6b" />
                     <Text style={styles.textoRodape}>Adoção</Text>
                 </Pressable>
@@ -279,10 +299,10 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                             <Text style={styles.campoLabel}>Raça *</Text>
                             <TextInput style={styles.campoInput} placeholder="Raça do animal" placeholderTextColor="gray" value={formulario.raca} onChangeText={(valor) => atualizarCampo('raca', valor)} />
 
-                            <Text style={styles.campoLabel}>Cor</Text>
+                            <Text style={styles.campoLabel}>Cor *</Text>
                             <TextInput style={styles.campoInput} placeholder="Cor predominante" placeholderTextColor="gray" value={formulario.cor} onChangeText={(valor) => atualizarCampo('cor', valor)} />
 
-                            <Text style={styles.campoLabel}>Porte</Text>
+                            <Text style={styles.campoLabel}>Porte *</Text>
                             <View style={styles.opcoesContainer}>
                                 {PORTES.map((opcao) => (
                                     <Pressable key={opcao} style={[styles.opcaoBotao, formulario.porte === opcao && styles.opcaoBotaoSelecionada]} onPress={() => atualizarCampo('porte', opcao)}>
@@ -291,7 +311,7 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                                 ))}
                             </View>
 
-                            <Text style={styles.campoLabel}>Sexo</Text>
+                            <Text style={styles.campoLabel}>Sexo *</Text>
                             <View style={styles.opcoesContainer}>
                                 {SEXOS.map((opcao) => (
                                     <Pressable key={opcao} style={[styles.opcaoBotao, formulario.sexo === opcao && styles.opcaoBotaoSelecionada]} onPress={() => atualizarCampo('sexo', opcao)}>
@@ -303,6 +323,9 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                             <Text style={styles.campoLabel}>Local do desaparecimento *</Text>
                             <TextInput style={styles.campoInput} placeholder="Ex: Parque Ibirapuera, São Paulo - SP" placeholderTextColor="gray" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
 
+                            <Text style={styles.campoLabel}>Data do desaparecimento *</Text>
+                            <TextInput style={styles.campoInput} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', valor)} keyboardType="numeric" />
+
                             <Text style={styles.campoLabel}>Descrição adicional</Text>
                             <TextInput style={[styles.campoInput, styles.campoInputMultilinha]} placeholder="Características, comportamento, coleira, etc." placeholderTextColor="gray" value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline numberOfLines={4} />
 
@@ -310,6 +333,36 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                                 <Text style={styles.botaoSalvarTexto}>Salvar</Text>
                             </Pressable>
                         </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={!!confirmacaoAlvo} transparent animationType="fade" onRequestClose={cancelarAlteracaoStatus}>
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <FontAwesome
+                            name={confirmacaoAlvo?.novoStatus === STATUS_ENCONTRADO ? 'check-circle' : 'search'}
+                            size={30}
+                            color={confirmacaoAlvo?.novoStatus === STATUS_ENCONTRADO ? '#3fae6a' : '#e08a3e'}
+                        />
+
+                        <Text style={styles.confirmTitulo}>Confirmar alteração</Text>
+
+                        <Text style={styles.confirmMensagem}>
+                            {confirmacaoAlvo?.novoStatus === STATUS_ENCONTRADO
+                                ? 'Tem certeza que esse animal foi encontrado?'
+                                : 'Tem certeza que quer voltar o status para "Perdido"?'}
+                        </Text>
+
+                        <View style={styles.confirmBotoesContainer}>
+                            <Pressable style={styles.confirmBotaoCancelar} onPress={cancelarAlteracaoStatus}>
+                                <Text style={styles.confirmBotaoCancelarTexto}>Cancelar</Text>
+                            </Pressable>
+
+                            <Pressable style={styles.confirmBotaoConfirmar} onPress={confirmarAlteracaoStatus}>
+                                <Text style={styles.confirmBotaoConfirmarTexto}>Confirmar</Text>
+                            </Pressable>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -341,10 +394,25 @@ const styles = StyleSheet.create({
         color: '#292929',
     },
 
-    tituloContainer: {
+    acoesHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 14,
+    },
+
+    avatar: {
+        width: 30,
+        height: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#45a9d5',
+        borderRadius: 15,
+    },
+
+    avatarText: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#ffffff',
     },
 
     segmentoContainer: {
@@ -377,27 +445,6 @@ const styles = StyleSheet.create({
     },
 
     segmentoTextoSelecionado: {
-        color: '#ffffff',
-    },
-
-    acoesHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 14,
-    },
-
-    avatar: {
-        width: 30,
-        height: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#45a9d5',
-        borderRadius: 15,
-    },
-
-    avatarText: {
-        fontSize: 15,
-        fontWeight: 'bold',
         color: '#ffffff',
     },
 
@@ -606,18 +653,41 @@ const styles = StyleSheet.create({
         color: '#45a9d5',
     },
 
-    botaoEncontrado: {
-        flex: 1.4,
-        alignItems: 'center',
-        justifyContent: 'center',
+    statusToggleContainer: {
+        flex: 1.8,
+        flexDirection: 'row',
+        gap: 4,
+        padding: 3,
         height: 40,
         borderRadius: 8,
+        backgroundColor: '#f2ede4',
+    },
+
+    statusToggleBotao: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 4,
+        borderRadius: 6,
+    },
+
+    statusToggleBotaoPerdidoAtivo: {
+        backgroundColor: '#d9534f',
+    },
+
+    statusToggleBotaoEncontradoAtivo: {
         backgroundColor: '#3fae6a',
     },
 
-    botaoEncontradoTexto: {
-        fontSize: 13,
+    statusToggleTexto: {
+        fontSize: 11,
         fontWeight: 'bold',
+        color: '#6b6b6b',
+        textAlign: 'center',
+    },
+
+    statusToggleTextoAtivo: {
         color: '#ffffff',
     },
 
@@ -795,6 +865,74 @@ const styles = StyleSheet.create({
 
     botaoSalvarTexto: {
         fontSize: 15,
+        fontWeight: 'bold',
+        color: '#ffffff',
+    },
+
+    confirmOverlay: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(17, 12, 9, 0.45)',
+        paddingHorizontal: 30,
+    },
+
+    confirmCard: {
+        width: '100%',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        borderRadius: 16,
+        padding: 24,
+        gap: 10,
+    },
+
+    confirmTitulo: {
+        fontSize: 17,
+        fontWeight: 'bold',
+        color: '#292929',
+    },
+
+    confirmMensagem: {
+        fontSize: 14,
+        color: '#4a4a4a',
+        textAlign: 'center',
+        lineHeight: 20,
+        marginBottom: 6,
+    },
+
+    confirmBotoesContainer: {
+        flexDirection: 'row',
+        width: '100%',
+        gap: 10,
+    },
+
+    confirmBotaoCancelar: {
+        flex: 1,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#d8d8d8',
+    },
+
+    confirmBotaoCancelarTexto: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#4a4a4a',
+    },
+
+    confirmBotaoConfirmar: {
+        flex: 1,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        backgroundColor: '#e08a3e',
+    },
+
+    confirmBotaoConfirmarTexto: {
+        fontSize: 14,
         fontWeight: 'bold',
         color: '#ffffff',
     },

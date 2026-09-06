@@ -6,22 +6,30 @@ import Perfil from './Perfil';
 import EdicaoPerfil from './EdicaoPerfil';
 import AnimalPerdido from './AnimalPerdido';
 import AnimalEncontrado from './AnimalEncontrado';
+import AnimalAdocao from './AnimalAdocao';
 
 const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/usuarios' : 'http://localhost:3000/api/usuarios';
 
 export default function App() {
   const [telaSelecionada, setTelaSelecionada] = useState(null);
   const [telaAtual, setTelaAtual] = useState('login');
+  const [telaAnterior, setTelaAnterior] = useState('homepage');
+  const [usuarioId, setUsuarioId] = useState(null);
   const [perfilAtivo, setPerfilAtivo] = useState(false);
   const [animalPerdidoAtivo, setAnimalPerdidoAtivo] = useState(false);
   const [animalEncontradoAtivo, setAnimalEncontradoAtivo] = useState(false);
+  const [animalAdocaoAtivo, setAnimalAdocaoAtivo] = useState(false);
   const [larguraContainer, setLarguraContainer] = useState(0);
   const [tipoPerfil, setTipoPerfil] = useState('');
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState('');
   const [email, setEmail] = useState('');
+  const [telefone, setTelefone] = useState('');
+  const [localizacao, setLocalizacao] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
   const [fotoPerfil, setFotoPerfil] = useState(null);
   const [senha, setSenha] = useState('');
+  const [loginSenha, setLoginSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [alertaVisivel, setAlertaVisivel] = useState(false);
   const [alertaTitulo, setAlertaTitulo] = useState('');
@@ -44,10 +52,20 @@ export default function App() {
   };
 
   const abrirPerfil = () => {
+    const telaOrigem = animalPerdidoAtivo
+      ? 'animalPerdido'
+      : animalEncontradoAtivo
+        ? 'animalEncontrado'
+        : animalAdocaoAtivo
+          ? 'animalAdocao'
+        : 'homepage';
+
+    setTelaAnterior(telaOrigem);
     setTelaAtual('perfil');
     setPerfilAtivo(true);
     setAnimalPerdidoAtivo(false);
     setAnimalEncontradoAtivo(false);
+    setAnimalAdocaoAtivo(false);
     perfilOffset.setValue(400);
 
     Animated.timing(perfilOffset, {
@@ -60,6 +78,7 @@ export default function App() {
   const abrirAnimalPerdido = () => {
     setAnimalPerdidoAtivo(true);
     setAnimalEncontradoAtivo(false);
+    setAnimalAdocaoAtivo(false);
   };
 
   const voltarParaHomeAnimalPerdido = () => {
@@ -69,10 +88,40 @@ export default function App() {
   const abrirAnimalEncontrado = () => {
     setAnimalEncontradoAtivo(true);
     setAnimalPerdidoAtivo(false);
+    setAnimalAdocaoAtivo(false);
   };
 
   const voltarParaHomeAnimalEncontrado = () => {
     setAnimalEncontradoAtivo(false);
+  };
+
+  const abrirAnimalAdocao = () => {
+    setAnimalAdocaoAtivo(true);
+    setAnimalPerdidoAtivo(false);
+    setAnimalEncontradoAtivo(false);
+  };
+
+  const voltarParaHomeAnimalAdocao = () => {
+    setAnimalAdocaoAtivo(false);
+  };
+
+  const deslogar = () => {
+    setUsuarioId(null);
+    setNome('');
+    setDocumento('');
+    setEmail('');
+    setTelefone('');
+    setLocalizacao('');
+    setTipoPerfil('');
+    setFotoPerfil(null);
+    setLoginEmail('');
+    setLoginSenha('');
+    setTelaSelecionada(null);
+    setPerfilAtivo(false);
+    setAnimalPerdidoAtivo(false);
+    setAnimalEncontradoAtivo(false);
+    setAnimalAdocaoAtivo(false);
+    setTelaAtual('login');
   };
 
   const abrirEdicaoPerfil = () => {
@@ -83,20 +132,90 @@ export default function App() {
     setTelaAtual('perfil');
   };
 
-  const salvarPerfil = (novoNome, novoTipoPerfil, novaFotoPerfil) => {
-    setNome(novoNome);
-    setTipoPerfil(novoTipoPerfil);
-    setFotoPerfil(novaFotoPerfil);
-    setTelaAtual('perfil');
+  const salvarPerfil = async (novoNome, novoTipoPerfil, novoTelefone, novaLocalizacao, novaFotoPerfil) => {
+    try {
+      const resposta = await fetch(`${API_URL}/${usuarioId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nome: novoNome,
+          telefone: novoTelefone,
+          localizacao: novaLocalizacao,
+        }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        mostrarAlerta('Erro', dados.mensagem || 'Não foi possível atualizar o perfil.', 'error');
+        return;
+      }
+
+      setNome(dados.nome);
+      setTipoPerfil(dados.tipo_perfil);
+      setTelefone(dados.telefone || '');
+      setLocalizacao(dados.localizacao || '');
+      setFotoPerfil(novaFotoPerfil);
+      setTelaAtual('perfil');
+    } catch (erro) {
+      console.error('Erro ao atualizar perfil:', erro);
+      mostrarAlerta('Erro', 'Não foi possível conectar ao servidor.', 'error');
+    }
   };
 
-  const voltarParaHome = () => {
+  const excluirPerfil = async () => {
+    if (!usuarioId) {
+      mostrarAlerta('Erro', 'Não foi possível identificar o usuário logado.', 'error');
+      return;
+    }
+
+    try {
+      const resposta = await fetch(`${API_URL}/${usuarioId}`, {
+        method: 'DELETE',
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        mostrarAlerta('Erro', dados.mensagem || 'Não foi possível excluir o perfil.', 'error');
+        return;
+      }
+
+      setUsuarioId(null);
+      setNome('');
+      setDocumento('');
+      setEmail('');
+      setTelefone('');
+      setLocalizacao('');
+      setTipoPerfil('');
+      setFotoPerfil(null);
+      setLoginEmail('');
+      setLoginSenha('');
+      setPerfilAtivo(false);
+      setAnimalPerdidoAtivo(false);
+      setAnimalEncontradoAtivo(false);
+      setAnimalAdocaoAtivo(false);
+      setTelaSelecionada(null);
+      setTelaAtual('login');
+      mostrarAlerta('Perfil excluído', 'Seu perfil foi excluído com sucesso.', 'success');
+    } catch (erro) {
+      console.error('Erro ao excluir perfil:', erro);
+      mostrarAlerta('Erro', 'Não foi possível conectar ao servidor.', 'error');
+    }
+  };
+
+  const voltarParaTelaAnterior = () => {
     Animated.timing(perfilOffset, {
       toValue: 500,
       duration: 250,
       useNativeDriver: true,
     }).start(() => {
       setPerfilAtivo(false);
+      setAnimalPerdidoAtivo(telaAnterior === 'animalPerdido');
+      setAnimalEncontradoAtivo(telaAnterior === 'animalEncontrado');
+      setAnimalAdocaoAtivo(telaAnterior === 'animalAdocao');
       setTelaAtual('homepage');
     });
   };
@@ -158,6 +277,45 @@ export default function App() {
     }
   };
 
+  const entrarNoAplicativo = async () => {
+    if (!loginEmail.trim() || !loginSenha) {
+      mostrarAlerta('Atenção', 'Informe seu e-mail e sua senha.', 'warning');
+      return;
+    }
+
+    try {
+      const resposta = await fetch(`${API_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: loginEmail.trim(),
+          senha: loginSenha,
+        }),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        mostrarAlerta('Não foi possível entrar', dados.mensagem || 'Verifique suas credenciais.', 'error');
+        return;
+      }
+
+      setNome(dados.nome || '');
+      setUsuarioId(dados.id);
+      setEmail(dados.email || loginEmail.trim());
+      setDocumento(dados.documento || '');
+      setTipoPerfil(dados.tipo_perfil || '');
+      setTelefone(dados.telefone || '');
+      setLocalizacao(dados.localizacao || '');
+      setTelaAtual('homepage');
+    } catch (erro) {
+      console.error('Erro ao realizar login:', erro);
+      mostrarAlerta('Erro', 'Não foi possível conectar ao servidor.', 'error');
+    }
+  };
+
   useEffect(() => {
     if (larguraContainer === 0) return;
 
@@ -213,15 +371,15 @@ export default function App() {
 
           {telaSelecionada === 'entrar' && (
             <View style={styles.form}>
-              <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="gray" keyboardType="email-address" autoCapitalize="none" />
+              <TextInput style={styles.input} placeholder="E-mail" placeholderTextColor="gray" keyboardType="email-address" autoCapitalize="none" value={loginEmail} onChangeText={setLoginEmail} />
 
-              <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="gray" secureTextEntry />
+              <TextInput style={styles.input} placeholder="Senha" placeholderTextColor="gray" secureTextEntry value={loginSenha} onChangeText={setLoginSenha} />
 
               <Pressable style={styles.forgotPassword}>
                 <Text style={styles.textForgotPassword}>Esqueceu sua senha?</Text>
               </Pressable>
 
-              <Pressable style={styles.formButton} onPress={() => setTelaAtual('homepage')}>
+              <Pressable style={styles.formButton} onPress={entrarNoAplicativo}>
                 <Text style={styles.textFormButton}>Acessar conta</Text>
               </Pressable>
             </View>
@@ -272,18 +430,23 @@ export default function App() {
         telaAtual={telaAtual}
         abrirAnimalPerdido={abrirAnimalPerdido}
         abrirAnimalEncontrado={abrirAnimalEncontrado}
+        abrirAdocao={abrirAnimalAdocao}
       />
 
       {perfilAtivo && (
         <Animated.View style={[styles.overlay, { transform: [{ translateX: perfilOffset }] }]}>
           {telaAtual === 'perfil' && (
             <Perfil 
-              onVoltar={voltarParaHome}
+              onVoltar={voltarParaTelaAnterior}
               setTelaEdicao={abrirEdicaoPerfil}
+              onExcluir={excluirPerfil}
+              onDeslogar={deslogar}
               nome={nome}
               tipoPerfil={tipoPerfil}
               email={email}
               documento={documento}
+              telefone={telefone}
+              localizacao={localizacao}
               fotoPerfil={fotoPerfil}
             />
           )}
@@ -293,6 +456,8 @@ export default function App() {
               onVoltar={voltarParaPerfil}
               nome={nome}
               tipoPerfil={tipoPerfil}
+              telefone={telefone}
+              localizacao={localizacao}
               fotoPerfil={fotoPerfil}
               onSalvar={salvarPerfil}
             />
@@ -306,6 +471,7 @@ export default function App() {
             onVoltar={voltarParaHomeAnimalPerdido}
             setTelaAtual={abrirPerfil}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
+            abrirAdocao={abrirAnimalAdocao}
           />
         </View>
       )}
@@ -316,6 +482,18 @@ export default function App() {
             onVoltar={voltarParaHomeAnimalEncontrado}
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
+            abrirAdocao={abrirAnimalAdocao}
+          />
+        </View>
+      )}
+
+      {animalAdocaoAtivo && (
+        <View style={styles.overlay}>
+          <AnimalAdocao
+            onVoltar={voltarParaHomeAnimalAdocao}
+            setTelaAtual={abrirPerfil}
+            abrirAnimalPerdido={abrirAnimalPerdido}
+            abrirAnimalEncontrado={abrirAnimalEncontrado}
           />
         </View>
       )}

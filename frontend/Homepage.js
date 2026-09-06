@@ -14,7 +14,7 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 					<Image source={require('./assets/dog2.jpg')} style={styles.logo} />
 					<Text style={styles.appName}>PetWanted</Text>
 				</View>
-				<View style={styles.acoesHeader}>
+				<View style={styles.headerActions}>
 					<FontAwesome name="bell" size={20} color="#555" />
 					<Pressable onPress={setTelaAtual}>
 						<View style={styles.avatar}>
@@ -29,43 +29,46 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 				<Text style={styles.subtitle}>Veja pedidos de ajuda perto de voce.</Text>
 			</View>
 
-			<View style={styles.rodape}>
+			<View style={styles.footer}>
 				<Pressable
-					style={[styles.itemRodape, opcaoSelecionada === 'Perdido' && styles.itemSelecionado]}
+					style={[styles.footerItem, opcaoSelecionada === 'Perdido' && styles.selectedItem]}
 					onPress={() => {
 						setOpcaoSelecionada('Perdido');
 						abrirAnimalPerdido?.();
 					}}
 				>
 					<FontAwesome name="search" size={20} color={opcaoSelecionada === 'Perdido' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.textoRodape}>Perdido</Text>
+					<Text style={styles.footerText}>Perdido</Text>
 				</Pressable>
 
 				<Pressable
-					style={[styles.itemRodape, opcaoSelecionada === 'Encontrado' && styles.itemSelecionado]}
+					style={[styles.footerItem, opcaoSelecionada === 'Encontrado' && styles.selectedItem]}
 					onPress={() => {
 						setOpcaoSelecionada('Encontrado');
 						abrirAnimalEncontrado?.();
 					}}
 				>
 					<FontAwesome name="paw" size={20} color={opcaoSelecionada === 'Encontrado' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.textoRodape}>Encontrado</Text>
+					<Text style={styles.footerText}>Encontrado</Text>
 				</Pressable>
 
 				<Pressable
-					style={[styles.itemRodape, opcaoSelecionada === 'Chat' && styles.itemSelecionado]}
+					style={[styles.footerItem, opcaoSelecionada === 'Chat' && styles.selectedItem]}
 					onPress={() => setOpcaoSelecionada('Chat')}
 				>
 					<FontAwesome name="comment-o" size={20} color={opcaoSelecionada === 'Chat' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.textoRodape}>Chat</Text>
+					<Text style={styles.footerText}>Chat</Text>
 				</Pressable>
 
 				<Pressable
-					style={[styles.itemRodapeAdocao, opcaoSelecionada === 'Adoção' && styles.itemSelecionado]}
-					onPress={() => setOpcaoSelecionada('Adoção')}
+					style={[styles.adoptionFooterItem, opcaoSelecionada === 'Adoção' && styles.selectedItem]}
+					onPress={() => {
+						setOpcaoSelecionada('Adoção');
+						abrirAdocao?.();
+					}}
 				>
 					<FontAwesome name="heart" size={20} color={opcaoSelecionada === 'Adoção' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.textoRodape}>Adoção</Text>
+					<Text style={styles.footerText}>Adoção</Text>
 				</Pressable>
 			</View>
 		</SafeAreaView>
@@ -106,7 +109,7 @@ const styles = StyleSheet.create({
 		color: '#292929' 
 	},
 
-	acoesHeader: { 
+	headerActions: { 
 		flexDirection: 'row', 
 		alignItems: 'center', 
 		gap: 14 
@@ -138,7 +141,7 @@ const styles = StyleSheet.create({
 	subtitle: { 
 		fontSize: 16, 
 		color: '#666666' },
-	rodape: {
+	footer: {
 		height: 76,
 		paddingHorizontal: 10,
 		flexDirection: 'row',
@@ -146,13 +149,13 @@ const styles = StyleSheet.create({
 		justifyContent: 'space-around',
 		backgroundColor: '#ffffff',
 	},
-	itemRodape: {
+	footerItem: {
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
 		borderLeftWidth: 1,
 	},
-	itemRodapeAdocao: {
+	adoptionFooterItem: {
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
@@ -160,7 +163,11 @@ const styles = StyleSheet.create({
 		borderRightWidth: 1,
 	},
 
-	textoRodape: { 
+	selectedItem: {
+		backgroundColor: '#5ecfff',
+	},
+
+	footerText: { 
 		marginTop: 4, 
 		fontSize: 10, 
 		color: '#6b6b6b' 
