@@ -1,8 +1,51 @@
 import { StatusBar } from 'expo-status-bar';
-import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Alert, ScrollView } from 'react-native';
+import { useState } from 'react';
+import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Alert, ScrollView, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
-export default function EdicaoPerfil({ onVoltar }) {
+export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, fotoPerfil, onSalvar }) {
+    const [novoNome, setNovoNome] = useState(nome || '');
+    const [novoTipoPerfil, setNovoTipoPerfil] = useState(tipoPerfil || '');
+    const [novaFotoPerfil, setNovaFotoPerfil] = useState(fotoPerfil || null);
+
+    const escolherFoto = async () => {
+        const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+        if (!permissao.granted) {
+            Alert.alert(
+                'Permissão necessária',
+                'Precisamos de acesso à sua galeria para escolher uma foto.'
+            );
+            return;
+        }
+
+        const resultado = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ['images'],
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+
+        if (!resultado.canceled) {
+            setNovaFotoPerfil(resultado.assets[0].uri);
+        }
+    };
+
+    const salvarAlteracoes = () => {
+        if (!novoNome.trim()) {
+            Alert.alert('Atenção', 'Digite um nome para o perfil.');
+            return;
+        }
+
+        if (!novoTipoPerfil) {
+            Alert.alert('Atenção', 'Selecione o tipo de perfil.');
+            return;
+        }
+
+        onSalvar(novoNome.trim(), novoTipoPerfil, novaFotoPerfil);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
@@ -21,11 +64,62 @@ export default function EdicaoPerfil({ onVoltar }) {
             </View>
 
             <ScrollView contentContainerStyle={styles.conteudo}>
-                <View style={styles.avatar}>
-                    <Text style={styles.textoAvatar}>U</Text>
+                <Pressable style={styles.avatar} onPress={escolherFoto}>
+                    {novaFotoPerfil ? (
+                        <Image
+                            source={{ uri: novaFotoPerfil }}
+                            style={styles.imagemPerfil}
+                        />
+                    ) : (
+                        <Text style={styles.textoAvatar}>
+                            {novoNome ? novoNome.charAt(0).toUpperCase() : 'U'}
+                        </Text>
+                    )}
+                </Pressable>
+
+                <Text style={styles.textoTrocarFoto}>
+                    Toque na foto para alterar
+                </Text>
+
+                <Text style={styles.nome}>
+                    {novoNome || 'Seu Nome'}
+                </Text>
+
+                <Text style={styles.labelPrincipal}>Nome</Text>
+
+                <View style={styles.info}>
+                    <View style={styles.infoTexto}>
+                        <TextInput
+                            style={styles.valorInput}
+                            placeholder="Digite seu nome"
+                            placeholderTextColor="#999"
+                            value={novoNome}
+                            onChangeText={setNovoNome}
+                        />
+                    </View>
                 </View>
 
-                <Text style={styles.nome}>Seu Nome</Text>
+                <Text style={styles.labelPrincipal}>Tipo de perfil</Text>
+
+                <View style={styles.tipoPerfilContainer}>
+                    <Pressable
+                        style={[styles.tipoPerfilButton, novoTipoPerfil === 'Tutor' && styles.tipoPerfilSelecionado]}
+                        onPress={() => setNovoTipoPerfil('Tutor')}
+                    >
+                        <Text style={[styles.tipoPerfilTexto, novoTipoPerfil === 'Tutor' && styles.tipoPerfilTextoSelecionado]}>
+                            Tutor
+                        </Text>
+                    </Pressable>
+
+                    <Pressable
+                        style={[styles.tipoPerfilButton, novoTipoPerfil === 'ONG' && styles.tipoPerfilSelecionado]}
+                        onPress={() => setNovoTipoPerfil('ONG')}
+                    >
+                        <Text style={[styles.tipoPerfilTexto, novoTipoPerfil === 'ONG' && styles.tipoPerfilTextoSelecionado]}>
+                            ONG
+                        </Text>
+                    </Pressable>
+                </View>
 
                 <Pressable
                     style={styles.info}
@@ -41,11 +135,16 @@ export default function EdicaoPerfil({ onVoltar }) {
 
                 <Pressable
                     style={styles.info}
-                    onPress={() => Alert.alert('CPF', 'O CPF não pode ser modificado.')}
+                    onPress={() => Alert.alert('Documento', 'O CPF/CNPJ não pode ser modificado.')}
                 >
                     <View style={styles.infoTexto}>
-                        <Text style={styles.label}>CPF</Text>
-                        <Text style={styles.valor}>CPF</Text>
+                        <Text style={styles.label}>
+                            {novoTipoPerfil === 'ONG' ? 'CNPJ' : 'CPF'}
+                        </Text>
+
+                        <Text style={styles.valor}>
+                            {novoTipoPerfil === 'ONG' ? 'CNPJ' : 'CPF'}
+                        </Text>
                     </View>
 
                     <FontAwesome name="lock" size={16} color="#999999" />
@@ -54,6 +153,7 @@ export default function EdicaoPerfil({ onVoltar }) {
                 <View style={styles.info}>
                     <View style={styles.infoTexto}>
                         <Text style={styles.label}>Telefone</Text>
+
                         <TextInput
                             style={styles.valorInput}
                             placeholder="Digite seu telefone"
@@ -66,6 +166,7 @@ export default function EdicaoPerfil({ onVoltar }) {
                 <View style={styles.info}>
                     <View style={styles.infoTexto}>
                         <Text style={styles.label}>Localização</Text>
+
                         <TextInput
                             style={styles.valorInput}
                             placeholder="Digite sua localização"
@@ -74,7 +175,10 @@ export default function EdicaoPerfil({ onVoltar }) {
                     </View>
                 </View>
 
-                <Pressable style={styles.botaoSalvar}>
+                <Pressable
+                    style={styles.botaoSalvar}
+                    onPress={salvarAlteracoes}
+                >
                     <Text style={styles.textoBotaoSalvar}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
@@ -87,6 +191,7 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fafafa',
     },
+
     cabecalho: {
         height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
         paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
@@ -98,16 +203,19 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: '#e1e1e1',
     },
+
     headerLeft: {
         width: 40,
         alignItems: 'flex-start',
         justifyContent: 'center',
     },
+
     headerRight: {
         width: 40,
         alignItems: 'flex-end',
         justifyContent: 'center',
     },
+
     titulo: {
         flex: 1,
         fontSize: 18,
@@ -115,11 +223,13 @@ const styles = StyleSheet.create({
         color: '#292929',
         textAlign: 'center',
     },
+
     conteudo: {
         paddingHorizontal: 30,
         paddingTop: 30,
         paddingBottom: 30,
     },
+
     avatar: {
         width: 80,
         height: 80,
@@ -128,13 +238,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         alignSelf: 'center',
-        marginBottom: 10,
+        marginBottom: 6,
+        overflow: 'hidden',
     },
+
+    imagemPerfil: {
+        width: 80,
+        height: 80,
+        borderRadius: 40,
+    },
+
     textoAvatar: {
         fontSize: 32,
         fontWeight: 'bold',
         color: '#fff',
     },
+
+    textoTrocarFoto: {
+        fontSize: 12,
+        color: '#888888',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+
     nome: {
         fontSize: 20,
         fontWeight: 'bold',
@@ -142,6 +268,14 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 25,
     },
+
+    labelPrincipal: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#292929',
+        marginBottom: 8,
+    },
+
     info: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -152,24 +286,61 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#eeeeee',
     },
+
     infoTexto: {
         flex: 1,
     },
+
     label: {
         fontSize: 12,
         color: '#999999',
         marginBottom: 3,
     },
+
     valor: {
         fontSize: 15,
         color: '#292929',
     },
+
     valorInput: {
         fontSize: 15,
         color: '#292929',
-        padding: 0,
+        padding: 6,
         margin: 0,
     },
+
+    tipoPerfilContainer: {
+        flexDirection: 'row',
+        marginBottom: 12,
+        gap: 8,
+    },
+
+    tipoPerfilButton: {
+        flex: 1,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#d5b39b',
+        borderRadius: 6,
+    },
+
+    tipoPerfilSelecionado: {
+        backgroundColor: '#7a4b2a',
+        borderColor: '#7a4b2a',
+    },
+
+    tipoPerfilTexto: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#7a4b2a',
+    },
+
+    tipoPerfilTextoSelecionado: {
+        color: '#ffffff',
+    },
+
     botaoSalvar: {
         height: 46,
         alignItems: 'center',
@@ -178,6 +349,7 @@ const styles = StyleSheet.create({
         borderRadius: 6,
         marginTop: 10,
     },
+
     textoBotaoSalvar: {
         color: '#ffffff',
         fontSize: 16,

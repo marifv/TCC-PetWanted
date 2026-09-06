@@ -20,6 +20,7 @@ export default function App() {
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState('');
   const [email, setEmail] = useState('');
+  const [fotoPerfil, setFotoPerfil] = useState(null);
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [alertaVisivel, setAlertaVisivel] = useState(false);
@@ -79,6 +80,13 @@ export default function App() {
   };
 
   const voltarParaPerfil = () => {
+    setTelaAtual('perfil');
+  };
+
+  const salvarPerfil = (novoNome, novoTipoPerfil, novaFotoPerfil) => {
+    setNome(novoNome);
+    setTipoPerfil(novoTipoPerfil);
+    setFotoPerfil(novaFotoPerfil);
     setTelaAtual('perfil');
   };
 
@@ -271,12 +279,23 @@ export default function App() {
           {telaAtual === 'perfil' && (
             <Perfil 
               onVoltar={voltarParaHome}
-              setTelaEdicao={abrirEdicaoPerfil} 
+              setTelaEdicao={abrirEdicaoPerfil}
+              nome={nome}
+              tipoPerfil={tipoPerfil}
+              email={email}
+              documento={documento}
+              fotoPerfil={fotoPerfil}
             />
           )}
 
           {telaAtual === 'edicaoPerfil' && (
-            <EdicaoPerfil onVoltar={voltarParaPerfil} />
+            <EdicaoPerfil
+              onVoltar={voltarParaPerfil}
+              nome={nome}
+              tipoPerfil={tipoPerfil}
+              fotoPerfil={fotoPerfil}
+              onSalvar={salvarPerfil}
+            />
           )}
         </Animated.View>
       )}
