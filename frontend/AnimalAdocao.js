@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,6 +11,7 @@ const FAIXAS_ETARIAS = ['Filhote', 'Jovem', 'Adulto', 'Idoso'];
 
 const STATUS_ADOCAO = 'Animal para Adoção';
 const STATUS_ADOTADO = 'Animal Adotado';
+const API_ANIMAIS = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/animais' : 'http://localhost:3000/api/animais';
 
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
@@ -30,7 +31,7 @@ function formatarDataAtual() {
     return `${dia}/${mes}/${ano}`;
 }
 
-export default function AnimalAdocao({ onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado }) {
+export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal }) {
     const [animais, setAnimais] = useState([]);
     const [visualizacao, setVisualizacao] = useState('todos');
 
@@ -50,6 +51,21 @@ export default function AnimalAdocao({ onVoltar, setTelaAtual, abrirAnimalPerdid
         titulo: '',
         mensagem: '',
     });
+
+    useEffect(() => {
+        async function carregarAnimais() {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`);
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                setAnimais(dados
+                    .filter((animal) => animal.tipo_registro === 'Adocao')
+                    .map((animal) => ({ ...animal, status: STATUS_ADOCAO, meuAnimal: true })));
+            }
+        }
+
+        if (usuarioId) carregarAnimais();
+    }, [usuarioId]);
 
     const atualizarCampo = (campo, valor) => {
         setFormulario((atual) => ({
@@ -105,7 +121,7 @@ export default function AnimalAdocao({ onVoltar, setTelaAtual, abrirAnimalPerdid
         }
     };
 
-    const salvarAnimal = () => {
+    const salvarAnimal = async () => {
         if (
             !formulario.nome ||
             !formulario.especie ||
@@ -127,27 +143,30 @@ export default function AnimalAdocao({ onVoltar, setTelaAtual, abrirAnimalPerdid
             return;
         }
 
-        const novoAnimal = {
-            id: Date.now().toString(),
-            nome: formulario.nome,
-            especie: formulario.especie,
-            raca: formulario.raca,
-            cor: formulario.cor,
-            porte: formulario.porte,
-            sexo: formulario.sexo,
-            idade: formulario.idade,
-            faixaEtaria: formulario.faixaEtaria,
-            local: formulario.local,
-            descricao: formulario.descricao,
-            responsavel: formulario.responsavel,
-            contato: formulario.contato,
-            foto: formulario.foto,
-            data: formatarDataAtual(),
-            status: STATUS_ADOCAO,
-            meuAnimal: true,
-        };
+        const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome: formulario.nome,
+                especie: formulario.especie,
+                raca: formulario.raca,
+                cor: formulario.cor,
+                porte: formulario.porte,
+                sexo: formulario.sexo,
+                local_encontrado: formulario.local,
+                data_evento: formatarDataAtual(),
+                tipo_registro: 'Adocao',
+                descricao: formulario.descricao,
+            }),
+        });
+        const novoAnimal = await resposta.json();
 
-        setAnimais((atual) => [...atual, novoAnimal]);
+        if (!resposta.ok) {
+            abrirMensagem('Erro', novoAnimal.mensagem || 'Não foi possível salvar o animal.');
+            return;
+        }
+
+        setAnimais((atual) => [{ ...novoAnimal, status: STATUS_ADOCAO, meuAnimal: true }, ...atual]);
         setModalVisivel(false);
     };
 
@@ -187,10 +206,22 @@ export default function AnimalAdocao({ onVoltar, setTelaAtual, abrirAnimalPerdid
         setConfirmacaoAlvo(null);
     };
 
-    const excluirAnimal = (id) => {
-        setAnimais((atual) =>
-            atual.filter((animal) => animal.id !== id)
-        );
+    const excluirAnimal = async (id) => {
+        try {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!resposta.ok) {
+                const dados = await resposta.json().catch(() => ({}));
+                abrirMensagem('Erro', dados.mensagem || 'Não foi possível excluir o animal.');
+                return;
+            }
+
+            setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+        } catch (error) {
+            abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
+        }
     };
 
     const animaisFiltrados = animais.filter((animal) => {
@@ -540,6 +571,7 @@ export default function AnimalAdocao({ onVoltar, setTelaAtual, abrirAnimalPerdid
                             <View style={styles.botoesContainer}>
                                 <Pressable
                                     style={styles.botaoEditar}
+                                    onPress={() => abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, meuAnimal: true } : item)))}
                                 >
                                     <FontAwesome
                                         name="pencil"

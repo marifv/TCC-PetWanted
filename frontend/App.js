@@ -7,6 +7,7 @@ import EdicaoPerfil from './EdicaoPerfil';
 import AnimalPerdido from './AnimalPerdido';
 import AnimalEncontrado from './AnimalEncontrado';
 import AnimalAdocao from './AnimalAdocao';
+import EdicaoAnimal from './EdicaoAnimal';
 
 const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/usuarios' : 'http://localhost:3000/api/usuarios';
 
@@ -15,10 +16,13 @@ export default function App() {
   const [telaAtual, setTelaAtual] = useState('login');
   const [telaAnterior, setTelaAnterior] = useState('homepage');
   const [usuarioId, setUsuarioId] = useState(null);
+  const [token, setToken] = useState(null);
   const [perfilAtivo, setPerfilAtivo] = useState(false);
   const [animalPerdidoAtivo, setAnimalPerdidoAtivo] = useState(false);
   const [animalEncontradoAtivo, setAnimalEncontradoAtivo] = useState(false);
   const [animalAdocaoAtivo, setAnimalAdocaoAtivo] = useState(false);
+  const [animalEditando, setAnimalEditando] = useState(null);
+  const [origemEdicaoAnimal, setOrigemEdicaoAnimal] = useState(null);
   const [larguraContainer, setLarguraContainer] = useState(0);
   const [tipoPerfil, setTipoPerfil] = useState('');
   const [nome, setNome] = useState('');
@@ -107,6 +111,7 @@ export default function App() {
 
   const deslogar = () => {
     setUsuarioId(null);
+    setToken(null);
     setNome('');
     setDocumento('');
     setEmail('');
@@ -130,6 +135,40 @@ export default function App() {
 
   const voltarParaPerfil = () => {
     setTelaAtual('perfil');
+  };
+
+  const abrirEdicaoAnimal = (animal, origem, atualizarLista) => {
+    setAnimalEditando({ animal, atualizarLista });
+    setOrigemEdicaoAnimal(origem);
+  };
+
+  const fecharEdicaoAnimal = () => {
+    setAnimalEditando(null);
+    setOrigemEdicaoAnimal(null);
+  };
+
+  const salvarAnimal = async (dados) => {
+    if (!animalEditando || !usuarioId) return false;
+
+    const animal = animalEditando.animal;
+    const resposta = await fetch(`${Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/animais' : 'http://localhost:3000/api/animais'}/${usuarioId}/${animal.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...dados,
+        local_desaparecimento: animal.tipo_registro === 'Perdido' ? dados.local : '',
+        local_encontrado: animal.tipo_registro === 'Perdido' ? '' : dados.local,
+        data_evento: dados.data,
+        tipo_registro: animal.tipo_registro,
+      }),
+    });
+
+    if (!resposta.ok) return false;
+
+    const atualizado = await resposta.json();
+    animalEditando.atualizarLista(atualizado);
+    fecharEdicaoAnimal();
+    return true;
   };
 
   const salvarPerfil = async (novoNome, novoTipoPerfil, novoTelefone, novaLocalizacao, novaFotoPerfil) => {
@@ -304,6 +343,7 @@ export default function App() {
 
       setNome(dados.nome || '');
       setUsuarioId(dados.id);
+      setToken(dados.token);
       setEmail(dados.email || loginEmail.trim());
       setDocumento(dados.documento || '');
       setTipoPerfil(dados.tipo_perfil || '');
@@ -459,6 +499,8 @@ export default function App() {
               telefone={telefone}
               localizacao={localizacao}
               fotoPerfil={fotoPerfil}
+              email={email}
+              documento={documento}
               onSalvar={salvarPerfil}
             />
           )}
@@ -468,10 +510,13 @@ export default function App() {
       {animalPerdidoAtivo && (
         <View style={styles.overlay}>
           <AnimalPerdido
+            usuarioId={usuarioId}
+            token={token}
             onVoltar={voltarParaHomeAnimalPerdido}
             setTelaAtual={abrirPerfil}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
             abrirAdocao={abrirAnimalAdocao}
+            abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'perdido', atualizarLista)}
           />
         </View>
       )}
@@ -479,10 +524,12 @@ export default function App() {
       {animalEncontradoAtivo && (
         <View style={styles.overlay}>
           <AnimalEncontrado
+            usuarioId={usuarioId}
             onVoltar={voltarParaHomeAnimalEncontrado}
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAdocao={abrirAnimalAdocao}
+            abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'encontrado', atualizarLista)}
           />
         </View>
       )}
@@ -490,10 +537,22 @@ export default function App() {
       {animalAdocaoAtivo && (
         <View style={styles.overlay}>
           <AnimalAdocao
+            usuarioId={usuarioId}
             onVoltar={voltarParaHomeAnimalAdocao}
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
+            abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'adocao', atualizarLista)}
+          />
+        </View>
+      )}
+
+      {animalEditando && (
+        <View style={styles.overlay}>
+          <EdicaoAnimal
+            animal={animalEditando.animal}
+            onVoltar={fecharEdicaoAnimal}
+            onSalvar={salvarAnimal}
           />
         </View>
       )}

@@ -4,7 +4,7 @@ import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text,
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
-export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, telefone, localizacao, fotoPerfil, onSalvar }) {
+export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil, onSalvar }) {
     const [novoNome, setNovoNome] = useState(nome || '');
     const [novoTipoPerfil, setNovoTipoPerfil] = useState(tipoPerfil || '');
     const [novoTelefone, setNovoTelefone] = useState(telefone || '');
@@ -126,7 +126,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, telefone, loc
                 >
                     <View style={styles.infoTexto}>
                         <Text style={styles.label}>E-mail</Text>
-                        <Text style={styles.valor}>seu.email@exemplo.com</Text>
+                        <Text style={styles.valor}>{email || 'E-mail não informado'}</Text>
                     </View>
 
                     <FontAwesome name="lock" size={16} color="#999999" />
@@ -142,7 +142,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, telefone, loc
                         </Text>
 
                         <Text style={styles.valor}>
-                            {novoTipoPerfil === 'ONG' ? 'CNPJ' : 'CPF'}
+                            {documento || 'Documento não informado'}
                         </Text>
                     </View>
 

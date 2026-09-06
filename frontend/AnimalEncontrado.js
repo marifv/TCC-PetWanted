@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -10,6 +10,7 @@ const SEXOS = ['Macho', 'Fêmea'];
 
 const STATUS_PROCURANDO = 'Procurando Dono';
 const STATUS_DONO_ENCONTRADO = 'Dono encontrado';
+const API_ANIMAIS = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/animais' : 'http://localhost:3000/api/animais';
 
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
@@ -20,19 +21,34 @@ function novoFormulario() {
     return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', data: '', descricao: '', foto: null };
 }
 
-export default function AnimalEncontrado({ onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao }) {
+export default function AnimalEncontrado({ usuarioId, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirEdicaoAnimal }) {
     const [animais, setAnimais] = useState([]);
     const [busca, setBusca] = useState('');
     const [visualizacao, setVisualizacao] = useState('todos');
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
 
+    useEffect(() => {
+        async function carregarAnimais() {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`);
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                setAnimais(dados
+                    .filter((animal) => animal.tipo_registro === 'Encontrado')
+                    .map((animal) => ({ ...animal, status: animal.status || STATUS_PROCURANDO, meuAnimal: true })));
+            }
+        }
+
+        if (usuarioId) carregarAnimais();
+    }, [usuarioId]);
+
     const animaisFiltrados = animais.filter((animal) => {
         if (visualizacao === 'meus' && !animal.meuAnimal) return false;
 
         const termo = busca.trim().toLowerCase();
         if (!termo) return true;
-        return animal.nome.toLowerCase().includes(termo) || animal.raca.toLowerCase().includes(termo) || animal.local.toLowerCase().includes(termo);
+        return (animal.nome || '').toLowerCase().includes(termo) || (animal.raca || '').toLowerCase().includes(termo) || (animal.local || '').toLowerCase().includes(termo);
     });
 
     const [confirmacaoAlvo, setConfirmacaoAlvo] = useState(null);
@@ -53,8 +69,22 @@ export default function AnimalEncontrado({ onVoltar, setTelaAtual, abrirAnimalPe
         setConfirmacaoAlvo(null);
     };
 
-    const excluirAnimal = (id) => {
-        setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+    const excluirAnimal = async (id) => {
+        try {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (!resposta.ok) {
+                const dados = await resposta.json().catch(() => ({}));
+                Alert.alert('Erro', dados.mensagem || 'Não foi possível excluir o animal.');
+                return;
+            }
+
+            setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+        }
     };
 
     const atualizarCampo = (campo, valor) => {
@@ -85,15 +115,37 @@ export default function AnimalEncontrado({ onVoltar, setTelaAtual, abrirAnimalPe
         }
     };
 
-    const salvarAnimal = () => {
+    const salvarAnimal = async () => {
         if (!formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
             Alert.alert('Atenção', 'Preencha espécie, raça, cor, porte, local e data em que o animal foi encontrado.');
             return;
         }
 
-        const novoAnimal = { id: Date.now().toString(), nome: formulario.nome, especie: formulario.especie, raca: formulario.raca, cor: formulario.cor, porte: formulario.porte, sexo: formulario.sexo, local: formulario.local, descricao: formulario.descricao, foto: formulario.foto, data: formulario.data, status: STATUS_PROCURANDO, meuAnimal: true };
+        const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nome: formulario.nome,
+                especie: formulario.especie,
+                raca: formulario.raca,
+                cor: formulario.cor,
+                porte: formulario.porte,
+                sexo: formulario.sexo,
+                local_desaparecimento: '',
+                local_encontrado: formulario.local,
+                data_evento: formulario.data,
+                tipo_registro: 'Encontrado',
+                descricao: formulario.descricao
+            })
+        });
+        const dados = await resposta.json();
 
-        setAnimais((atual) => [...atual, novoAnimal]);
+        if (!resposta.ok) {
+            Alert.alert('Erro', dados.mensagem || 'Não foi possível salvar o animal.');
+            return;
+        }
+
+        setAnimais((atual) => [{ ...dados, status: STATUS_PROCURANDO, meuAnimal: true }, ...atual]);
         setModalVisivel(false);
     };
 
@@ -194,7 +246,7 @@ export default function AnimalEncontrado({ onVoltar, setTelaAtual, abrirAnimalPe
                             {!!animal.descricao && <Text style={styles.descricao}>{animal.descricao}</Text>}
 
                             <View style={styles.botoesContainer}>
-                                <Pressable style={styles.botaoEditar}>
+                                <Pressable style={styles.botaoEditar} onPress={() => abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, meuAnimal: true } : item)))}>
                                     <FontAwesome name="pencil" size={14} color="#45a9d5" />
                                     <Text style={styles.botaoEditarTexto}>Editar</Text>
                                 </Pressable>

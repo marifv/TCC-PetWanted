@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -12,6 +12,7 @@ const AREA_BUSCA_PADRAO = 5;
 
 const STATUS_PERDIDO = 'Perdido';
 const STATUS_ENCONTRADO = 'Encontrado';
+const API_ANIMAIS = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/animais' : 'http://localhost:3000/api/animais';
 
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
@@ -22,7 +23,7 @@ function novoFormulario() {
     return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', data: '', descricao: '', foto: null };
 }
 
-export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao }) {
+export default function AnimalPerdido({ usuarioId, token, onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao, abrirEdicaoAnimal }) {
     const [animais, setAnimais] = useState([]);
     const [busca, setBusca] = useState('');
     const [visualizacao, setVisualizacao] = useState('todos');
@@ -31,20 +32,54 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
     const [formulario, setFormulario] = useState(novoFormulario());
     const [confirmacaoAlvo, setConfirmacaoAlvo] = useState(null);
 
+    useEffect(() => {
+        async function carregarAnimais() {
+            const resposta = await fetch(`${API_ANIMAIS}/perdidos`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const dados = await resposta.json();
+
+            if (resposta.ok) {
+                setAnimais(dados.map((animal) => ({
+                    ...animal,
+                    status: STATUS_PERDIDO,
+                    meuAnimal: String(animal.id_usuario) === String(usuarioId),
+                })));
+            }
+        }
+
+        if (usuarioId && token) carregarAnimais();
+    }, [usuarioId, token]);
+
     const animaisFiltrados = animais.filter((animal) => {
         if (visualizacao === 'meus' && !animal.meuAnimal) return false;
 
         const termo = busca.trim().toLowerCase();
         if (!termo) return true;
-        return animal.nome.toLowerCase().includes(termo) || animal.raca.toLowerCase().includes(termo) || animal.local.toLowerCase().includes(termo);
+        return (animal.nome || '').toLowerCase().includes(termo) || (animal.raca || '').toLowerCase().includes(termo) || (animal.local || '').toLowerCase().includes(termo);
     });
 
     const alternarAreaBusca = (id) => {
         setAreaExpandida((atual) => ({ ...atual, [id]: !atual[id] }));
     };
 
-    const excluirAnimal = (id) => {
-        setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+    const excluirAnimal = async (id) => {
+        try {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}/${id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (!resposta.ok) {
+                const dados = await resposta.json().catch(() => ({}));
+                Alert.alert('Erro', dados.mensagem || 'Não foi possível excluir o animal.');
+                return;
+            }
+
+            setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+        }
     };
 
     const solicitarAlteracaoStatus = (id, novoStatus) => {
@@ -57,10 +92,46 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
         setConfirmacaoAlvo(null);
     };
 
-    const confirmarAlteracaoStatus = () => {
+    const confirmarAlteracaoStatus = async () => {
         if (!confirmacaoAlvo) return;
-        setAnimais((atual) => atual.map((animal) => (animal.id === confirmacaoAlvo.id ? { ...animal, status: confirmacaoAlvo.novoStatus } : animal)));
-        setConfirmacaoAlvo(null);
+
+        const animal = animais.find((item) => item.id === confirmacaoAlvo.id);
+        if (!animal) return;
+
+        try {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}/${animal.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    nome: animal.nome,
+                    especie: animal.especie,
+                    raca: animal.raca,
+                    cor: animal.cor,
+                    porte: animal.porte,
+                    sexo: animal.sexo,
+                    local_desaparecimento: '',
+                    local_encontrado: animal.local,
+                    data_evento: animal.data,
+                    tipo_registro: 'Encontrado',
+                    status: 'Dono encontrado',
+                    descricao: animal.descricao,
+                }),
+            });
+
+            if (!resposta.ok) {
+                const dados = await resposta.json().catch(() => ({}));
+                Alert.alert('Erro', dados.mensagem || 'Não foi possível alterar o status do animal.');
+                return;
+            }
+
+            setAnimais((atual) => atual.filter((item) => item.id !== animal.id));
+            setConfirmacaoAlvo(null);
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+        }
     };
 
     const atualizarCampo = (campo, valor) => {
@@ -91,16 +162,45 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
         }
     };
 
-    const salvarAnimal = () => {
+    const salvarAnimal = async () => {
         if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
             Alert.alert('Atenção', 'Preencha nome, espécie, raça, cor, porte, sexo, local e data do desaparecimento.');
             return;
         }
 
-        const novoAnimal = { id: Date.now().toString(), nome: formulario.nome, especie: formulario.especie, raca: formulario.raca, cor: formulario.cor, porte: formulario.porte, sexo: formulario.sexo, local: formulario.local, descricao: formulario.descricao, foto: formulario.foto, data: formulario.data, areaBusca: AREA_BUSCA_PADRAO, status: STATUS_PERDIDO, meuAnimal: true };
+        try {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    nome: formulario.nome,
+                    especie: formulario.especie,
+                    raca: formulario.raca,
+                    cor: formulario.cor,
+                    porte: formulario.porte,
+                    sexo: formulario.sexo,
+                    local_desaparecimento: formulario.local,
+                    local_encontrado: '',
+                    data_evento: formulario.data,
+                    tipo_registro: 'Perdido',
+                    descricao: formulario.descricao
+                })
+            });
+            const dados = await resposta.json();
 
-        setAnimais((atual) => [...atual, novoAnimal]);
-        setModalVisivel(false);
+            if (!resposta.ok) {
+                Alert.alert('Erro', dados.mensagem || 'Não foi possível salvar o animal.');
+                return;
+            }
+
+            setAnimais((atual) => [{ ...dados, areaBusca: AREA_BUSCA_PADRAO, status: STATUS_PERDIDO, meuAnimal: true }, ...atual]);
+            setModalVisivel(false);
+        } catch (error) {
+            Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+        }
     };
 
     return (
@@ -209,32 +309,34 @@ export default function AnimalPerdido({ onVoltar, setTelaAtual, abrirAnimalEncon
                                 <Text style={styles.areaBuscaDetalhe}>Buscas estão sendo feitas em um raio de {animal.areaBusca} km a partir do local do desaparecimento.</Text>
                             )}
 
-                            <View style={styles.botoesContainer}>
-                                <Pressable style={styles.botaoEditar}>
-                                    <FontAwesome name="pencil" size={14} color="#45a9d5" />
-                                    <Text style={styles.botaoEditarTexto}>Editar</Text>
-                                </Pressable>
-
-                                <View style={styles.statusToggleContainer}>
-                                    <Pressable
-                                        style={[styles.statusToggleBotao, animal.status === STATUS_PERDIDO && styles.statusToggleBotaoPerdidoAtivo]}
-                                        onPress={() => solicitarAlteracaoStatus(animal.id, STATUS_PERDIDO)}
-                                    >
-                                        <Text style={[styles.statusToggleTexto, animal.status === STATUS_PERDIDO && styles.statusToggleTextoAtivo]}>Perdido</Text>
+                            {animal.meuAnimal && (
+                                <View style={styles.botoesContainer}>
+                                    <Pressable style={styles.botaoEditar} onPress={() => abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, areaBusca: item.areaBusca, meuAnimal: true } : item)))}>
+                                        <FontAwesome name="pencil" size={14} color="#45a9d5" />
+                                        <Text style={styles.botaoEditarTexto}>Editar</Text>
                                     </Pressable>
 
-                                    <Pressable
-                                        style={[styles.statusToggleBotao, animal.status === STATUS_ENCONTRADO && styles.statusToggleBotaoEncontradoAtivo]}
-                                        onPress={() => solicitarAlteracaoStatus(animal.id, STATUS_ENCONTRADO)}
-                                    >
-                                        <Text style={[styles.statusToggleTexto, animal.status === STATUS_ENCONTRADO && styles.statusToggleTextoAtivo]}>Encontrado</Text>
+                                    <View style={styles.statusToggleContainer}>
+                                        <Pressable
+                                            style={[styles.statusToggleBotao, animal.status === STATUS_PERDIDO && styles.statusToggleBotaoPerdidoAtivo]}
+                                            onPress={() => solicitarAlteracaoStatus(animal.id, STATUS_PERDIDO)}
+                                        >
+                                            <Text style={[styles.statusToggleTexto, animal.status === STATUS_PERDIDO && styles.statusToggleTextoAtivo]}>Perdido</Text>
+                                        </Pressable>
+
+                                        <Pressable
+                                            style={[styles.statusToggleBotao, animal.status === STATUS_ENCONTRADO && styles.statusToggleBotaoEncontradoAtivo]}
+                                            onPress={() => solicitarAlteracaoStatus(animal.id, STATUS_ENCONTRADO)}
+                                        >
+                                            <Text style={[styles.statusToggleTexto, animal.status === STATUS_ENCONTRADO && styles.statusToggleTextoAtivo]}>Encontrado</Text>
+                                        </Pressable>
+                                    </View>
+
+                                    <Pressable style={styles.botaoExcluir} onPress={() => excluirAnimal(animal.id)}>
+                                        <FontAwesome name="trash" size={16} color="#d9534f" />
                                     </Pressable>
                                 </View>
-
-                                <Pressable style={styles.botaoExcluir} onPress={() => excluirAnimal(animal.id)}>
-                                    <FontAwesome name="trash" size={16} color="#d9534f" />
-                                </Pressable>
-                            </View>
+                            )}
                         </View>
                     </View>
                 ))}

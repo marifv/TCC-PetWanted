@@ -1,5 +1,6 @@
 const pool = require('../database/connection');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 async function loginUsuario(req, res) {
     try {
@@ -27,7 +28,20 @@ async function loginUsuario(req, res) {
             });
         }
 
+        if (!process.env.JWT_SECRET) {
+            return res.status(500).json({
+                mensagem: 'Autenticação não configurada no servidor.'
+            });
+        }
+
+        const token = jwt.sign(
+            { id: usuario.rows[0].id, email: usuario.rows[0].email },
+            process.env.JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
         return res.status(200).json({
+            token,
             id: usuario.rows[0].id,
             nome: usuario.rows[0].nome,
             email: usuario.rows[0].email,
