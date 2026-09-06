@@ -153,7 +153,10 @@ export default function App() {
     const animal = animalEditando.animal;
     const resposta = await fetch(`${Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/animais' : 'http://localhost:3000/api/animais'}/${usuarioId}/${animal.id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         ...dados,
         local_desaparecimento: animal.tipo_registro === 'Perdido' ? dados.local : '',
@@ -166,9 +169,13 @@ export default function App() {
     if (!resposta.ok) return false;
 
     const atualizado = await resposta.json();
-    animalEditando.atualizarLista(atualizado);
+
+    if (typeof animalEditando.atualizarLista === 'function') {
+      animalEditando.atualizarLista(atualizado);
+    }
+
     fecharEdicaoAnimal();
-    return true;
+    return atualizado;
   };
 
   const salvarPerfil = async (novoNome, novoTipoPerfil, novoTelefone, novaLocalizacao, novaFotoPerfil) => {
@@ -525,6 +532,7 @@ export default function App() {
         <View style={styles.overlay}>
           <AnimalEncontrado
             usuarioId={usuarioId}
+            token={token}
             onVoltar={voltarParaHomeAnimalEncontrado}
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
@@ -538,6 +546,7 @@ export default function App() {
         <View style={styles.overlay}>
           <AnimalAdocao
             usuarioId={usuarioId}
+            token={token}
             onVoltar={voltarParaHomeAnimalAdocao}
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}

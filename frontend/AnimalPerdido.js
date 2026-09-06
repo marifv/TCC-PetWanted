@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { formatarData } from './utils/formatarData';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -49,6 +50,12 @@ export default function AnimalPerdido({ usuarioId, token, onVoltar, setTelaAtual
         }
 
         if (usuarioId && token) carregarAnimais();
+
+        const intervalo = setInterval(() => {
+            if (usuarioId && token) carregarAnimais();
+        }, 3000);
+
+        return () => clearInterval(intervalo);
     }, [usuarioId, token]);
 
     const animaisFiltrados = animais.filter((animal) => {
@@ -294,14 +301,14 @@ export default function AnimalPerdido({ usuarioId, token, onVoltar, setTelaAtual
 
                             <View style={styles.linhaComIcone}>
                                 <FontAwesome name="calendar" size={13} color="#e08a3e" />
-                                <Text style={styles.textoComIcone}>Perdido em: {animal.data}</Text>
+                                <Text style={styles.textoComIcone}>Perdido em: {formatarData(animal.data)}</Text>
                             </View>
 
-                            {!!animal.descricao && <Text style={styles.descricao}>{animal.descricao}</Text>}
+                            {!!animal.descricao && <Text style={styles.descricao}><Text style={styles.infoLabel}>Descrição: </Text>{animal.descricao}</Text>}
 
                             <Pressable style={styles.areaBuscaLinha} onPress={() => alternarAreaBusca(animal.id)}>
                                 <FontAwesome name="map" size={13} color="#e08a3e" />
-                                <Text style={styles.textoComIcone}>Área de busca ({animal.areaBusca} km)</Text>
+                                <Text style={styles.textoComIcone}>Área de busca ({animal.areaBusca} 5 km)</Text>
                                 <FontAwesome name={areaExpandida[animal.id] ? 'chevron-up' : 'chevron-down'} size={12} color="#9b9b9b" style={styles.chevron} />
                             </Pressable>
 

@@ -18,6 +18,10 @@ const CAMPOS_RETORNO = `
     tipo_registro,
     id_usuario,
     status,
+    idade,
+    faixa_etaria AS "faixaEtaria",
+    responsavel,
+    contato,
     descricao
 `;
 
@@ -59,6 +63,10 @@ function obterDadosRegistro(body, usuarioId) {
         tipoRegistro,
         idUsuario: usuarioId,
         status: body.status || null,
+        idade: tipoRegistro === 'Adocao' ? body.idade?.trim() : null,
+        faixaEtaria: tipoRegistro === 'Adocao' ? body.faixa_etaria?.trim() : null,
+        responsavel: tipoRegistro === 'Adocao' ? body.responsavel?.trim() : null,
+        contato: tipoRegistro === 'Adocao' ? body.contato?.trim() : null,
         descricao: body.descricao?.trim() || null,
     };
 }
@@ -103,6 +111,39 @@ async function listarAnimaisPerdidos(req, res) {
     }
 }
 
+async function listarAnimaisEncontrados(req, res) {
+    try {
+        const resultado = await pool.query(
+            `SELECT ${CAMPOS_RETORNO}
+             FROM animais
+             WHERE tipo_registro = 'Encontrado'
+             ORDER BY id_animal DESC`
+        );
+
+        return res.json(resultado.rows);
+    } catch (error) {
+        console.error('Erro ao listar animais encontrados:', error);
+        return res.status(500).json({ mensagem: 'Erro ao listar animais encontrados.' });
+    }
+}
+
+async function listarAnimaisAdocao(req, res) {
+    try {
+        const resultado = await pool.query(
+            `SELECT ${CAMPOS_RETORNO}
+             FROM animais
+                         WHERE tipo_registro = 'Adocao'
+                             AND status IS DISTINCT FROM 'Animal Adotado'
+             ORDER BY id_animal DESC`
+        );
+
+        return res.json(resultado.rows);
+    } catch (error) {
+        console.error('Erro ao listar animais para adoção:', error);
+        return res.status(500).json({ mensagem: 'Erro ao listar animais para adoção.' });
+    }
+}
+
 async function criarRegistro(req, res) {
     try {
         const dados = obterDadosRegistro(req.body, req.params.usuarioId);
@@ -117,8 +158,9 @@ async function criarRegistro(req, res) {
             `INSERT INTO animais (
                 nome, especie, raca, cor, porte, sexo,
                 local_desaparecimento, local_encontrado, data_evento,
-                tipo_registro, id_usuario, status, descricao
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                tipo_registro, id_usuario, status, idade, faixa_etaria,
+                responsavel, contato, descricao
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING ${CAMPOS_RETORNO}`,
             [
                 dados.nome,
@@ -133,6 +175,10 @@ async function criarRegistro(req, res) {
                 dados.tipoRegistro,
                 dados.idUsuario,
                 dados.status || (dados.tipoRegistro === 'Encontrado' ? 'Procurando Dono' : dados.tipoRegistro === 'Adocao' ? 'Animal para Adoção' : 'Perdido'),
+                dados.idade || null,
+                dados.faixaEtaria || null,
+                dados.responsavel || null,
+                dados.contato || null,
                 dados.descricao
             ]
         );
@@ -146,6 +192,10 @@ async function criarRegistro(req, res) {
 
 async function atualizarRegistro(req, res) {
     try {
+        if (String(req.usuario?.id) !== String(req.params.usuarioId)) {
+            return res.status(403).json({ mensagem: 'Somente o usuário que registrou o animal pode alterar seu status.' });
+        }
+
         const dados = obterDadosRegistro(req.body, req.params.usuarioId);
 
         if (!registroValido(dados)) {
@@ -158,8 +208,9 @@ async function atualizarRegistro(req, res) {
             `UPDATE animais SET
                 nome = $1, especie = $2, raca = $3, cor = $4, porte = $5, sexo = $6,
                 local_desaparecimento = $7, local_encontrado = $8, data_evento = $9,
-                     tipo_registro = $10, status = $11, descricao = $12
-                 WHERE id_animal = $13 AND id_usuario = $14
+                     tipo_registro = $10, status = $11, idade = $12, faixa_etaria = $13,
+                     responsavel = $14, contato = $15, descricao = $16
+                 WHERE id_animal = $17 AND id_usuario = $18
              RETURNING ${CAMPOS_RETORNO}`,
             [
                 dados.nome,
@@ -173,6 +224,10 @@ async function atualizarRegistro(req, res) {
                 dados.dataEvento,
                 dados.tipoRegistro,
                 dados.status || (dados.tipoRegistro === 'Encontrado' ? 'Procurando Dono' : dados.tipoRegistro === 'Adocao' ? 'Animal para Adoção' : 'Perdido'),
+                dados.idade || null,
+                dados.faixaEtaria || null,
+                dados.responsavel || null,
+                dados.contato || null,
                 dados.descricao,
                 req.params.id,
                 dados.idUsuario
@@ -192,6 +247,10 @@ async function atualizarRegistro(req, res) {
 
 async function excluirRegistro(req, res) {
     try {
+        if (String(req.usuario?.id) !== String(req.params.usuarioId)) {
+            return res.status(403).json({ mensagem: 'Somente o usuário que registrou o animal pode excluí-lo.' });
+        }
+
         const resultado = await pool.query(
             'DELETE FROM animais WHERE id_animal = $1 AND id_usuario = $2 RETURNING id_animal AS id',
             [req.params.id, req.params.usuarioId]
@@ -214,6 +273,8 @@ async function excluirRegistro(req, res) {
 module.exports = {
     listarRegistros,
     listarAnimaisPerdidos,
+    listarAnimaisEncontrados,
+    listarAnimaisAdocao,
     criarRegistro,
     atualizarRegistro,
     excluirRegistro

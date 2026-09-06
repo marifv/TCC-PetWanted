@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { formatarData } from './utils/formatarData';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -15,7 +16,11 @@ function valorInicial(animal) {
         porte: animal?.porte || '',
         sexo: animal?.sexo || '',
         local: animal?.local || '',
-        data: animal?.data || '',
+        data: formatarData(animal?.data),
+        idade: animal?.idade || '',
+        faixaEtaria: animal?.faixaEtaria || '',
+        responsavel: animal?.responsavel || '',
+        contato: animal?.contato || '',
         descricao: animal?.descricao || '',
     };
 }
@@ -29,8 +34,8 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
     };
 
     const salvar = async () => {
-        if (!formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
-            setMensagem('Preencha todos os campos obrigatórios.');
+        if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
+            setMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
             return;
         }
 
@@ -43,10 +48,14 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
             sexo: formulario.sexo,
             local: formulario.local,
             data: formulario.data,
+            idade: formulario.idade,
+            faixa_etaria: formulario.faixaEtaria,
+            responsavel: formulario.responsavel,
+            contato: formulario.contato,
             descricao: formulario.descricao,
         });
 
-        if (!atualizado) {
+        if (!atualizado?.id) {
             setMensagem('Não foi possível atualizar o animal.');
         }
     };
@@ -61,13 +70,13 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                 <Pressable onPress={onVoltar}>
                     <Text style={styles.back}>‹</Text>
                 </Pressable>
-                <Text style={styles.title}>Editar animal</Text>
+                <Text style={styles.title}>Alterar animal</Text>
                 <View style={styles.headerSpace} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
-                <Text style={styles.label}>Nome</Text>
-                <TextInput style={styles.input} value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />
+                <Text style={styles.label}>Nome *</Text>
+                <TextInput style={styles.input} placeholder="Nome do animal" placeholderTextColor="gray" value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />
 
                 <Text style={styles.label}>Espécie *</Text>
                 <View style={styles.options}>
@@ -102,9 +111,21 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                 </View>
 
                 <Text style={styles.label}>{labelLocal} *</Text>
-                <TextInput style={styles.input} value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
-                <Text style={styles.label}>Data *</Text>
-                <TextInput style={styles.input} value={formulario.data} onChangeText={(valor) => atualizarCampo('data', valor)} keyboardType="numeric" />
+                <TextInput style={styles.input} placeholder={tipo === 'Perdido' ? 'Ex: Parque Ibirapuera, São Paulo - SP' : 'Localização'} placeholderTextColor="gray" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
+                <Text style={styles.label}>{tipo === 'Perdido' ? 'Data do desaparecimento' : 'Data'} *</Text>
+                <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', valor)} keyboardType="numeric" />
+                {tipo === 'Adocao' && (
+                    <>
+                        <Text style={styles.label}>Idade</Text>
+                        <TextInput style={styles.input} value={formulario.idade} onChangeText={(valor) => atualizarCampo('idade', valor.replace(/[^0-9]/g, ''))} keyboardType="numeric" />
+                        <Text style={styles.label}>Faixa etária</Text>
+                        <TextInput style={styles.input} value={formulario.faixaEtaria} onChangeText={(valor) => atualizarCampo('faixaEtaria', valor)} />
+                        <Text style={styles.label}>Responsável</Text>
+                        <TextInput style={styles.input} value={formulario.responsavel} onChangeText={(valor) => atualizarCampo('responsavel', valor)} />
+                        <Text style={styles.label}>Contato</Text>
+                        <TextInput style={styles.input} value={formulario.contato} onChangeText={(valor) => atualizarCampo('contato', valor)} keyboardType="phone-pad" />
+                    </>
+                )}
                 <Text style={styles.label}>Descrição</Text>
                 <TextInput style={[styles.input, styles.multiline]} value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline />
 

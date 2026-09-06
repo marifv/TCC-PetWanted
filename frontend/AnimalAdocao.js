@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { formatarData } from './utils/formatarData';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -31,7 +32,7 @@ function formatarDataAtual() {
     return `${dia}/${mes}/${ano}`;
 }
 
-export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal }) {
+export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal }) {
     const [animais, setAnimais] = useState([]);
     const [visualizacao, setVisualizacao] = useState('todos');
 
@@ -54,18 +55,29 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
 
     useEffect(() => {
         async function carregarAnimais() {
-            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`);
+            const resposta = await fetch(`${API_ANIMAIS}/adocao`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
             const dados = await resposta.json();
 
             if (resposta.ok) {
                 setAnimais(dados
-                    .filter((animal) => animal.tipo_registro === 'Adocao')
-                    .map((animal) => ({ ...animal, status: STATUS_ADOCAO, meuAnimal: true })));
+                    .map((animal) => ({
+                        ...animal,
+                        status: animal.status || STATUS_ADOCAO,
+                        meuAnimal: String(animal.id_usuario) === String(usuarioId),
+                    })));
             }
         }
 
-        if (usuarioId) carregarAnimais();
-    }, [usuarioId]);
+        if (usuarioId && token) carregarAnimais();
+
+        const intervalo = setInterval(() => {
+            if (usuarioId && token) carregarAnimais();
+        }, 3000);
+
+        return () => clearInterval(intervalo);
+    }, [usuarioId, token]);
 
     const atualizarCampo = (campo, valor) => {
         setFormulario((atual) => ({
@@ -145,7 +157,10 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
 
         const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
                 nome: formulario.nome,
                 especie: formulario.especie,
@@ -156,6 +171,10 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
                 local_encontrado: formulario.local,
                 data_evento: formatarDataAtual(),
                 tipo_registro: 'Adocao',
+                idade: formulario.idade,
+                faixa_etaria: formulario.faixaEtaria,
+                responsavel: formulario.responsavel,
+                contato: formulario.contato,
                 descricao: formulario.descricao,
             }),
         });
@@ -187,29 +206,66 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
         setConfirmacaoAlvo(null);
     };
 
-    const confirmarAlteracaoStatus = () => {
+    const confirmarAlteracaoStatus = async () => {
         if (!confirmacaoAlvo) {
             return;
         }
 
-        setAnimais((atual) =>
-            atual.map((animal) =>
-                animal.id === confirmacaoAlvo.id
-                    ? {
-                        ...animal,
-                        status: confirmacaoAlvo.novoStatus,
-                    }
-                    : animal
-            )
-        );
+        const animal = animais.find((item) => item.id === confirmacaoAlvo.id);
+        if (!animal || !animal.meuAnimal) return;
 
-        setConfirmacaoAlvo(null);
+        try {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}/${animal.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    nome: animal.nome,
+                    especie: animal.especie,
+                    raca: animal.raca,
+                    cor: animal.cor,
+                    porte: animal.porte,
+                    sexo: animal.sexo,
+                    local_encontrado: animal.local,
+                    data_evento: animal.data,
+                    tipo_registro: 'Adocao',
+                    status: confirmacaoAlvo.novoStatus,
+                    idade: animal.idade,
+                    faixa_etaria: animal.faixaEtaria,
+                    responsavel: animal.responsavel,
+                    contato: animal.contato,
+                    descricao: animal.descricao,
+                }),
+            });
+
+            if (!resposta.ok) {
+                const dados = await resposta.json().catch(() => ({}));
+                abrirMensagem('Erro', dados.mensagem || 'Não foi possível atualizar o status.');
+                return;
+            }
+
+            if (confirmacaoAlvo.novoStatus === STATUS_ADOTADO) {
+                setAnimais((atual) => atual.filter((item) => item.id !== animal.id));
+            } else {
+                const atualizado = await resposta.json();
+                setAnimais((atual) => atual.map((item) => item.id === atualizado.id
+                    ? { ...atualizado, meuAnimal: true }
+                    : item));
+            }
+
+            setConfirmacaoAlvo(null);
+        } catch (error) {
+            abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
+        }
     };
 
     const excluirAnimal = async (id) => {
         try {
             const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}/${id}`, {
                 method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` },
             });
 
             if (!resposta.ok) {
@@ -564,14 +620,14 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
                                 />
 
                                 <Text style={styles.textoComIcone}>
-                                    Cadastrado em: {animal.data}
+                                    Cadastrado em: {formatarData(animal.data)}
                                 </Text>
                             </View>
 
                             <View style={styles.botoesContainer}>
-                                <Pressable
+                                {animal.meuAnimal && <Pressable
                                     style={styles.botaoEditar}
-                                    onPress={() => abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, meuAnimal: true } : item)))}
+                                    onPress={() => abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: atualizado.status || item.status, meuAnimal: true } : item)))}
                                 >
                                     <FontAwesome
                                         name="pencil"
@@ -584,9 +640,9 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
                                     >
                                         Editar
                                     </Text>
-                                </Pressable>
+                                </Pressable>}
 
-                                <View style={styles.statusToggleContainer}>
+                                {animal.meuAnimal && <View style={styles.statusToggleContainer}>
                                     <Pressable
                                         style={[
                                             styles.statusToggleBotao,
@@ -634,9 +690,9 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
                                             Adotado
                                         </Text>
                                     </Pressable>
-                                </View>
+                                </View>}
 
-                                <Pressable
+                                {animal.meuAnimal && <Pressable
                                     style={styles.botaoExcluir}
                                     onPress={() =>
                                         excluirAnimal(animal.id)
@@ -647,7 +703,7 @@ export default function AnimalAdocao({ usuarioId, onVoltar, setTelaAtual, abrirA
                                         size={16}
                                         color="#d9534f"
                                     />
-                                </Pressable>
+                                </Pressable>}
                             </View>
                         </View>
                     </View>
