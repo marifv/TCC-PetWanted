@@ -12,7 +12,7 @@ const FAIXAS_ETARIAS = ['Filhote', 'Jovem', 'Adulto', 'Idoso'];
 
 const STATUS_ADOCAO = 'Animal para Adoção';
 const STATUS_ADOTADO = 'Animal Adotado';
-const API_ANIMAIS = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/animais' : 'http://localhost:3000/api/animais';
+const API_ANIMAIS = Platform.OS === 'android' ? 'http://192.168.0.125:3000/api/animais' : 'http://localhost:3000/api/animais';
 
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
@@ -155,38 +155,42 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
             return;
         }
 
-        const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-                nome: formulario.nome,
-                especie: formulario.especie,
-                raca: formulario.raca,
-                cor: formulario.cor,
-                porte: formulario.porte,
-                sexo: formulario.sexo,
-                local_encontrado: formulario.local,
-                data_evento: formatarDataAtual(),
-                tipo_registro: 'Adocao',
-                idade: formulario.idade,
-                faixa_etaria: formulario.faixaEtaria,
-                responsavel: formulario.responsavel,
-                contato: formulario.contato,
-                descricao: formulario.descricao,
-            }),
-        });
-        const novoAnimal = await resposta.json();
+        try {
+            const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    nome: formulario.nome,
+                    especie: formulario.especie,
+                    raca: formulario.raca,
+                    cor: formulario.cor,
+                    porte: formulario.porte,
+                    sexo: formulario.sexo,
+                    local_encontrado: formulario.local,
+                    data_evento: formatarDataAtual(),
+                    tipo_registro: 'Adocao',
+                    idade: formulario.idade,
+                    faixa_etaria: formulario.faixaEtaria,
+                    responsavel: formulario.responsavel,
+                    contato: formulario.contato,
+                    descricao: formulario.descricao,
+                }),
+            });
+            const novoAnimal = await resposta.json();
 
-        if (!resposta.ok) {
-            abrirMensagem('Erro', novoAnimal.mensagem || 'Não foi possível salvar o animal.');
-            return;
+            if (!resposta.ok) {
+                abrirMensagem('Erro', novoAnimal.mensagem || 'Não foi possível salvar o animal.');
+                return;
+            }
+
+            setAnimais((atual) => [{ ...novoAnimal, status: STATUS_ADOCAO, meuAnimal: true }, ...atual]);
+            setModalVisivel(false);
+        } catch (error) {
+            abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
         }
-
-        setAnimais((atual) => [{ ...novoAnimal, status: STATUS_ADOCAO, meuAnimal: true }, ...atual]);
-        setModalVisivel(false);
     };
 
     const solicitarAlteracaoStatus = (id, novoStatus) => {

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { formatarData } from './utils/formatarData';
+import { formatarData, formatarEntradaData } from './utils/formatarData';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -13,7 +13,7 @@ const AREA_BUSCA_PADRAO = 5;
 
 const STATUS_PERDIDO = 'Perdido';
 const STATUS_ENCONTRADO = 'Encontrado';
-const API_ANIMAIS = Platform.OS === 'android' ? 'http://10.0.2.2:3000/api/animais' : 'http://localhost:3000/api/animais';
+const API_ANIMAIS = Platform.OS === 'android' ? 'http://192.168.0.125:3000/api/animais' : 'http://localhost:3000/api/animais';
 
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
@@ -433,7 +433,7 @@ export default function AnimalPerdido({ usuarioId, token, onVoltar, setTelaAtual
                             <TextInput style={styles.campoInput} placeholder="Ex: Parque Ibirapuera, São Paulo - SP" placeholderTextColor="gray" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
 
                             <Text style={styles.campoLabel}>Data do desaparecimento *</Text>
-                            <TextInput style={styles.campoInput} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', valor)} keyboardType="numeric" />
+                            <TextInput style={styles.campoInput} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', formatarEntradaData(valor))} keyboardType="numeric" />
 
                             <Text style={styles.campoLabel}>Descrição adicional</Text>
                             <TextInput style={[styles.campoInput, styles.campoInputMultilinha]} placeholder="Características, comportamento, coleira, etc." placeholderTextColor="gray" value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline numberOfLines={4} />

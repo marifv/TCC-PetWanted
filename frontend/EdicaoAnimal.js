@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { formatarData } from './utils/formatarData';
+import { formatarData, formatarEntradaData } from './utils/formatarData';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -113,7 +113,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                 <Text style={styles.label}>{labelLocal} *</Text>
                 <TextInput style={styles.input} placeholder={tipo === 'Perdido' ? 'Ex: Parque Ibirapuera, São Paulo - SP' : 'Localização'} placeholderTextColor="gray" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
                 <Text style={styles.label}>{tipo === 'Perdido' ? 'Data do desaparecimento' : 'Data'} *</Text>
-                <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', valor)} keyboardType="numeric" />
+                <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', formatarEntradaData(valor))} keyboardType="numeric" />
                 {tipo === 'Adocao' && (
                     <>
                         <Text style={styles.label}>Idade</Text>

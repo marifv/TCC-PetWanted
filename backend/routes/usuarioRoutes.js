@@ -1,6 +1,7 @@
 const express = require('express');
 const { criarUsuario } = require('../controllers/usuarioController');
 const { loginUsuario } = require('../controllers/loginController');
+const autenticarToken = require('../middleware/autenticacao');
 const {
     modificarPerfil,
     excluirPerfil
@@ -11,9 +12,6 @@ const router = express.Router();
 router.post('/', criarUsuario);
 router.post('/login', loginUsuario);
 router.put('/:id', modificarPerfil);
-router.delete('/:id', excluirPerfil);
-router.get('/', (req, res) => {
-    res.send('Rota de usuário funcionando!');
-});
+router.delete('/:id', autenticarToken, excluirPerfil);
 
 module.exports = router;

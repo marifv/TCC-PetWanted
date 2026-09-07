@@ -44,27 +44,43 @@ async function modificarPerfil(req, res) {
 }
 
 async function excluirPerfil(req, res) {
+    const client = await pool.connect();
+
     try {
         const { id } = req.params;
-        const resultado = await pool.query(
+        if (String(req.usuario?.id) !== String(id)) {
+            return res.status(403).json({
+                mensagem: 'Somente o usuário logado pode excluir este perfil.'
+            });
+        }
+
+        await client.query('BEGIN');
+        await client.query('DELETE FROM animais WHERE id_usuario = $1', [id]);
+        const resultado = await client.query(
             'DELETE FROM usuarios WHERE id = $1 RETURNING id',
             [id]
         );
 
         if (resultado.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({
                 mensagem: 'Usuário não encontrado.'
             });
         }
 
+        await client.query('COMMIT');
+
         return res.status(200).json({
             mensagem: 'Usuário excluído com sucesso.'
         });
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Erro ao excluir perfil:', error);
         return res.status(500).json({
             mensagem: 'Erro interno do servidor.'
         });
+    } finally {
+        client.release();
     }
 }
 
