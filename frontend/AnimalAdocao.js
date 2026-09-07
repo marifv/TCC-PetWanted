@@ -4,16 +4,15 @@ import { Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar 
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData } from './utils/formatarData';
+import { API_ANIMAIS } from './config/api';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
-const SEXOS = ['Macho', 'Fêmea', 'Não Binarie'];
+const SEXOS = ['Macho', 'Fêmea'];
 const FAIXAS_ETARIAS = ['Filhote', 'Jovem', 'Adulto', 'Idoso'];
 
 const STATUS_ADOCAO = 'Animal para Adoção';
 const STATUS_ADOTADO = 'Animal Adotado';
-const API_ANIMAIS = Platform.OS === 'android' ? 'http://192.168.0.125:3000/api/animais' : 'http://localhost:3000/api/animais';
-
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
     { chave: 'meus', label: 'Meus animais', icone: 'user' },

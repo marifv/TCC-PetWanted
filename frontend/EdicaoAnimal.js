@@ -5,7 +5,7 @@ import { formatarData, formatarEntradaData } from './utils/formatarData';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
-const SEXOS = ['Macho', 'Fêmea', 'Não Binarie'];
+const SEXOS = ['Macho', 'Fêmea'];
 
 function valorInicial(animal) {
     return {

@@ -4,6 +4,7 @@ import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, Sta
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarEntradaData } from './utils/formatarData';
+import { API_ANIMAIS } from './config/api';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -13,8 +14,6 @@ const AREA_BUSCA_PADRAO = 5;
 
 const STATUS_PERDIDO = 'Perdido';
 const STATUS_ENCONTRADO = 'Encontrado';
-const API_ANIMAIS = Platform.OS === 'android' ? 'http://192.168.0.125:3000/api/animais' : 'http://localhost:3000/api/animais';
-
 const OPCOES_VISUALIZACAO = [
     { chave: 'todos', label: 'Todos', icone: 'globe' },
     { chave: 'meus', label: 'Meus animais', icone: 'user' },

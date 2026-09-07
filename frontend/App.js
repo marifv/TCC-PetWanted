@@ -8,8 +8,9 @@ import AnimalPerdido from './AnimalPerdido';
 import AnimalEncontrado from './AnimalEncontrado';
 import AnimalAdocao from './AnimalAdocao';
 import EdicaoAnimal from './EdicaoAnimal';
+import { API_ANIMAIS, API_USUARIOS } from './config/api';
 
-const API_URL = Platform.OS === 'android' ? 'http://192.168.0.125:3000/api/usuarios' : 'http://localhost:3000/api/usuarios';
+const API_URL = API_USUARIOS;
 
 export default function App() {
   const [telaSelecionada, setTelaSelecionada] = useState(null);
@@ -151,7 +152,7 @@ export default function App() {
     if (!animalEditando || !usuarioId) return false;
 
     const animal = animalEditando.animal;
-    const resposta = await fetch(`${Platform.OS === 'android' ? 'http://192.168.0.125:3000/api/animais' : 'http://localhost:3000/api/animais'}/${usuarioId}/${animal.id}`, {
+    const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}/${animal.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
