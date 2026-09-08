@@ -194,6 +194,7 @@ export default function App() {
           nome: novoNome,
           telefone: novoTelefone,
           localizacao: novaLocalizacao,
+          foto: novaFotoPerfil?.startsWith('data:image/') ? novaFotoPerfil : null,
         }),
       });
 
@@ -208,7 +209,7 @@ export default function App() {
       setTipoPerfil(dados.tipo_perfil);
       setTelefone(dados.telefone || '');
       setLocalizacao(dados.localizacao || '');
-      setFotoPerfil(novaFotoPerfil);
+      setFotoPerfil(dados.foto || novaFotoPerfil || null);
       setTelaAtual('perfil');
     } catch (erro) {
       console.error('Erro ao atualizar perfil:', erro);
@@ -364,6 +365,7 @@ export default function App() {
       setTipoPerfil(dados.tipo_perfil || '');
       setTelefone(dados.telefone || '');
       setLocalizacao(dados.localizacao || '');
+      setFotoPerfil(dados.foto || null);
       setTelaAtual('homepage');
     } catch (erro) {
       console.error('Erro ao realizar login:', erro);

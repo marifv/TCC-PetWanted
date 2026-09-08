@@ -17,5 +17,5 @@ if (!ipv4) {
 }
 
 const envPath = path.join(__dirname, '..', '.env');
-fs.writeFileSync(envPath, `EXPO_PUBLIC_API_HOST=${ipv4}\nEXPO_PUBLIC_API_PORT=3000\n`);
+fs.writeFileSync(envPath, `EXPO_PUBLIC_API_MODE=local\nEXPO_PUBLIC_API_HOST=${ipv4}\nEXPO_PUBLIC_API_PORT=3000\n`);
 console.log(`API configurada para http://${ipv4}:3000`);

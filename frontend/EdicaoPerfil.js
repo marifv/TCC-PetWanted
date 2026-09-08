@@ -36,11 +36,14 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
             mediaTypes: ['images'],
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 1,
+            quality: 0.8,
+            base64: true,
         });
 
         if (!resultado.canceled) {
-            setNovaFotoPerfil(resultado.assets[0].uri);
+            const arquivo = resultado.assets[0];
+            const extensao = arquivo.mimeType?.split('/')?.[1] || 'jpeg';
+            setNovaFotoPerfil(`data:image/${extensao};base64,${arquivo.base64}`);
         }
     };
 
@@ -191,6 +194,38 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
                     <Text style={styles.saveButtonText}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
+
+            <Modal
+                visible={confirmacaoSalvarVisivel}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setConfirmacaoSalvarVisivel(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContainer}>
+                        <Text style={styles.modalTitulo}>Salvar alterações</Text>
+                        <Text style={styles.modalMensagem}>
+                            Deseja salvar as alterações do seu perfil?
+                        </Text>
+
+                        <View style={styles.confirmacaoAcoes}>
+                            <Pressable
+                                style={styles.modalCancelar}
+                                onPress={() => setConfirmacaoSalvarVisivel(false)}
+                            >
+                                <Text style={styles.modalCancelarTexto}>Cancelar</Text>
+                            </Pressable>
+
+                            <Pressable
+                                style={styles.modalButton}
+                                onPress={confirmarSalvar}
+                            >
+                                <Text style={styles.modalButtonText}>Confirmar</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <Modal
                 visible={modalVisivel}
@@ -413,6 +448,27 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: 'bold',
         color: '#ffffff',
+    },
+
+    confirmacaoAcoes: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+
+    modalCancelar: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: 42,
+        borderWidth: 1,
+        borderColor: '#7a4b2a',
+        borderRadius: 6,
+    },
+
+    modalCancelarTexto: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#7a4b2a',
     },
 
     saveButton: {

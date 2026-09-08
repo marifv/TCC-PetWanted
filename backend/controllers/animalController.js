@@ -104,7 +104,17 @@ function salvarFotoArquivo(idAnimal, fotoBase64, req) {
     }
 
     const base64Limpo = fotoBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-    const arquivo = `${idAnimal}.${extensao}`;
+    const fotosAnteriores = fs.existsSync(UPLOAD_DIR)
+        ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => (
+            arquivo.startsWith(`${idAnimal}.`) || arquivo.startsWith(`${idAnimal}-`)
+        ))
+        : [];
+
+    fotosAnteriores.forEach((arquivo) => {
+        fs.unlinkSync(path.join(UPLOAD_DIR, arquivo));
+    });
+
+    const arquivo = `${idAnimal}-${Date.now()}.${extensao}`;
     const caminho = path.join(UPLOAD_DIR, arquivo);
 
     fs.writeFileSync(caminho, Buffer.from(base64Limpo, 'base64'));
@@ -116,7 +126,9 @@ function salvarFotoArquivo(idAnimal, fotoBase64, req) {
 
 function fotoRegistrada(idAnimal, req) {
     const arquivos = fs.existsSync(UPLOAD_DIR)
-        ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => arquivo.startsWith(`${idAnimal}.`))
+        ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => (
+            arquivo.startsWith(`${idAnimal}.`) || arquivo.startsWith(`${idAnimal}-`)
+        ))
         : [];
 
     if (arquivos.length === 0) {

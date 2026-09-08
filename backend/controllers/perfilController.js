@@ -1,9 +1,36 @@
+const fs = require('fs');
+const path = require('path');
 const pool = require('../database/connection');
+
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+function salvarFotoPerfil(idUsuario, fotoBase64, req) {
+    if (!fotoBase64 || typeof fotoBase64 !== 'string') return null;
+
+    const correspondencia = fotoBase64.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/i);
+    if (!correspondencia) return null;
+
+    const extensao = correspondencia[1].toLowerCase() === 'jpeg'
+        ? 'jpg'
+        : correspondencia[1].toLowerCase();
+    const base64Limpo = fotoBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+    const arquivo = `perfil-${idUsuario}.${extensao}`;
+
+    fs.writeFileSync(
+        path.join(UPLOAD_DIR, arquivo),
+        Buffer.from(base64Limpo, 'base64')
+    );
+
+    const host = req?.get('host') || 'localhost:3000';
+    const protocolo = req?.protocol || 'http';
+    return `${protocolo}://${host}/uploads/${arquivo}`;
+}
 
 async function modificarPerfil(req, res) {
     try {
         const { id } = req.params;
-        const { nome, telefone, localizacao } = req.body;
+        const { nome, telefone, localizacao, foto } = req.body;
 
         if (!nome?.trim() || !telefone?.trim() || !localizacao?.trim()) {
             return res.status(400).json({
@@ -11,18 +38,21 @@ async function modificarPerfil(req, res) {
             });
         }
 
+        const fotoUrl = salvarFotoPerfil(id, foto, req);
         const resultado = await pool.query(
             `UPDATE usuarios
              SET nome = $1,
                  telefone = $2,
-                 localizacao = $3
-             WHERE id = $4
-             RETURNING id, nome, email, documento, telefone, localizacao, tipo_perfil`,
+                 localizacao = $3,
+                 foto = COALESCE($4, foto)
+             WHERE id = $5
+             RETURNING id, nome, email, documento, telefone, localizacao, tipo_perfil, foto`,
              
             [
                 nome.trim(),
                 telefone.trim(),
                 localizacao.trim(),
+                fotoUrl,
                 id
             ]
         );
