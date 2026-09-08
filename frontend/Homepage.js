@@ -3,8 +3,9 @@ import { Image, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet
 import { FontAwesome } from '@expo/vector-icons';
 import { useState } from 'react';
 
-export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao }) {
+export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, fotoPerfil, nome }) {
 	const [opcaoSelecionada, setOpcaoSelecionada] = useState('');
+	const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
 
 	return (
 		<SafeAreaView style={styles.container}>
@@ -18,7 +19,11 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 					<FontAwesome name="bell" size={20} color="#555" />
 					<Pressable onPress={setTelaAtual}>
 						<View style={styles.avatar}>
-							<Text style={styles.avatarText}>U</Text>
+							{fotoPerfil ? (
+								<Image source={{ uri: fotoPerfil }} style={styles.profileImage} />
+							) : (
+								<Text style={styles.avatarText}>{letraPerfil}</Text>
+							)}
 						</View>
 					</Pressable>
 				</View>
@@ -120,7 +125,13 @@ const styles = StyleSheet.create({
 		height: 30,
 		alignItems: 'center',
 		justifyContent: 'center',
-		backgroundColor: '#45a9d5',
+		backgroundColor: '#f8b385',
+		borderRadius: 15,
+		overflow: 'hidden',
+	},
+	profileImage: {
+		width: 30,
+		height: 30,
 		borderRadius: 15,
 	},
 	avatarText: { 

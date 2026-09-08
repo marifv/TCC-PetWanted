@@ -21,12 +21,16 @@ function novoFormulario() {
     return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', data: '', descricao: '', foto: null };
 }
 
-export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirEdicaoAnimal }) {
+export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirEdicaoAnimal }) {
     const [animais, setAnimais] = useState([]);
+    const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
     const [busca, setBusca] = useState('');
     const [visualizacao, setVisualizacao] = useState('todos');
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
+    const [confirmacaoEdicaoAlvo, setConfirmacaoEdicaoAlvo] = useState(null);
+    const [confirmacaoExclusaoAlvo, setConfirmacaoExclusaoAlvo] = useState(null);
+    const [mensagemModal, setMensagemModal] = useState({ visivel: false, titulo: '', mensagem: '' });
 
     useEffect(() => {
         async function carregarAnimais() {
@@ -71,6 +75,14 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
 
     const cancelarAlteracaoStatus = () => {
         setConfirmacaoAlvo(null);
+    };
+
+    const abrirMensagem = (titulo, mensagem) => {
+        setMensagemModal({ visivel: true, titulo, mensagem });
+    };
+
+    const fecharMensagem = () => {
+        setMensagemModal({ visivel: false, titulo: '', mensagem: '' });
     };
 
     const confirmarAlteracaoStatus = async () => {
@@ -128,13 +140,15 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
 
             if (!resposta.ok) {
                 const dados = await resposta.json().catch(() => ({}));
-                Alert.alert('Erro', dados.mensagem || 'Não foi possível excluir o animal.');
+                abrirMensagem('Erro', dados.mensagem || 'Não foi possível excluir o animal.');
                 return;
             }
 
             setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+            setConfirmacaoExclusaoAlvo(null);
+            abrirMensagem('Animal excluído', 'O animal foi excluído com sucesso.');
         } catch (error) {
-            Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+            abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
         }
     };
 
@@ -159,16 +173,23 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
             return;
         }
 
-        const resultado = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 0.7 });
+        const resultado = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 0.7,
+            base64: true,
+        });
 
         if (!resultado.canceled) {
-            atualizarCampo('foto', resultado.assets[0].uri);
+            const arquivo = resultado.assets[0];
+            const dataUri = `data:image/${arquivo.mimeType?.split('/')?.[1] || 'jpeg'};base64,${arquivo.base64}`;
+            atualizarCampo('foto', dataUri);
         }
     };
 
     const salvarAnimal = async () => {
         if (!formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
-            Alert.alert('Atenção', 'Preencha espécie, raça, cor, porte, local e data em que o animal foi encontrado.');
+            abrirMensagem('Atenção', 'Preencha espécie, raça, cor, porte, local e data em que o animal foi encontrado.');
             return;
         }
 
@@ -187,20 +208,21 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
                     local_encontrado: formulario.local,
                     data_evento: formulario.data,
                     tipo_registro: 'Encontrado',
-                    descricao: formulario.descricao
+                    descricao: formulario.descricao,
+                    foto: formulario.foto || null,
                 })
             });
             const dados = await resposta.json();
 
             if (!resposta.ok) {
-                Alert.alert('Erro', dados.mensagem || 'Não foi possível salvar o animal.');
+                abrirMensagem('Erro', dados.mensagem || 'Não foi possível salvar o animal.');
                 return;
             }
 
             setAnimais((atual) => [{ ...dados, status: STATUS_PROCURANDO, meuAnimal: true }, ...atual]);
             setModalVisivel(false);
         } catch (error) {
-            Alert.alert('Erro', 'Não foi possível conectar ao servidor.');
+            abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
         }
     };
 
@@ -220,7 +242,11 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
 
                     <Pressable onPress={setTelaAtual}>
                         <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>U</Text>
+                            {fotoPerfil ? (
+                                <Image source={{ uri: fotoPerfil }} style={styles.profileImage} />
+                            ) : (
+                                <Text style={styles.avatarText}>{letraPerfil}</Text>
+                            )}
                         </View>
                     </Pressable>
                 </View>
@@ -264,7 +290,7 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
                     <View key={animal.id} style={styles.card}>
                         <View style={styles.fotoContainer}>
                             {animal.foto ? (
-                                <Image source={{ uri: animal.foto }} style={styles.foto} />
+                                <Image source={{ uri: animal.foto }} style={styles.foto} resizeMode="contain" />
                             ) : (
                                 <View style={[styles.foto, styles.fotoPlaceholder]}>
                                     <FontAwesome name="paw" size={32} color="#cfcfcf" />
@@ -302,7 +328,7 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
 
                             <View style={styles.botoesContainer}>
                                 {animal.meuAnimal && (
-                                    <Pressable style={styles.botaoEditar} onPress={() => abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, meuAnimal: true } : item)))}>
+                                    <Pressable style={styles.botaoEditar} onPress={() => setConfirmacaoEdicaoAlvo(animal)}>
                                         <FontAwesome name="pencil" size={14} color="#45a9d5" />
                                         <Text style={styles.botaoEditarTexto}>Editar</Text>
                                     </Pressable>
@@ -327,7 +353,7 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
                                 )}
 
                                 {animal.meuAnimal && (
-                                    <Pressable style={styles.botaoExcluir} onPress={() => excluirAnimal(animal.id)}>
+                                    <Pressable style={styles.botaoExcluir} onPress={() => setConfirmacaoExclusaoAlvo(animal.id)}>
                                         <FontAwesome name="trash" size={16} color="#d9534f" />
                                     </Pressable>
                                 )}
@@ -434,6 +460,50 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
                 </View>
             </Modal>
 
+            <Modal visible={!!confirmacaoEdicaoAlvo} transparent animationType="fade" onRequestClose={() => setConfirmacaoEdicaoAlvo(null)}>
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <FontAwesome name="pencil" size={30} color="#45a9d5" />
+                        <Text style={styles.confirmTitulo}>Editar animal</Text>
+                        <Text style={styles.confirmMensagem}>Tem certeza que deseja editar o cadastro deste animal?</Text>
+                        <View style={styles.confirmBotoesContainer}>
+                            <Pressable style={styles.confirmBotaoCancelar} onPress={() => setConfirmacaoEdicaoAlvo(null)}>
+                                <Text style={styles.confirmBotaoCancelarTexto}>Cancelar</Text>
+                            </Pressable>
+                            <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
+                                const animal = confirmacaoEdicaoAlvo;
+                                setConfirmacaoEdicaoAlvo(null);
+                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, meuAnimal: true } : item)));
+                            }}>
+                                <Text style={styles.confirmBotaoConfirmarTexto}>Editar</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={!!confirmacaoExclusaoAlvo} transparent animationType="fade" onRequestClose={() => setConfirmacaoExclusaoAlvo(null)}>
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <FontAwesome name="trash" size={30} color="#d9534f" />
+                        <Text style={styles.confirmTitulo}>Excluir animal</Text>
+                        <Text style={styles.confirmMensagem}>Tem certeza que deseja excluir este animal?</Text>
+                        <View style={styles.confirmBotoesContainer}>
+                            <Pressable style={styles.confirmBotaoCancelar} onPress={() => setConfirmacaoExclusaoAlvo(null)}>
+                                <Text style={styles.confirmBotaoCancelarTexto}>Cancelar</Text>
+                            </Pressable>
+                            <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
+                                const id = confirmacaoExclusaoAlvo;
+                                setConfirmacaoExclusaoAlvo(null);
+                                excluirAnimal(id);
+                            }}>
+                                <Text style={styles.confirmBotaoConfirmarTexto}>Excluir</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             <Modal visible={!!confirmacaoAlvo} transparent animationType="fade" onRequestClose={cancelarAlteracaoStatus}>
                 <View style={styles.confirmOverlay}>
                     <View style={styles.confirmCard}>
@@ -460,6 +530,19 @@ export default function AnimalEncontrado({ usuarioId, token, onVoltar, setTelaAt
                                 <Text style={styles.confirmBotaoConfirmarTexto}>Confirmar</Text>
                             </Pressable>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={mensagemModal.visivel} transparent animationType="fade" onRequestClose={fecharMensagem}>
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <FontAwesome name="info-circle" size={30} color="#45a9d5" />
+                        <Text style={styles.confirmTitulo}>{mensagemModal.titulo}</Text>
+                        <Text style={styles.confirmMensagem}>{mensagemModal.mensagem}</Text>
+                        <Pressable style={styles.confirmBotaoConfirmar} onPress={fecharMensagem}>
+                            <Text style={styles.confirmBotaoConfirmarTexto}>OK</Text>
+                        </Pressable>
                     </View>
                 </View>
             </Modal>
@@ -502,7 +585,14 @@ const styles = StyleSheet.create({
         height: 30,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#f8b385',
+        borderRadius: 15,
+        overflow: 'hidden',
+    },
+
+    profileImage: {
+        width: 30,
+        height: 30,
         borderRadius: 15,
     },
 
@@ -616,11 +706,19 @@ const styles = StyleSheet.create({
 
     fotoContainer: {
         position: 'relative',
+        backgroundColor: '#f7f7f7',
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 170,
     },
 
     foto: {
         width: '100%',
         height: 170,
+        backgroundColor: '#f7f7f7',
     },
 
     fotoPlaceholder: {

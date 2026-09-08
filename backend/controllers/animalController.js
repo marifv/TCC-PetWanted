@@ -1,4 +1,9 @@
+const fs = require('fs');
+const path = require('path');
 const pool = require('../database/connection');
+
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const CAMPOS_RETORNO = `
     id_animal AS id,
@@ -68,14 +73,94 @@ function obterDadosRegistro(body, usuarioId) {
         responsavel: tipoRegistro === 'Adocao' ? body.responsavel?.trim() : null,
         contato: tipoRegistro === 'Adocao' ? body.contato?.trim() : null,
         descricao: body.descricao?.trim() || null,
+        foto: body.foto ? String(body.foto).trim() : null,
     };
 }
 
-function registroValido(dados) {
-    return TIPOS_REGISTRO.includes(dados.tipoRegistro)
-        && textoPreenchido(dados.idUsuario)
-        && CAMPOS_OBRIGATORIOS.every((campo) => textoPreenchido(dados[campo]))
-        && textoPreenchido(dados.localObrigatorio);
+function base64ParaExtensao(base64) {
+    if (!base64 || typeof base64 !== 'string') return null;
+
+    const match = base64.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/i);
+    if (!match) return null;
+
+    const extensaoMap = {
+        jpeg: 'jpg',
+        png: 'png',
+        jpg: 'jpg',
+        webp: 'webp',
+    };
+
+    return extensaoMap[match[1].toLowerCase()] || 'jpg';
+}
+
+function salvarFotoArquivo(idAnimal, fotoBase64, req) {
+    if (!fotoBase64 || typeof fotoBase64 !== 'string' || !fotoBase64.startsWith('data:image')) {
+        return null;
+    }
+
+    const extensao = base64ParaExtensao(fotoBase64);
+    if (!extensao) {
+        return null;
+    }
+
+    const base64Limpo = fotoBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
+    const arquivo = `${idAnimal}.${extensao}`;
+    const caminho = path.join(UPLOAD_DIR, arquivo);
+
+    fs.writeFileSync(caminho, Buffer.from(base64Limpo, 'base64'));
+
+    const host = req?.get('host') || 'localhost:3000';
+    const protocolo = req?.protocol || 'http';
+    return `${protocolo}://${host}/uploads/${arquivo}`;
+}
+
+function fotoRegistrada(idAnimal, req) {
+    const arquivos = fs.existsSync(UPLOAD_DIR)
+        ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => arquivo.startsWith(`${idAnimal}.`))
+        : [];
+
+    if (arquivos.length === 0) {
+        return null;
+    }
+
+    const host = req?.get('host') || 'localhost:3000';
+    const protocolo = req?.protocol || 'http';
+    return `${protocolo}://${host}/uploads/${arquivos[0]}`;
+}
+
+function anexarFotoAoRegistro(req, registro) {
+    if (!registro || !registro.id) {
+        return registro;
+    }
+
+    const foto = fotoRegistrada(registro.id, req);
+    return foto ? { ...registro, foto } : registro;
+}
+
+function validarRegistro(dados) {
+    const falhas = [];
+
+    if (!TIPOS_REGISTRO.includes(dados.tipoRegistro)) {
+        falhas.push('tipo de registro inválido');
+    }
+
+    if (!textoPreenchido(dados.idUsuario)) {
+        falhas.push('usuário não identificado');
+    }
+
+    const camposObrigatoriosFaltando = CAMPOS_OBRIGATORIOS.filter((campo) => !textoPreenchido(dados[campo]));
+    if (camposObrigatoriosFaltando.length > 0) {
+        falhas.push(`campos obrigatórios faltando: ${camposObrigatoriosFaltando.join(', ')}`);
+    }
+
+    if (!textoPreenchido(dados.localObrigatorio)) {
+        const nomeLocal = dados.tipoRegistro === 'Perdido'
+            ? 'local do desaparecimento'
+            : 'local encontrado';
+        falhas.push(`campo obrigatório faltando: ${nomeLocal}`);
+    }
+
+    return falhas;
 }
 
 async function listarRegistros(req, res) {
@@ -88,7 +173,7 @@ async function listarRegistros(req, res) {
             [req.params.usuarioId]
         );
 
-        return res.json(resultado.rows);
+        return res.json(resultado.rows.map((registro) => anexarFotoAoRegistro(req, registro)));
     } catch (error) {
         console.error('Erro ao listar registros de animais:', error);
         return res.status(500).json({ mensagem: 'Erro ao listar registros de animais.' });
@@ -104,7 +189,7 @@ async function listarAnimaisPerdidos(req, res) {
              ORDER BY id_animal DESC`
         );
 
-        return res.json(resultado.rows);
+        return res.json(resultado.rows.map((registro) => anexarFotoAoRegistro(req, registro)));
     } catch (error) {
         console.error('Erro ao listar animais perdidos:', error);
         return res.status(500).json({ mensagem: 'Erro ao listar animais perdidos.' });
@@ -120,7 +205,7 @@ async function listarAnimaisEncontrados(req, res) {
              ORDER BY id_animal DESC`
         );
 
-        return res.json(resultado.rows);
+        return res.json(resultado.rows.map((registro) => anexarFotoAoRegistro(req, registro)));
     } catch (error) {
         console.error('Erro ao listar animais encontrados:', error);
         return res.status(500).json({ mensagem: 'Erro ao listar animais encontrados.' });
@@ -137,7 +222,7 @@ async function listarAnimaisAdocao(req, res) {
              ORDER BY id_animal DESC`
         );
 
-        return res.json(resultado.rows);
+        return res.json(resultado.rows.map((registro) => anexarFotoAoRegistro(req, registro)));
     } catch (error) {
         console.error('Erro ao listar animais para adoção:', error);
         return res.status(500).json({ mensagem: 'Erro ao listar animais para adoção.' });
@@ -147,10 +232,11 @@ async function listarAnimaisAdocao(req, res) {
 async function criarRegistro(req, res) {
     try {
         const dados = obterDadosRegistro(req.body, req.params.usuarioId);
+        const falhas = validarRegistro(dados);
 
-        if (!registroValido(dados)) {
+        if (falhas.length > 0) {
             return res.status(400).json({
-                mensagem: 'Preencha os campos obrigatórios e informe um tipo de registro válido.'
+                mensagem: `Erro ao criar registro de animal: ${falhas.join('; ')}.`
             });
         }
 
@@ -179,14 +265,21 @@ async function criarRegistro(req, res) {
                 dados.faixaEtaria || null,
                 dados.responsavel || null,
                 dados.contato || null,
-                dados.descricao
+                dados.descricao,
             ]
         );
 
-        return res.status(201).json(resultado.rows[0]);
+        const animalCriado = resultado.rows[0];
+        const foto = salvarFotoArquivo(animalCriado.id, dados.foto, req);
+
+        return res.status(201).json({
+            ...animalCriado,
+            ...(foto ? { foto } : {}),
+        });
     } catch (error) {
         console.error('Erro ao criar registro de animal:', error);
-        return res.status(500).json({ mensagem: 'Erro ao criar registro de animal.' });
+        const mensagem = error?.message || 'Erro ao criar registro de animal.';
+        return res.status(500).json({ mensagem: `Erro ao criar registro de animal: ${mensagem}` });
     }
 }
 
@@ -197,10 +290,11 @@ async function atualizarRegistro(req, res) {
         }
 
         const dados = obterDadosRegistro(req.body, req.params.usuarioId);
+        const falhas = validarRegistro(dados);
 
-        if (!registroValido(dados)) {
+        if (falhas.length > 0) {
             return res.status(400).json({
-                mensagem: 'Preencha os campos obrigatórios e informe um tipo de registro válido.'
+                mensagem: `Erro ao atualizar registro de animal: ${falhas.join('; ')}.`
             });
         }
 
@@ -208,10 +302,10 @@ async function atualizarRegistro(req, res) {
             `UPDATE animais SET
                 nome = $1, especie = $2, raca = $3, cor = $4, porte = $5, sexo = $6,
                 local_desaparecimento = $7, local_encontrado = $8, data_evento = $9,
-                     tipo_registro = $10, status = $11, idade = $12, faixa_etaria = $13,
-                     responsavel = $14, contato = $15, descricao = $16
-                 WHERE id_animal = $17 AND id_usuario = $18
-             RETURNING ${CAMPOS_RETORNO}`,
+                tipo_registro = $10, status = $11, idade = $12, faixa_etaria = $13,
+                responsavel = $14, contato = $15, descricao = $16
+            WHERE id_animal = $17 AND id_usuario = $18
+            RETURNING ${CAMPOS_RETORNO}`,
             [
                 dados.nome,
                 dados.especie,
@@ -238,10 +332,14 @@ async function atualizarRegistro(req, res) {
             return res.status(404).json({ mensagem: 'Registro não encontrado.' });
         }
 
-        return res.json(resultado.rows[0]);
+        const foto = salvarFotoArquivo(Number(req.params.id), dados.foto, req);
+        const atualizado = { ...resultado.rows[0], ...(foto ? { foto } : {}) };
+
+        return res.json(atualizado);
     } catch (error) {
         console.error('Erro ao atualizar registro de animal:', error);
-        return res.status(500).json({ mensagem: 'Erro ao atualizar registro de animal.' });
+        const mensagem = error?.message || 'Erro ao atualizar registro de animal.';
+        return res.status(500).json({ mensagem: `Erro ao atualizar registro de animal: ${mensagem}` });
     }
 }
 

@@ -31,8 +31,9 @@ function formatarDataAtual() {
     return `${dia}/${mes}/${ano}`;
 }
 
-export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal }) {
+export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal }) {
     const [animais, setAnimais] = useState([]);
+    const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
     const [visualizacao, setVisualizacao] = useState('todos');
 
     const [filtroEspecie, setFiltroEspecie] = useState('Todos');
@@ -43,8 +44,9 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
 
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
-
     const [confirmacaoAlvo, setConfirmacaoAlvo] = useState(null);
+    const [confirmacaoEdicaoAlvo, setConfirmacaoEdicaoAlvo] = useState(null);
+    const [confirmacaoExclusaoAlvo, setConfirmacaoExclusaoAlvo] = useState(null);
 
     const [mensagemModal, setMensagemModal] = useState({
         visivel: false,
@@ -125,10 +127,13 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             quality: 0.7,
+            base64: true,
         });
 
         if (!resultado.canceled) {
-            atualizarCampo('foto', resultado.assets[0].uri);
+            const arquivo = resultado.assets[0];
+            const dataUri = `data:image/${arquivo.mimeType?.split('/')?.[1] || 'jpeg'};base64,${arquivo.base64}`;
+            atualizarCampo('foto', dataUri);
         }
     };
 
@@ -176,6 +181,7 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
                     responsavel: formulario.responsavel,
                     contato: formulario.contato,
                     descricao: formulario.descricao,
+                    foto: formulario.foto || null,
                 }),
             });
             const novoAnimal = await resposta.json();
@@ -278,6 +284,8 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
             }
 
             setAnimais((atual) => atual.filter((animal) => animal.id !== id));
+            setConfirmacaoExclusaoAlvo(null);
+            abrirMensagem('Animal excluído', 'O animal foi excluído com sucesso.');
         } catch (error) {
             abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
         }
@@ -383,7 +391,11 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
 
                     <Pressable onPress={setTelaAtual}>
                         <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>U</Text>
+                            {fotoPerfil ? (
+                                <Image source={{ uri: fotoPerfil }} style={styles.profileImage} />
+                            ) : (
+                                <Text style={styles.avatarText}>{letraPerfil}</Text>
+                            )}
                         </View>
                     </Pressable>
                 </View>
@@ -501,6 +513,7 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
                                 <Image
                                     source={{ uri: animal.foto }}
                                     style={styles.foto}
+                                    resizeMode="contain"
                                 />
                             ) : (
                                 <View
@@ -1012,7 +1025,7 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
                         </Text>
 
                         <Pressable
-                            style={styles.confirmBotaoMensagem}
+                            style={styles.confirmBotaoConfirmar}
                             onPress={fecharMensagem}
                         >
                             <Text
@@ -1022,6 +1035,62 @@ export default function AnimalAdocao({ usuarioId, token, onVoltar, setTelaAtual,
                             >
                                 OK
                             </Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
+            <Modal visible={!!confirmacaoEdicaoAlvo} transparent animationType="fade" onRequestClose={() => setConfirmacaoEdicaoAlvo(null)}>
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <FontAwesome name="pencil" size={30} color="#45a9d5" />
+                        <Text style={styles.confirmTitulo}>Editar animal</Text>
+                        <Text style={styles.confirmMensagem}>Tem certeza que deseja editar o cadastro deste animal?</Text>
+                        <View style={styles.confirmBotoesContainer}>
+                            <Pressable style={styles.confirmBotaoCancelar} onPress={() => setConfirmacaoEdicaoAlvo(null)}>
+                                <Text style={styles.confirmBotaoCancelarTexto}>Cancelar</Text>
+                            </Pressable>
+                            <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
+                                const animal = confirmacaoEdicaoAlvo;
+                                setConfirmacaoEdicaoAlvo(null);
+                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: atualizado.status || item.status, meuAnimal: true } : item)));
+                            }}>
+                                <Text style={styles.confirmBotaoConfirmarTexto}>Editar</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={!!confirmacaoExclusaoAlvo} transparent animationType="fade" onRequestClose={() => setConfirmacaoExclusaoAlvo(null)}>
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <FontAwesome name="trash" size={30} color="#d9534f" />
+                        <Text style={styles.confirmTitulo}>Excluir animal</Text>
+                        <Text style={styles.confirmMensagem}>Tem certeza que deseja excluir este animal?</Text>
+                        <View style={styles.confirmBotoesContainer}>
+                            <Pressable style={styles.confirmBotaoCancelar} onPress={() => setConfirmacaoExclusaoAlvo(null)}>
+                                <Text style={styles.confirmBotaoCancelarTexto}>Cancelar</Text>
+                            </Pressable>
+                            <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
+                                const id = confirmacaoExclusaoAlvo;
+                                setConfirmacaoExclusaoAlvo(null);
+                                excluirAnimal(id);
+                            }}>
+                                <Text style={styles.confirmBotaoConfirmarTexto}>Excluir</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            <Modal visible={mensagemModal.visivel} transparent animationType="fade" onRequestClose={fecharMensagem}>
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmCard}>
+                        <FontAwesome name="info-circle" size={30} color="#45a9d5" />
+                        <Text style={styles.confirmTitulo}>{mensagemModal.titulo}</Text>
+                        <Text style={styles.confirmMensagem}>{mensagemModal.mensagem}</Text>
+                        <Pressable style={styles.confirmBotaoConfirmar} onPress={fecharMensagem}>
+                            <Text style={styles.confirmBotaoConfirmarTexto}>OK</Text>
                         </Pressable>
                     </View>
                 </View>
@@ -1069,7 +1138,14 @@ const styles = StyleSheet.create({
         height: 30,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#f8b385',
+        borderRadius: 15,
+        overflow: 'hidden',
+    },
+
+    profileImage: {
+        width: 30,
+        height: 30,
         borderRadius: 15,
     },
 
@@ -1196,11 +1272,19 @@ const styles = StyleSheet.create({
 
     fotoContainer: {
         position: 'relative',
+        backgroundColor: '#f7f7f7',
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        overflow: 'hidden',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 170,
     },
 
     foto: {
         width: '100%',
         height: 170,
+        backgroundColor: '#f7f7f7',
     },
 
     fotoPlaceholder: {
@@ -1664,14 +1748,6 @@ const styles = StyleSheet.create({
         color: '#ffffff',
     },
 
-    confirmBotaoMensagem: {
-        width: '100%',
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 8,
-        backgroundColor: '#45a9d5',
-        marginTop: 4,
-    },
+    
 });
 

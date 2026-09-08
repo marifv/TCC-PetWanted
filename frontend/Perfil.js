@@ -5,6 +5,7 @@ import { FontAwesome } from '@expo/vector-icons';
 
 export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil }) {
     const [confirmacaoExclusaoVisivel, setConfirmacaoExclusaoVisivel] = useState(false);
+    const [confirmacaoEdicaoVisivel, setConfirmacaoEdicaoVisivel] = useState(false);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -22,7 +23,7 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
                 <View style={styles.headerRight}>
                     <FontAwesome name="bell" size={20} color="#555" />
 
-                    <Pressable onPress={setTelaEdicao}>
+                    <Pressable onPress={() => setConfirmacaoEdicaoVisivel(true)}>
                         <FontAwesome name="pencil" size={22} color="#292929" />
                     </Pressable>
                 </View>
@@ -122,6 +123,41 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
                     <Text style={styles.logoutButtonText}>Sair da conta</Text>
                 </Pressable>
             </ScrollView>
+
+            <Modal
+                transparent
+                animationType="fade"
+                visible={confirmacaoEdicaoVisivel}
+                onRequestClose={() => setConfirmacaoEdicaoVisivel(false)}
+            >
+                <View style={styles.confirmationOverlay}>
+                    <View style={styles.confirmationCard}>
+                        <Text style={styles.confirmationTitle}>Editar perfil</Text>
+                        <Text style={styles.confirmationMessage}>
+                            Tem certeza que deseja editar o cadastro do seu perfil?
+                        </Text>
+
+                        <View style={styles.confirmationActions}>
+                            <Pressable
+                                style={styles.cancelButton}
+                                onPress={() => setConfirmacaoEdicaoVisivel(false)}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                            </Pressable>
+
+                            <Pressable
+                                style={styles.confirmButton}
+                                onPress={() => {
+                                    setConfirmacaoEdicaoVisivel(false);
+                                    setTelaEdicao();
+                                }}
+                            >
+                                <Text style={styles.confirmButtonText}>Editar</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             <Modal
                 transparent

@@ -13,6 +13,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
     const [modalVisivel, setModalVisivel] = useState(false);
     const [modalTitulo, setModalTitulo] = useState('');
     const [modalMensagem, setModalMensagem] = useState('');
+    const [confirmacaoSalvarVisivel, setConfirmacaoSalvarVisivel] = useState(false);
 
     const mostrarModal = (titulo, mensagem) => {
         setModalTitulo(titulo);
@@ -64,6 +65,11 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
             return;
         }
 
+        setConfirmacaoSalvarVisivel(true);
+    };
+
+    const confirmarSalvar = () => {
+        setConfirmacaoSalvarVisivel(false);
         onSalvar(novoNome.trim(), novoTipoPerfil, novoTelefone.trim(), novaLocalizacao.trim(), novaFotoPerfil);
     };
 

@@ -171,6 +171,10 @@ export default function App() {
 
     const atualizado = await resposta.json();
 
+    if (!atualizado?.foto && animal?.foto) {
+      atualizado.foto = animal.foto;
+    }
+
     if (typeof animalEditando.atualizarLista === 'function') {
       animalEditando.atualizarLista(atualizado);
     }
@@ -483,6 +487,8 @@ export default function App() {
       <Homepage 
         setTelaAtual={abrirPerfil} 
         telaAtual={telaAtual}
+        nome={nome}
+        fotoPerfil={fotoPerfil}
         abrirAnimalPerdido={abrirAnimalPerdido}
         abrirAnimalEncontrado={abrirAnimalEncontrado}
         abrirAdocao={abrirAnimalAdocao}
@@ -527,6 +533,8 @@ export default function App() {
           <AnimalPerdido
             usuarioId={usuarioId}
             token={token}
+            nome={nome}
+            fotoPerfil={fotoPerfil}
             onVoltar={voltarParaHomeAnimalPerdido}
             setTelaAtual={abrirPerfil}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
@@ -541,6 +549,8 @@ export default function App() {
           <AnimalEncontrado
             usuarioId={usuarioId}
             token={token}
+            nome={nome}
+            fotoPerfil={fotoPerfil}
             onVoltar={voltarParaHomeAnimalEncontrado}
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
@@ -555,6 +565,8 @@ export default function App() {
           <AnimalAdocao
             usuarioId={usuarioId}
             token={token}
+            nome={nome}
+            fotoPerfil={fotoPerfil}
             onVoltar={voltarParaHomeAnimalAdocao}
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
