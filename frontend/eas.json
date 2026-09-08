@@ -6,8 +6,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_HOST": "192.168.0.27",
-        "EXPO_PUBLIC_API_PORT": "3000"
+        "EXPO_PUBLIC_API_MODE": "render"
       }
     },
     "production": {
