@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "702dda97-166d-475b-bfdf-1b12407771cb"
+      }
+    },
+    "android": {
+      "package": "com.marifv.tccpetwanted"
+    }
+  }
+}

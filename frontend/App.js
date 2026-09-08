@@ -363,7 +363,11 @@ export default function App() {
       setTelaAtual('homepage');
     } catch (erro) {
       console.error('Erro ao realizar login:', erro);
-      mostrarAlerta('Erro', 'Não foi possível conectar ao servidor.', 'error');
+      mostrarAlerta(
+        'Erro de conexão',
+        `Endpoint: ${API_URL}/login\n${erro.message || 'Falha de rede.'}`,
+        'error'
+      );
     }
   };
 
