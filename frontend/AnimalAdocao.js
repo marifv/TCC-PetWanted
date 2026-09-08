@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData } from './utils/formatarData';
@@ -88,11 +88,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
     };
 
     const abrirMensagem = (titulo, mensagem) => {
-        setMensagemModal({
-            visivel: true,
-            titulo,
-            mensagem,
-        });
+        Alert.alert(titulo, mensagem, [{ text: 'OK' }]);
     };
 
     const fecharMensagem = () => {
@@ -926,7 +922,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                             {renderCampo('Localização *', 'local', 'Ex: São Paulo - SP')}
                             {renderCampo('Responsável *', 'responsavel', 'Nome do responsável')}
                             {renderCampo('Contato *', 'contato', 'Telefone ou WhatsApp', { keyboardType: 'phone-pad' })}
-                            {renderCampo('Descrição *', 'descricao', 'Características, comportamento, cuidados, etc.', { multiline: true, numberOfLines: 4 })}
+                            {renderCampo('Descrição ', 'descricao', 'Características, comportamento, cuidados, etc.', { multiline: true, numberOfLines: 4 })}
 
                             <Pressable
                                 style={styles.botaoSalvar}

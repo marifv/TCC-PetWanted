@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Modal, ScrollView, Image } from 'react-native';
+import { Alert, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Modal, ScrollView, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
@@ -16,9 +16,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
     const [confirmacaoSalvarVisivel, setConfirmacaoSalvarVisivel] = useState(false);
 
     const mostrarModal = (titulo, mensagem) => {
-        setModalTitulo(titulo);
-        setModalMensagem(mensagem);
-        setModalVisivel(true);
+        Alert.alert(titulo, mensagem, [{ text: 'OK' }]);
     };
 
     const escolherFoto = async () => {

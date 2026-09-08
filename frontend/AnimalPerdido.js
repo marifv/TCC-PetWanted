@@ -74,7 +74,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
     };
 
     const abrirMensagem = (titulo, mensagem) => {
-        setMensagemModal({ visivel: true, titulo, mensagem });
+        Alert.alert(titulo, mensagem, [{ text: 'OK' }]);
     };
 
     const fecharMensagem = () => {
@@ -484,7 +484,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                             <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
                                 const animal = confirmacaoEdicaoAlvo;
                                 setConfirmacaoEdicaoAlvo(null);
-                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, areaBusca: item.areaBusca, meuAnimal: true } : item)));
+                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: atualizado.status || item.status, areaBusca: item.areaBusca, meuAnimal: true } : item)));
                             }}>
                                 <Text style={styles.confirmBotaoConfirmarTexto}>Editar</Text>
                             </Pressable>

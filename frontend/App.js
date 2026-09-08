@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Homepage from './Homepage';
 import Perfil from './Perfil';
 import EdicaoPerfil from './EdicaoPerfil';
@@ -45,10 +45,7 @@ export default function App() {
   const perfilOffset = useRef(new Animated.Value(400)).current;
 
   const mostrarAlerta = (titulo, mensagem, tipo = 'info') => {
-    setAlertaTitulo(titulo);
-    setAlertaMensagem(mensagem);
-    setAlertaTipo(tipo);
-    setAlertaVisivel(true);
+    Alert.alert(titulo, mensagem, [{ text: 'OK' }]);
   };
 
   const handleLayoutAcoes = (event) => {
@@ -164,6 +161,7 @@ export default function App() {
         local_encontrado: animal.tipo_registro === 'Perdido' ? '' : dados.local,
         data_evento: dados.data,
         tipo_registro: animal.tipo_registro,
+        status: animal.status,
       }),
     });
 

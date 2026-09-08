@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -31,8 +31,13 @@ function valorInicial(animal) {
 export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
     const [formulario, setFormulario] = useState(valorInicial(animal));
     const [mensagem, setMensagem] = useState('');
+    const [mensagemVisivel, setMensagemVisivel] = useState(false);
     const [confirmacaoSalvarVisivel, setConfirmacaoSalvarVisivel] = useState(false);
     const [confirmacaoVoltarVisivel, setConfirmacaoVoltarVisivel] = useState(false);
+
+    const mostrarMensagem = (texto) => {
+        Alert.alert('Atenção', texto, [{ text: 'OK' }]);
+    };
 
     const atualizarCampo = (campo, valor) => {
         setFormulario((atual) => ({ ...atual, [campo]: valor }));
@@ -42,7 +47,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
         const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permissao.granted) {
-            setMensagem('Precisamos de acesso à galeria para trocar a foto do animal.');
+            mostrarMensagem('Precisamos de acesso à galeria para trocar a foto do animal.');
             return;
         }
 
@@ -64,7 +69,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
         const extensao = mimeType.split('/')?.[1] || 'jpeg';
 
         if (!base64) {
-            setMensagem('Não foi possível ler a imagem escolhida. Tente outra foto.');
+            mostrarMensagem('Não foi possível ler a imagem escolhida. Tente outra foto.');
             return;
         }
 
@@ -74,7 +79,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
 
     const salvar = async () => {
         if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
-            setMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
+            mostrarMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
             return;
         }
 
@@ -100,8 +105,17 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
         });
 
         if (!atualizado?.id) {
-            setMensagem('Não foi possível atualizar o animal.');
+            mostrarMensagem('Não foi possível atualizar o animal.');
         }
+    };
+
+    const solicitarSalvar = () => {
+        if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
+            mostrarMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
+            return;
+        }
+
+        setConfirmacaoSalvarVisivel(true);
     };
 
     const confirmarSalvar = async () => {
@@ -189,11 +203,22 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                 <Text style={styles.label}>Descrição</Text>
                 <TextInput style={[styles.input, styles.multiline]} value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline />
 
-                {!!mensagem && <Text style={styles.message}>{mensagem}</Text>}
-                <Pressable style={styles.save} onPress={() => setConfirmacaoSalvarVisivel(true)}>
+                <Pressable style={styles.save} onPress={solicitarSalvar}>
                     <Text style={styles.saveText}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
+
+            <Modal transparent animationType="fade" visible={mensagemVisivel} onRequestClose={() => setMensagemVisivel(false)}>
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalCard}>
+                        <Text style={styles.modalTitle}>Atenção</Text>
+                        <Text style={styles.modalMessage}>{mensagem}</Text>
+                        <Pressable style={styles.modalConfirm} onPress={() => setMensagemVisivel(false)}>
+                            <Text style={styles.modalConfirmText}>OK</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </Modal>
 
             <Modal transparent animationType="fade" visible={confirmacaoSalvarVisivel} onRequestClose={() => setConfirmacaoSalvarVisivel(false)}>
                 <View style={styles.modalOverlay}>

@@ -78,7 +78,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
     };
 
     const abrirMensagem = (titulo, mensagem) => {
-        setMensagemModal({ visivel: true, titulo, mensagem });
+        Alert.alert(titulo, mensagem, [{ text: 'OK' }]);
     };
 
     const fecharMensagem = () => {
@@ -473,7 +473,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                             <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
                                 const animal = confirmacaoEdicaoAlvo;
                                 setConfirmacaoEdicaoAlvo(null);
-                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: item.status, meuAnimal: true } : item)));
+                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: atualizado.status, meuAnimal: true } : item)));
                             }}>
                                 <Text style={styles.confirmBotaoConfirmarTexto}>Editar</Text>
                             </Pressable>
