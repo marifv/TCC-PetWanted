@@ -15,7 +15,17 @@ function salvarFotoPerfil(idUsuario, fotoBase64, req) {
         ? 'jpg'
         : correspondencia[1].toLowerCase();
     const base64Limpo = fotoBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-    const arquivo = `perfil-${idUsuario}.${extensao}`;
+    const fotosAnteriores = fs.existsSync(UPLOAD_DIR)
+        ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => (
+            arquivo.startsWith(`perfil-${idUsuario}.`) || arquivo.startsWith(`perfil-${idUsuario}-`)
+        ))
+        : [];
+
+    fotosAnteriores.forEach((arquivo) => {
+        fs.unlinkSync(path.join(UPLOAD_DIR, arquivo));
+    });
+
+    const arquivo = `perfil-${idUsuario}-${Date.now()}.${extensao}`;
 
     fs.writeFileSync(
         path.join(UPLOAD_DIR, arquivo),

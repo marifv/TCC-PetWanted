@@ -128,7 +128,10 @@ function fotoRegistrada(idAnimal, req) {
     const arquivos = fs.existsSync(UPLOAD_DIR)
         ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => (
             arquivo.startsWith(`${idAnimal}.`) || arquivo.startsWith(`${idAnimal}-`)
-        ))
+        )).map((arquivo) => ({
+            arquivo,
+            dataModificacao: fs.statSync(path.join(UPLOAD_DIR, arquivo)).mtimeMs,
+        })).sort((primeiro, segundo) => segundo.dataModificacao - primeiro.dataModificacao)
         : [];
 
     if (arquivos.length === 0) {
@@ -137,7 +140,7 @@ function fotoRegistrada(idAnimal, req) {
 
     const host = req?.get('host') || 'localhost:3000';
     const protocolo = req?.protocol || 'http';
-    return `${protocolo}://${host}/uploads/${arquivos[0]}`;
+    return `${protocolo}://${host}/uploads/${arquivos[0].arquivo}?v=${arquivos[0].dataModificacao}`;
 }
 
 function anexarFotoAoRegistro(req, registro) {
