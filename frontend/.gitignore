@@ -44,4 +44,6 @@ yarn-error.*
 *.jpg
 *.jpeg
 *.png
+!assets/
+!assets/**/*.png
 *.gif
