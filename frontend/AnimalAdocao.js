@@ -639,7 +639,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                             <View style={styles.botoesContainer}>
                                 {animal.meuAnimal && <Pressable
                                     style={styles.botaoEditar}
-                                    onPress={() => abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: atualizado.status || item.status, meuAnimal: true } : item)))}
+                                    onPress={() => setConfirmacaoEdicaoAlvo(animal)}
                                 >
                                     <FontAwesome
                                         name="pencil"
@@ -707,7 +707,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 {animal.meuAnimal && <Pressable
                                     style={styles.botaoExcluir}
                                     onPress={() =>
-                                        excluirAnimal(animal.id)
+                                        setConfirmacaoExclusaoAlvo(animal.id)
                                     }
                                 >
                                     <FontAwesome

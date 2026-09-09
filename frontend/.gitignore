@@ -41,5 +41,7 @@ yarn-error.*
 /android
 
 # photos
-.jpg
-.png
+*.jpg
+*.jpeg
+*.png
+*.gif
