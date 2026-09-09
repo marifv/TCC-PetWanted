@@ -44,6 +44,15 @@ yarn-error.*
 *.jpg
 *.jpeg
 *.png
-!assets/
-!assets/**/*.png
 *.gif
+
+# Expo assets
+!assets/
+!assets/*.jpg
+!assets/*.jpeg
+!assets/*.png
+!assets/*.gif
+!assets/**/*.jpg
+!assets/**/*.jpeg
+!assets/**/*.png
+!assets/**/*.gif

@@ -20,7 +20,14 @@ frontend/tmp-export-web/
 *.jpg
 *.jpeg
 *.png
-!frontend/assets/
-!frontend/assets/**/*.png
-
 *.gif
+
+!frontend/assets/
+!frontend/assets/*.jpg
+!frontend/assets/*.jpeg
+!frontend/assets/*.png
+!frontend/assets/*.gif
+!frontend/assets/**/*.jpg
+!frontend/assets/**/*.jpeg
+!frontend/assets/**/*.png
+!frontend/assets/**/*.gif
