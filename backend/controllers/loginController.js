@@ -48,6 +48,8 @@ async function loginUsuario(req, res) {
             documento: usuario.rows[0].documento,
             telefone: usuario.rows[0].telefone,
             localizacao: usuario.rows[0].localizacao,
+            latitude: usuario.rows[0].latitude,
+            longitude: usuario.rows[0].longitude,
             tipo_perfil: usuario.rows[0].tipo_perfil,
             foto: usuario.rows[0].foto
         });

@@ -40,6 +40,7 @@ export default function App() {
   const [alertaTitulo, setAlertaTitulo] = useState('');
   const [alertaMensagem, setAlertaMensagem] = useState('');
   const [alertaTipo, setAlertaTipo] = useState('info');
+  const [coordenadasUsuario, setCoordenadasUsuario] = useState(null);
 
   const deslocamentoBotao = useRef(new Animated.Value(0)).current;
   const perfilOffset = useRef(new Animated.Value(400)).current;
@@ -179,6 +180,44 @@ export default function App() {
 
     fecharEdicaoAnimal();
     return atualizado;
+  };
+
+  const salvarLocalizacaoUsuario = async (coordenadas) => {
+    if (!usuarioId || !token) return;
+
+    try {
+      const payload = {
+        nome: nome || '',
+        telefone: telefone || '',
+        localizacao: localizacao || 'Localização atual',
+        latitude: coordenadas.latitude,
+        longitude: coordenadas.longitude,
+      };
+
+      const resposta = await fetch(`${API_URL}/${usuarioId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        console.warn(dados.mensagem || 'Não foi possível salvar a localização.');
+        return;
+      }
+
+      setCoordenadasUsuario({
+        latitude: Number(coordenadas.latitude),
+        longitude: Number(coordenadas.longitude),
+      });
+      setLocalizacao(dados.localizacao || 'Localização atual');
+    } catch (erro) {
+      console.error('Erro ao salvar localização:', erro);
+    }
   };
 
   const salvarPerfil = async (novoNome, novoTipoPerfil, novoTelefone, novaLocalizacao, novaFotoPerfil) => {
@@ -492,6 +531,9 @@ export default function App() {
         abrirAnimalPerdido={abrirAnimalPerdido}
         abrirAnimalEncontrado={abrirAnimalEncontrado}
         abrirAdocao={abrirAnimalAdocao}
+        usuarioId={usuarioId}
+        token={token}
+        onSalvarLocalizacao={salvarLocalizacaoUsuario}
       />
 
       {perfilAtivo && (

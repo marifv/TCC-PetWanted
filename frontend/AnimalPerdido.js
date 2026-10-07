@@ -5,6 +5,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarEntradaData } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
+import GooglePlacesInput from './GooglePlacesInput';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -20,7 +21,7 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', data: '', descricao: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
 }
 
 export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao, abrirEdicaoAnimal }) {
@@ -155,7 +156,11 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
     };
 
     const atualizarCampo = (campo, valor) => {
-        setFormulario((atual) => ({ ...atual, [campo]: valor }));
+        setFormulario((atual) => ({
+            ...atual,
+            [campo]: valor,
+            ...(campo === 'local' ? { local_latitude: null, local_longitude: null } : {}),
+        }));
     };
 
     const abrirFormulario = () => {
@@ -194,6 +199,10 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
             abrirMensagem('Atenção', 'Preencha nome, espécie, raça, cor, porte, sexo, local e data do desaparecimento.');
             return;
         }
+        if (formulario.local_latitude == null || formulario.local_longitude == null) {
+            abrirMensagem('Atenção', 'Selecione um endereço nas sugestões do Google Maps para marcar o local no mapa.');
+            return;
+        }
 
         try {
             const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
@@ -210,6 +219,8 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                     porte: formulario.porte,
                     sexo: formulario.sexo,
                     local_desaparecimento: formulario.local,
+                    local_latitude: formulario.local_latitude,
+                    local_longitude: formulario.local_longitude,
                     local_encontrado: '',
                     data_evento: formulario.data,
                     tipo_registro: 'Perdido',
@@ -406,7 +417,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                             </Pressable>
                         </View>
 
-                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
                                 {formulario.foto ? (
                                     <Image source={{ uri: formulario.foto }} style={styles.uploadFotoPreview} />
@@ -455,7 +466,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                             </View>
 
                             <Text style={styles.campoLabel}>Local do desaparecimento *</Text>
-                            <TextInput style={styles.campoInput} placeholder="Ex: Parque Ibirapuera, São Paulo - SP" placeholderTextColor="gray" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
+                            <GooglePlacesInput style={styles.campoInput} placeholder="Ex: Parque Ibirapuera, São Paulo - SP" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} onLocationSelected={(coordenadas) => setFormulario((atual) => ({ ...atual, local_latitude: coordenadas.latitude, local_longitude: coordenadas.longitude }))} token={token} />
 
                             <Text style={styles.campoLabel}>Data do desaparecimento *</Text>
                             <TextInput style={styles.campoInput} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', formatarEntradaData(valor))} keyboardType="numeric" />

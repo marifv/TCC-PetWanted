@@ -10,7 +10,9 @@ async function criarUsuario(req, res) {
             senha,
             telefone,
             localizacao,
-            tipo_perfil
+            tipo_perfil,
+            latitude,
+            longitude
         } = req.body;
 
         const emailNormalizado = email?.trim().toLowerCase();
@@ -66,10 +68,10 @@ async function criarUsuario(req, res) {
 
             const resultado = await client.query(
                 `INSERT INTO usuarios
-                    (id, nome, email, documento, senha, telefone, localizacao, tipo_perfil)
+                    (id, nome, email, documento, senha, telefone, localizacao, latitude, longitude, tipo_perfil)
                  VALUES
-                    ($1, $2, $3, $4, $5, $6, $7, $8)
-                 RETURNING id, nome, email, documento, telefone, localizacao, tipo_perfil`,
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                 RETURNING id, nome, email, documento, telefone, localizacao, latitude, longitude, tipo_perfil`,
                 [
                     proximoId.rows[0].id,
                     nome.trim(),
@@ -78,6 +80,8 @@ async function criarUsuario(req, res) {
                     senhaHash,
                     telefone || null,
                     localizacao || null,
+                    latitude ?? null,
+                    longitude ?? null,
                     tipo_perfil
                 ]
             );

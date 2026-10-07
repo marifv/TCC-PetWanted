@@ -2,8 +2,9 @@ import { StatusBar } from 'expo-status-bar';
 import { Image, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useState } from 'react';
+import MapaPet from './MapaPet';
 
-export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, fotoPerfil, nome }) {
+export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome }) {
 	const [opcaoSelecionada, setOpcaoSelecionada] = useState('');
 	const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
 
@@ -29,9 +30,12 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 				</View>
 			</View>
 
-			<View style={styles.content}>
-				<Text style={styles.title}>Encontre seu pet</Text>
-				<Text style={styles.subtitle}>Veja pedidos de ajuda perto de voce.</Text>
+			<View style={[styles.content, styles.contentMapa]}>
+				<MapaPet
+					usuarioId={usuarioId}
+					token={token}
+					onSalvarLocalizacao={onSalvarLocalizacao}
+				/>
 			</View>
 
 			<View style={styles.footer}>
@@ -142,16 +146,13 @@ const styles = StyleSheet.create({
 		flex: 1, 
 		alignItems: 'center', 
 		justifyContent: 'center', 
-		backgroundColor: '#f2f2f2'
+		backgroundColor: '#f2f2f2',
+		width: '100%',
 	},
-	title: { 
-		fontSize: 24, 
-		fontWeight: 'bold', 
-		color: '#292929', 
-		marginBottom: 8 },
-	subtitle: { 
-		fontSize: 16, 
-		color: '#666666' },
+	contentMapa: {
+		alignItems: 'stretch',
+		justifyContent: 'flex-start',
+	},
 	footer: {
 		height: 76,
 		paddingHorizontal: 10,

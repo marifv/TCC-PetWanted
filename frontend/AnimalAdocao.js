@@ -5,6 +5,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
+import GooglePlacesInput from './GooglePlacesInput';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -19,7 +20,7 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', idade: '', faixaEtaria: '', local: '', descricao: '', responsavel: '', contato: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', idade: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, descricao: '', responsavel: '', contato: '', foto: null };
 }
 
 function formatarDataAtual() {
@@ -84,6 +85,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
         setFormulario((atual) => ({
             ...atual,
             [campo]: valor,
+            ...(campo === 'local' ? { local_latitude: null, local_longitude: null } : {}),
         }));
     };
 
@@ -170,6 +172,8 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                     porte: formulario.porte,
                     sexo: formulario.sexo,
                     local_encontrado: formulario.local,
+                    local_latitude: formulario.local_latitude,
+                    local_longitude: formulario.local_longitude,
                     data_evento: formatarDataAtual(),
                     tipo_registro: 'Adocao',
                     idade: formulario.idade,
@@ -876,6 +880,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                         <ScrollView
                             style={styles.modalScroll}
                             showsVerticalScrollIndicator={false}
+                            keyboardShouldPersistTaps="handled"
                         >
                             <Pressable
                                 style={styles.uploadFoto}
@@ -919,7 +924,15 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                             {renderCampo('Idade *', 'idade', 'Idade em anos', { numeric: true, keyboardType: 'numeric' })}
                             <Text style={styles.campoLabel}>Faixa etária *</Text>
                             {renderOpcoes(FAIXAS_ETARIAS, 'faixaEtaria')}
-                            {renderCampo('Localização *', 'local', 'Ex: São Paulo - SP')}
+                            <Text style={styles.campoLabel}>Localização *</Text>
+                            <GooglePlacesInput
+                                style={styles.campoInput}
+                                placeholder="Ex: São Paulo - SP"
+                                value={formulario.local}
+                                onChangeText={(valor) => atualizarCampo('local', valor)}
+                                onLocationSelected={(coordenadas) => setFormulario((atual) => ({ ...atual, local_latitude: coordenadas.latitude, local_longitude: coordenadas.longitude }))}
+                                token={token}
+                            />
                             {renderCampo('Responsável *', 'responsavel', 'Nome do responsável')}
                             {renderCampo('Contato *', 'contato', 'Telefone ou WhatsApp', { keyboardType: 'phone-pad' })}
                             {renderCampo('Descrição ', 'descricao', 'Características, comportamento, cuidados, etc.', { multiline: true, numberOfLines: 4 })}

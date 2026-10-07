@@ -12,11 +12,27 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.petwanted.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Precisamos da sua localização para mostrar sua posição no mapa e encontrar pets próximos."
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyCkNij-RJmjl9UVnkHJ6gVPIpV8MD5vxAw"
+      }
     },
     "android": {
       "package": "com.petwanted.app",
       "usesCleartextTraffic": true,
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      },
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",

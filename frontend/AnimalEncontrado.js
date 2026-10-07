@@ -5,6 +5,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarEntradaData } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
+import GooglePlacesInput from './GooglePlacesInput';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -18,7 +19,7 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', data: '', descricao: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
 }
 
 export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirEdicaoAnimal }) {
@@ -153,7 +154,11 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
     };
 
     const atualizarCampo = (campo, valor) => {
-        setFormulario((atual) => ({ ...atual, [campo]: valor }));
+        setFormulario((atual) => ({
+            ...atual,
+            [campo]: valor,
+            ...(campo === 'local' ? { local_latitude: null, local_longitude: null } : {}),
+        }));
     };
 
     const abrirFormulario = () => {
@@ -192,6 +197,10 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
             abrirMensagem('Atenção', 'Preencha espécie, raça, cor, porte, local e data em que o animal foi encontrado.');
             return;
         }
+        if (formulario.local_latitude == null || formulario.local_longitude == null) {
+            abrirMensagem('Atenção', 'Selecione um endereço nas sugestões do Google Maps para marcar o local no mapa.');
+            return;
+        }
 
         try {
             const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
@@ -206,6 +215,8 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                     sexo: formulario.sexo,
                     local_desaparecimento: '',
                     local_encontrado: formulario.local,
+                    local_latitude: formulario.local_latitude,
+                    local_longitude: formulario.local_longitude,
                     data_evento: formulario.data,
                     tipo_registro: 'Encontrado',
                     descricao: formulario.descricao,
@@ -395,7 +406,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                             </Pressable>
                         </View>
 
-                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                        <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
                                 {formulario.foto ? (
                                     <Image source={{ uri: formulario.foto }} style={styles.uploadFotoPreview} />
@@ -444,7 +455,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                             </View>
 
                             <Text style={styles.campoLabel}>Local onde foi encontrado *</Text>
-                            <TextInput style={styles.campoInput} placeholder="Ex: Rua Augusta, São Paulo - SP" placeholderTextColor="gray" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
+                            <GooglePlacesInput style={styles.campoInput} placeholder="Ex: Rua Augusta, São Paulo - SP" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} onLocationSelected={(coordenadas) => setFormulario((atual) => ({ ...atual, local_latitude: coordenadas.latitude, local_longitude: coordenadas.longitude }))} token={token} />
 
                             <Text style={styles.campoLabel}>Data em que foi encontrado *</Text>
                             <TextInput style={styles.campoInput} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', formatarEntradaData(valor))} keyboardType="numeric" />

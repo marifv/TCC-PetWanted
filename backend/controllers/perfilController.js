@@ -40,11 +40,17 @@ function salvarFotoPerfil(idUsuario, fotoBase64, req) {
 async function modificarPerfil(req, res) {
     try {
         const { id } = req.params;
-        const { nome, telefone, localizacao, foto } = req.body;
+        const { nome, telefone, localizacao, foto, latitude, longitude } = req.body;
 
-        if (!nome?.trim() || !telefone?.trim() || !localizacao?.trim()) {
+        if (!nome?.trim() || !telefone?.trim()) {
             return res.status(400).json({
-            mensagem: 'Preencha nome, telefone e localização.'
+                mensagem: 'Preencha nome e telefone.'
+            });
+        }
+
+        if (!localizacao?.trim() && latitude == null && longitude == null) {
+            return res.status(400).json({
+                mensagem: 'Informe a localização ou as coordenadas do usuário.'
             });
         }
 
@@ -53,15 +59,18 @@ async function modificarPerfil(req, res) {
             `UPDATE usuarios
              SET nome = $1,
                  telefone = $2,
-                 localizacao = $3,
-                 foto = COALESCE($4, foto)
-             WHERE id = $5
-             RETURNING id, nome, email, documento, telefone, localizacao, tipo_perfil, foto`,
-             
+                 localizacao = COALESCE($3, localizacao),
+                 latitude = CASE WHEN $4::double precision IS NULL THEN latitude ELSE $4::double precision END,
+                 longitude = CASE WHEN $5::double precision IS NULL THEN longitude ELSE $5::double precision END,
+                 foto = COALESCE($6, foto)
+             WHERE id = $7
+             RETURNING id, nome, email, documento, telefone, localizacao, latitude, longitude, tipo_perfil, foto`,
             [
                 nome.trim(),
                 telefone.trim(),
-                localizacao.trim(),
+                localizacao?.trim() || null,
+                latitude ?? null,
+                longitude ?? null,
                 fotoUrl,
                 id
             ]

@@ -15,6 +15,10 @@ const CAMPOS_RETORNO = `
     sexo,
     local_desaparecimento,
     local_encontrado,
+    local_latitude,
+    local_longitude,
+    local_latitude,
+    local_longitude,
     CASE
         WHEN tipo_registro = 'Perdido' THEN local_desaparecimento
         ELSE local_encontrado
@@ -53,6 +57,12 @@ function obterDadosRegistro(body, usuarioId) {
     const localObrigatorio = tipoRegistro === 'Perdido'
         ? localDesaparecimento
         : localEncontrado;
+    const latitudeLocal = body.local_latitude == null || body.local_latitude === ''
+        ? null
+        : Number(body.local_latitude);
+    const longitudeLocal = body.local_longitude == null || body.local_longitude === ''
+        ? null
+        : Number(body.local_longitude);
 
     return {
         nome: body.nome?.trim() || null,
@@ -63,6 +73,8 @@ function obterDadosRegistro(body, usuarioId) {
         sexo: body.sexo?.trim(),
         localDesaparecimento: tipoRegistro === 'Perdido' ? localDesaparecimento : null,
         localEncontrado: tipoRegistro === 'Perdido' ? null : localEncontrado,
+        localLatitude: Number.isFinite(latitudeLocal) && latitudeLocal >= -90 && latitudeLocal <= 90 ? latitudeLocal : null,
+        localLongitude: Number.isFinite(longitudeLocal) && longitudeLocal >= -180 && longitudeLocal <= 180 ? longitudeLocal : null,
         localObrigatorio,
         dataEvento: normalizarData(body.data_evento),
         tipoRegistro,
@@ -260,8 +272,8 @@ async function criarRegistro(req, res) {
                 nome, especie, raca, cor, porte, sexo,
                 local_desaparecimento, local_encontrado, data_evento,
                 tipo_registro, id_usuario, status, idade, faixa_etaria,
-                responsavel, contato, descricao
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                responsavel, contato, descricao, local_latitude, local_longitude
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
             RETURNING ${CAMPOS_RETORNO}`,
             [
                 dados.nome,
@@ -281,6 +293,8 @@ async function criarRegistro(req, res) {
                 dados.responsavel || null,
                 dados.contato || null,
                 dados.descricao,
+                dados.localLatitude,
+                dados.localLongitude,
             ]
         );
 
@@ -318,8 +332,10 @@ async function atualizarRegistro(req, res) {
                 nome = $1, especie = $2, raca = $3, cor = $4, porte = $5, sexo = $6,
                 local_desaparecimento = $7, local_encontrado = $8, data_evento = $9,
                 tipo_registro = $10, status = $11, idade = $12, faixa_etaria = $13,
-                responsavel = $14, contato = $15, descricao = $16
-            WHERE id_animal = $17 AND id_usuario = $18
+                responsavel = $14, contato = $15, descricao = $16,
+                local_latitude = COALESCE($17, local_latitude),
+                local_longitude = COALESCE($18, local_longitude)
+            WHERE id_animal = $19 AND id_usuario = $20
             RETURNING ${CAMPOS_RETORNO}`,
             [
                 dados.nome,
@@ -338,6 +354,8 @@ async function atualizarRegistro(req, res) {
                 dados.responsavel || null,
                 dados.contato || null,
                 dados.descricao,
+                dados.localLatitude,
+                dados.localLongitude,
                 req.params.id,
                 dados.idUsuario
             ]
