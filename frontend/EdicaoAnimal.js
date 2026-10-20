@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarEntradaData } from './utils/formatarData';
+import Pressable from './ButtonPressable';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -34,6 +35,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
     const [mensagemVisivel, setMensagemVisivel] = useState(false);
     const [confirmacaoSalvarVisivel, setConfirmacaoSalvarVisivel] = useState(false);
     const [confirmacaoVoltarVisivel, setConfirmacaoVoltarVisivel] = useState(false);
+    const [salvando, setSalvando] = useState(false);
 
     const mostrarMensagem = (texto) => {
         Alert.alert('Atenção', texto, [{ text: 'OK' }]);
@@ -106,7 +108,10 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
 
         if (!atualizado?.id) {
             mostrarMensagem('Não foi possível atualizar o animal.');
+            return false;
         }
+
+        return true;
     };
 
     const solicitarSalvar = () => {
@@ -119,8 +124,18 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
     };
 
     const confirmarSalvar = async () => {
-        setConfirmacaoSalvarVisivel(false);
-        await salvar();
+        if (salvando) return;
+
+        setSalvando(true);
+        try {
+            const salvou = await salvar();
+            if (salvou) setConfirmacaoSalvarVisivel(false);
+        } catch (error) {
+            console.error('Erro ao atualizar animal:', error);
+            mostrarMensagem('Não foi possível conectar ao servidor para atualizar o animal.');
+        } finally {
+            setSalvando(false);
+        }
     };
 
     const tipo = animal?.tipo_registro;
@@ -130,7 +145,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
         <SafeAreaView style={styles.container}>
             <StatusBar style="dark" backgroundColor="#ffffff" />
             <View style={styles.header}>
-                <Pressable onPress={() => setConfirmacaoVoltarVisivel(true)}>
+                <Pressable style={styles.headerBackButton} onPress={() => setConfirmacaoVoltarVisivel(true)} accessibilityLabel="Voltar">
                     <Text style={styles.back}>‹</Text>
                 </Pressable>
                 <Text style={styles.title}>Alterar animal</Text>
@@ -226,11 +241,12 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                         <Text style={styles.modalTitle}>Salvar alterações</Text>
                         <Text style={styles.modalMessage}>Tem certeza que deseja editar o cadastro deste animal?</Text>
                         <View style={styles.modalActions}>
-                            <Pressable style={styles.modalCancel} onPress={() => setConfirmacaoSalvarVisivel(false)}>
+                            <Pressable style={styles.modalCancel} onPress={() => setConfirmacaoSalvarVisivel(false)} disabled={salvando}>
                                 <Text style={styles.modalCancelText}>Cancelar</Text>
                             </Pressable>
-                            <Pressable style={styles.modalConfirm} onPress={confirmarSalvar}>
-                                <Text style={styles.modalConfirmText}>Salvar</Text>
+                            <Pressable style={[styles.modalConfirm, salvando && styles.saveDisabled]} onPress={confirmarSalvar} disabled={salvando}>
+                                {salvando && <ActivityIndicator size="small" color="#ffffff" />}
+                                <Text style={styles.modalConfirmText}>{salvando ? 'Salvando...' : 'Salvar'}</Text>
                             </Pressable>
                         </View>
                     </View>
@@ -246,8 +262,8 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                             <Pressable style={styles.modalCancel} onPress={() => setConfirmacaoVoltarVisivel(false)}>
                                 <Text style={styles.modalCancelText}>Cancelar</Text>
                             </Pressable>
-                            <Pressable style={styles.modalConfirm} onPress={() => { setConfirmacaoVoltarVisivel(false); onVoltar(); }}>
-                                <Text style={styles.modalConfirmText}>Voltar</Text>
+                            <Pressable style={styles.modalSecondary} onPress={() => { setConfirmacaoVoltarVisivel(false); onVoltar(); }}>
+                                <Text style={styles.modalSecondaryText}>Voltar</Text>
                             </Pressable>
                         </View>
                     </View>
@@ -260,32 +276,36 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fafafa' },
     header: { height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58, paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e1e1e1' },
-    back: { fontSize: 36, lineHeight: 36, color: '#292929' },
+    back: { fontSize: 30, lineHeight: 36, color: '#64748B' },
+    headerBackButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#CBD5E1' },
     title: { fontSize: 18, fontWeight: 'bold', color: '#292929' },
-    headerSpace: { width: 30 },
+    headerSpace: { width: 44, height: 44 },
     content: { padding: 20, paddingBottom: 36 },
     uploadFoto: { alignSelf: 'center', width: 140, height: 140, borderRadius: 70, backgroundColor: '#eff7fa', alignItems: 'center', justifyContent: 'center', marginBottom: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#45a9d5' },
     uploadFotoPreview: { width: '100%', height: '100%' },
     uploadFotoVazio: { alignItems: 'center', justifyContent: 'center' },
     uploadFotoTexto: { color: '#8a8a8a', fontSize: 12, marginTop: 4 },
     label: { fontSize: 13, fontWeight: 'bold', color: '#292929', marginTop: 8, marginBottom: 6 },
-    input: { height: 44, marginBottom: 8, paddingHorizontal: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#d8d8d8', borderRadius: 8, fontSize: 14 },
+    input: { height: 44, marginBottom: 8, paddingHorizontal: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, fontSize: 14 },
     multiline: { height: 90, paddingTop: 10, textAlignVertical: 'top' },
     options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 8 },
-    option: { paddingHorizontal: 14, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 18, borderWidth: 1, borderColor: '#d8d8d8', backgroundColor: '#ffffff' },
-    selected: { backgroundColor: '#45a9d5', borderColor: '#45a9d5' },
+    option: { paddingHorizontal: 14, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 8, borderWidth: 1, borderColor: '#CBD5E1', backgroundColor: '#ffffff' },
+    selected: { backgroundColor: '#5791ca', borderColor: '#5791ca' },
     optionText: { fontSize: 13, color: '#4a4a4a' },
     selectedText: { color: '#ffffff', fontWeight: 'bold' },
     message: { color: '#d9534f', marginTop: 10, textAlign: 'center' },
-    save: { height: 46, marginTop: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#45a9d5', borderRadius: 10 },
+    save: { minHeight: 48, marginTop: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#5791ca', borderRadius: 8 },
+    saveDisabled: { backgroundColor: '#94A3B8' },
     saveText: { fontSize: 15, fontWeight: 'bold', color: '#ffffff' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-    modalCard: { width: '90%', backgroundColor: '#ffffff', borderRadius: 14, padding: 20, alignItems: 'center' },
+    modalCard: { width: '90%', backgroundColor: '#ffffff', borderRadius: 16, padding: 20, alignItems: 'center' },
     modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#292929', marginBottom: 10 },
     modalMessage: { fontSize: 14, color: '#555', textAlign: 'center', marginBottom: 16 },
     modalActions: { flexDirection: 'row', gap: 12, width: '100%', justifyContent: 'space-between' },
-    modalCancel: { flex: 1, backgroundColor: '#eaeaea', borderRadius: 8, paddingVertical: 10, alignItems: 'center' },
-    modalCancelText: { color: '#292929', fontWeight: 'bold' },
-    modalConfirm: { flex: 1, backgroundColor: '#45a9d5', borderRadius: 8, paddingVertical: 10, alignItems: 'center', marginLeft: 10 },
+    modalCancel: { flex: 1, minHeight: 44, backgroundColor: '#ffffff', borderColor: '#CBD5E1', borderWidth: 1, borderRadius: 8, paddingVertical: 10, alignItems: 'center', justifyContent: 'center' },
+    modalCancelText: { color: '#64748B', fontWeight: 'bold' },
+    modalConfirm: { flex: 1, minHeight: 44, backgroundColor: '#5791ca', borderRadius: 8, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
     modalConfirmText: { color: '#ffffff', fontWeight: 'bold' },
+    modalSecondary: { flex: 1, minHeight: 44, backgroundColor: '#ffffff', borderColor: '#CBD5E1', borderWidth: 1, borderRadius: 8, paddingVertical: 10, alignItems: 'center', justifyContent: 'center', marginLeft: 10 },
+    modalSecondaryText: { color: '#64748B', fontWeight: 'bold' },
 });

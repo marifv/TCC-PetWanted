@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
@@ -46,6 +47,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
 
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
+    const [salvando, setSalvando] = useState(false);
     const [confirmacaoAlvo, setConfirmacaoAlvo] = useState(null);
     const [confirmacaoEdicaoAlvo, setConfirmacaoEdicaoAlvo] = useState(null);
     const [confirmacaoExclusaoAlvo, setConfirmacaoExclusaoAlvo] = useState(null);
@@ -137,6 +139,8 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
     };
 
     const salvarAnimal = async () => {
+        if (salvando) return;
+
         if (
             !formulario.nome ||
             !formulario.especie ||
@@ -158,6 +162,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             return;
         }
 
+        setSalvando(true);
         try {
             const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
                 method: 'POST',
@@ -196,6 +201,8 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             setModalVisivel(false);
         } catch (error) {
             abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
+        } finally {
+            setSalvando(false);
         }
     };
 
@@ -371,11 +378,11 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             />
 
             <View style={styles.cabecalho}>
-                <Pressable onPress={onVoltar}>
+                <Pressable style={styles.headerActionButton} onPress={onVoltar} accessibilityLabel="Voltar">
                     <FontAwesome
                         name="arrow-left"
-                        size={22}
-                        color="#292929"
+                        size={18}
+                        color="#64748B"
                     />
                 </Pressable>
 
@@ -390,7 +397,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                         color="#555"
                     />
 
-                    <Pressable onPress={setTelaAtual}>
+                    <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>
                             {fotoPerfil ? (
                                 <Image source={{ uri: fotoPerfil }} style={styles.profileImage} />
@@ -718,7 +725,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                     <FontAwesome
                                         name="trash"
                                         size={16}
-                                        color="#d9534f"
+                                        color="#ffffff"
                                     />
                                 </Pressable>}
                             </View>
@@ -886,13 +893,13 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                             {renderCampo('Descrição ', 'descricao', 'Características, comportamento, cuidados, etc.', { multiline: true, numberOfLines: 4 })}
 
                             <Pressable
-                                style={styles.botaoSalvar}
+                                style={[styles.botaoSalvar, salvando && styles.botaoDesabilitado]}
                                 onPress={salvarAnimal}
+                                disabled={salvando}
                             >
-                                <Text
-                                    style={styles.botaoSalvarTexto}
-                                >
-                                    Salvar
+                                {salvando && <ActivityIndicator size="small" color="#ffffff" />}
+                                <Text style={styles.botaoSalvarTexto}>
+                                    {salvando ? 'Salvando...' : 'Salvar'}
                                 </Text>
                             </Pressable>
                         </ScrollView>
@@ -1021,14 +1028,14 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             <Modal visible={!!confirmacaoExclusaoAlvo} transparent animationType="fade" onRequestClose={() => setConfirmacaoExclusaoAlvo(null)}>
                 <View style={styles.confirmOverlay}>
                     <View style={styles.confirmCard}>
-                        <FontAwesome name="trash" size={30} color="#d9534f" />
+                        <FontAwesome name="trash" size={30} color="#DC2626" />
                         <Text style={styles.confirmTitulo}>Excluir animal</Text>
                         <Text style={styles.confirmMensagem}>Tem certeza que deseja excluir este animal?</Text>
                         <View style={styles.confirmBotoesContainer}>
                             <Pressable style={styles.confirmBotaoCancelar} onPress={() => setConfirmacaoExclusaoAlvo(null)}>
                                 <Text style={styles.confirmBotaoCancelarTexto}>Cancelar</Text>
                             </Pressable>
-                            <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
+                            <Pressable style={[styles.confirmBotaoConfirmar, styles.confirmBotaoDestrutivo]} onPress={() => {
                                 const id = confirmacaoExclusaoAlvo;
                                 setConfirmacaoExclusaoAlvo(null);
                                 excluirAnimal(id);
@@ -1078,6 +1085,24 @@ const styles = StyleSheet.create({
         borderBottomColor: '#e1e1e1',
     },
 
+    headerActionButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+    },
+
+    profileButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
     titulo: {
         fontSize: 18,
         fontWeight: 'bold',
@@ -1118,7 +1143,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 14,
         padding: 4,
         backgroundColor: '#f0f0f0',
-        borderRadius: 22,
+        borderRadius: 8,
     },
 
     segmentoBotao: {
@@ -1127,12 +1152,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        height: 36,
-        borderRadius: 18,
+        minHeight: 44,
+        borderRadius: 8,
     },
 
     segmentoBotaoSelecionado: {
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#5791ca',
     },
 
     segmentoTexto: {
@@ -1175,25 +1200,25 @@ const styles = StyleSheet.create({
     botaoFiltro: {
         width: 44,
         height: 44,
-        borderRadius: 22,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#45a9d5',
+        borderColor: '#CBD5E1',
     },
 
     botaoFiltroAtivo: {
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#5791ca',
     },
 
     botaoAdicionar: {
         width: 44,
         height: 44,
-        borderRadius: 22,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#5791ca',
     },
 
     lista: {
@@ -1220,7 +1245,7 @@ const styles = StyleSheet.create({
 
     card: {
         backgroundColor: '#ffffff',
-        borderRadius: 16,
+        borderRadius: 12,
         marginBottom: 16,
         borderWidth: 1,
         borderColor: '#e1e1e1',
@@ -1230,8 +1255,8 @@ const styles = StyleSheet.create({
     fotoContainer: {
         position: 'relative',
         backgroundColor: '#f7f7f7',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1286,11 +1311,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#5791ca',
     },
 
     badgeStatusAdotado: {
-        backgroundColor: '#777777',
+        backgroundColor: '#16A34A',
     },
 
     badgeStatusTexto: {
@@ -1347,16 +1372,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        height: 40,
+        minHeight: 44,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#45a9d5',
+        borderColor: '#CBD5E1',
     },
 
     botaoEditarTexto: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#45a9d5',
+        color: '#64748B',
     },
 
     statusToggleContainer: {
@@ -1364,24 +1389,24 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 4,
         padding: 3,
-        height: 40,
+        minHeight: 50,
         borderRadius: 8,
-        backgroundColor: '#e9e9e9',
+        backgroundColor: '#f1f5f9',
     },
 
     statusToggleBotao: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 6,
+        borderRadius: 8,
     },
 
     statusToggleBotaoAdocaoAtivo: {
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#5791ca',
     },
 
     statusToggleBotaoAdotadoAtivo: {
-        backgroundColor: '#777777',
+        backgroundColor: '#16A34A',
     },
 
     statusToggleTexto: {
@@ -1396,13 +1421,14 @@ const styles = StyleSheet.create({
     },
 
     botaoExcluir: {
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#d9534f',
+        borderColor: '#DC2626',
+        backgroundColor: '#DC2626',
     },
 
     rodape: {
@@ -1420,15 +1446,15 @@ const styles = StyleSheet.create({
     filtroModalCard: {
         width: '100%',
         backgroundColor: '#ffffff',
-        borderRadius: 18,
+        borderRadius: 16,
         padding: 20,
     },
 
     modalCard: {
         maxHeight: '88%',
         backgroundColor: '#ffffff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
         padding: 18,
         position: 'absolute',
         bottom: 0,
@@ -1466,18 +1492,18 @@ const styles = StyleSheet.create({
 
     opcaoBotao: {
         paddingHorizontal: 14,
-        height: 36,
+        minHeight: 44,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 18,
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
         backgroundColor: '#ffffff',
     },
 
     opcaoBotaoSelecionada: {
-        backgroundColor: '#45a9d5',
-        borderColor: '#45a9d5',
+        backgroundColor: '#5791ca',
+        borderColor: '#5791ca',
     },
 
     opcaoTexto: {
@@ -1498,27 +1524,28 @@ const styles = StyleSheet.create({
 
     filtroLimparBotao: {
         flex: 1,
-        height: 44,
+        minHeight: 44,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
+        backgroundColor: '#ffffff',
     },
 
     filtroLimparTexto: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#4a4a4a',
+        color: '#64748B',
     },
 
     filtroAplicarBotao: {
         flex: 1.5,
-        height: 44,
+        minHeight: 44,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#5791ca',
     },
 
     filtroAplicarTexto: {
@@ -1547,7 +1574,7 @@ const styles = StyleSheet.create({
         height: 130,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
         borderStyle: 'dashed',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1574,7 +1601,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
         borderRadius: 8,
         fontSize: 14,
     },
@@ -1591,14 +1618,18 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#45a9d5',
-        borderRadius: 10,
+        backgroundColor: '#5791ca',
+        borderRadius: 8,
     },
 
     botaoSalvarTexto: {
         fontSize: 15,
         fontWeight: 'bold',
         color: '#ffffff',
+    },
+
+    botaoDesabilitado: {
+        backgroundColor: '#94A3B8',
     },
 
     confirmOverlay: {
@@ -1640,33 +1671,38 @@ const styles = StyleSheet.create({
 
     confirmBotaoCancelar: {
         flex: 1,
-        height: 44,
+        minHeight: 44,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
+        backgroundColor: '#ffffff',
     },
 
     confirmBotaoCancelarTexto: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#4a4a4a',
+        color: '#64748B',
     },
 
     confirmBotaoConfirmar: {
         flex: 1,
-        height: 44,
+        minHeight: 44,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
-        backgroundColor: '#45a9d5',
+        backgroundColor: '#5791ca',
     },
 
     confirmBotaoConfirmarTexto: {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#ffffff',
+    },
+
+    confirmBotaoDestrutivo: {
+        backgroundColor: '#DC2626',
     },
 
     

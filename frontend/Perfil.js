@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Modal, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, Image, ScrollView } from 'react-native';
+import { Modal, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import Pressable from './ButtonPressable';
 
 export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil }) {
     const [confirmacaoExclusaoVisivel, setConfirmacaoExclusaoVisivel] = useState(false);
@@ -183,7 +184,7 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
                             </Pressable>
 
                             <Pressable
-                                style={styles.confirmButton}
+                                style={[styles.confirmButton, styles.destructiveConfirmButton]}
                                 onPress={() => {
                                     setConfirmacaoExclusaoVisivel(false);
                                     onExcluir();
@@ -216,12 +217,12 @@ const styles = StyleSheet.create({
     },
 
     headerIconButton: {
-        width: 34,
-        height: 34,
+        width: 44,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#ffffff',
-        borderRadius: 17,
+        borderRadius: 10,
         elevation: 2,
     },
 
@@ -287,7 +288,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 4,
         backgroundColor: '#ffffff',
-        borderRadius: 20,
+        borderRadius: 12,
         shadowColor: '#477499',
         shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.08,
@@ -343,34 +344,36 @@ const styles = StyleSheet.create({
 
     logoutButton: {
         width: '100%',
-        minHeight: 42,
+        minHeight: 44,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        backgroundColor: '#deedf8',
-        borderRadius: 22,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        borderRadius: 10,
     },
 
     logoutButtonText: {
-        color: '#4e718f',
+        color: '#64748B',
         fontSize: 13,
         fontWeight: 'bold',
     },
 
     deleteButton: {
         width: '100%',
-        minHeight: 42,
+        minHeight: 44,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        backgroundColor: '#fcebea',
-        borderRadius: 22,
+        backgroundColor: '#DC2626',
+        borderRadius: 10,
     },
 
     deleteButtonText: {
-        color: '#b95e5a',
+        color: '#ffffff',
         fontSize: 13,
         fontWeight: 'bold',
     },
@@ -388,7 +391,7 @@ const styles = StyleSheet.create({
         maxWidth: 380,
         padding: 22,
         backgroundColor: '#ffffff',
-        borderRadius: 12,
+        borderRadius: 16,
     },
 
     confirmationTitle: {
@@ -412,27 +415,41 @@ const styles = StyleSheet.create({
     },
 
     cancelButton: {
+        minHeight: 44,
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#cccccc',
+        borderColor: '#CBD5E1',
+        backgroundColor: '#ffffff',
     },
 
     cancelButtonText: {
-        color: '#555555',
+        color: '#64748B',
         fontWeight: 'bold',
     },
 
     confirmButton: {
+        minHeight: 44,
         paddingHorizontal: 14,
         paddingVertical: 10,
-        borderRadius: 6,
-        backgroundColor: '#d9534f',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
     },
 
     confirmButtonText: {
-        color: '#ffffff',
+        color: '#64748B',
         fontWeight: 'bold',
+    },
+
+    destructiveConfirmButton: {
+        backgroundColor: '#DC2626',
+        borderColor: '#DC2626',
     },
 });

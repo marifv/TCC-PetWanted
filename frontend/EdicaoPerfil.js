@@ -1,8 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Alert, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable, TextInput, Modal, ScrollView, Image } from 'react-native';
+import { Alert, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, TextInput, Modal, ScrollView, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import Pressable from './ButtonPressable';
 
 export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil, onSalvar }) {
     const [novoNome, setNovoNome] = useState(nome || '');
@@ -262,17 +263,19 @@ const styles = StyleSheet.create({
     },
 
     headerBackButton: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: '#edf6fc',
+        width: 44,
+        height: 44,
+        borderRadius: 10,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
         alignItems: 'center',
         justifyContent: 'center',
     },
 
     headerPlaceholder: {
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
     },
 
     title: {
@@ -344,7 +347,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 4,
         backgroundColor: '#ffffff',
-        borderRadius: 20,
+        borderRadius: 12,
         shadowColor: '#477499',
         shadowOffset: { width: 0, height: 5 },
         shadowOpacity: 0.08,
@@ -393,12 +396,17 @@ const styles = StyleSheet.create({
     },
 
     valorInput: {
-        minHeight: 29,
+        minHeight: 40,
         fontSize: 13,
         fontWeight: 'bold',
         color: '#304f6b',
-        paddingVertical: 3,
-        margin: 0,
+        paddingHorizontal: 8,
+        paddingVertical: 6,
+        marginTop: 3,
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+        borderRadius: 8,
     },
 
     modalOverlay: {
@@ -414,7 +422,7 @@ const styles = StyleSheet.create({
         maxWidth: 360,
         padding: 22,
         backgroundColor: '#ffffff',
-        borderRadius: 20,
+        borderRadius: 16,
     },
 
     modalTitulo: {
@@ -434,9 +442,9 @@ const styles = StyleSheet.create({
     modalButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 42,
+        minHeight: 44,
         backgroundColor: '#5791ca',
-        borderRadius: 22,
+        borderRadius: 8,
     },
 
     modalButtonText: {
@@ -454,16 +462,17 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 42,
+        minHeight: 44,
         borderWidth: 1,
-        borderColor: '#8db6d8',
-        borderRadius: 22,
+        borderColor: '#CBD5E1',
+        borderRadius: 8,
+        backgroundColor: '#ffffff',
     },
 
     modalCancelarTexto: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#4e718f',
+        color: '#64748B',
     },
 
     saveButton: {
@@ -472,7 +481,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#5791ca',
-        borderRadius: 24,
+        borderRadius: 8,
         marginTop: 18,
         elevation: 3,
         shadowColor: '#477499',

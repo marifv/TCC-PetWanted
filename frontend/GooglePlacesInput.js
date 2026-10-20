@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import Pressable from './ButtonPressable';
 import { API_BASE_URL } from './config/api';
 
 export default function GooglePlacesInput({ value, onChangeText, onLocationSelected, token, style, placeholder }) {
@@ -103,8 +104,8 @@ const styles = StyleSheet.create({
   sugestoes: {
     marginTop: -1,
     borderWidth: 1,
-    borderColor: '#d4d4d4',
-    borderRadius: 6,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
     backgroundColor: '#fff',
     overflow: 'hidden',
     elevation: 4,

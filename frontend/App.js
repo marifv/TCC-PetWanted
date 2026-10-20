@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import Pressable from './ButtonPressable';
 import { GoogleSignin, isCancelledResponse } from './utils/googleSignIn';
 import Homepage from './Homepage';
 import Perfil from './Perfil';
@@ -796,7 +797,7 @@ export default function App() {
                         onChangeText={setEmailRecuperacao}
                       />
                     </View>
-                    <Pressable style={styles.formButton} onPress={avancarParaCodigo} disabled={recuperacaoLoading}>
+                    <Pressable style={[styles.formButton, recuperacaoLoading && styles.disabledButton]} onPress={avancarParaCodigo} disabled={recuperacaoLoading}>
                       <Text style={styles.textFormButton}>{recuperacaoLoading ? 'ENVIANDO...' : 'ENVIAR CÓDIGO'}</Text>
                     </Pressable>
                     <View style={styles.recoveryInfo}>
@@ -843,7 +844,7 @@ export default function App() {
                         ))}
                       </View>
                     </View>
-                    <Pressable style={styles.formButton} onPress={avancarParaNovaSenha} disabled={recuperacaoLoading}>
+                    <Pressable style={[styles.formButton, recuperacaoLoading && styles.disabledButton]} onPress={avancarParaNovaSenha} disabled={recuperacaoLoading}>
                       <Text style={styles.textFormButton}>{recuperacaoLoading ? 'VERIFICANDO...' : 'CONFIRMAR CÓDIGO'}</Text>
                     </Pressable>
                     <View style={styles.recoveryInfo}>
@@ -873,7 +874,7 @@ export default function App() {
                         onChangeText={setNovaSenha}
                         autoCapitalize="none"
                       />
-                      <Pressable onPress={() => setMostrarNovaSenha(!mostrarNovaSenha)} accessibilityLabel={mostrarNovaSenha ? 'Ocultar nova senha' : 'Mostrar nova senha'}>
+                      <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarNovaSenha(!mostrarNovaSenha)} accessibilityLabel={mostrarNovaSenha ? 'Ocultar nova senha' : 'Mostrar nova senha'}>
                         <FontAwesome name={mostrarNovaSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
                       </Pressable>
                     </View>
@@ -888,7 +889,7 @@ export default function App() {
                         onChangeText={setConfirmarNovaSenha}
                         autoCapitalize="none"
                       />
-                      <Pressable onPress={() => setMostrarConfirmarNovaSenha(!mostrarConfirmarNovaSenha)} accessibilityLabel={mostrarConfirmarNovaSenha ? 'Ocultar confirmação' : 'Mostrar confirmação'}>
+                      <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarConfirmarNovaSenha(!mostrarConfirmarNovaSenha)} accessibilityLabel={mostrarConfirmarNovaSenha ? 'Ocultar confirmação' : 'Mostrar confirmação'}>
                         <FontAwesome name={mostrarConfirmarNovaSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
                       </Pressable>
                     </View>
@@ -909,7 +910,7 @@ export default function App() {
                         <Text style={styles.passwordCriterionText}>{texto}</Text>
                       </View>
                     ))}
-                    <Pressable style={[styles.formButton, styles.savePasswordButton]} onPress={salvarNovaSenha} disabled={recuperacaoLoading}>
+                    <Pressable style={[styles.formButton, styles.savePasswordButton, recuperacaoLoading && styles.disabledButton]} onPress={salvarNovaSenha} disabled={recuperacaoLoading}>
                       <Text style={styles.textFormButton}>{recuperacaoLoading ? 'SALVANDO...' : 'SALVAR NOVA SENHA'}</Text>
                     </Pressable>
                     <Pressable style={styles.recoveryLinkButton} onPress={() => setTelaRecuperacao(null)}>
@@ -1080,7 +1081,7 @@ export default function App() {
                     value={loginSenha}
                     onChangeText={setLoginSenha}
                   />
-                  <Pressable onPress={() => setMostrarSenha(!mostrarSenha)} accessibilityLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>
+                  <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarSenha(!mostrarSenha)} accessibilityLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>
                     <FontAwesome name={mostrarSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
                   </Pressable>
                 </View>
@@ -1160,7 +1161,7 @@ export default function App() {
                     value={confirmarSenha}
                     onChangeText={setConfirmarSenha}
                   />
-                  <Pressable onPress={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)} accessibilityLabel={mostrarConfirmarSenha ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}>
+                  <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)} accessibilityLabel={mostrarConfirmarSenha ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}>
                     <FontAwesome name={mostrarConfirmarSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
                   </Pressable>
                 </View>
@@ -1175,7 +1176,7 @@ export default function App() {
                 <Text style={styles.footerText}>
                   {telaSelecionada === 'entrar' ? 'Não tem uma conta? ' : 'Já tem uma conta? '}
                 </Text>
-                <Pressable onPress={() => setTelaSelecionada(telaSelecionada === 'entrar' ? 'criarConta' : 'entrar')}>
+                <Pressable style={styles.footerLinkButton} onPress={() => setTelaSelecionada(telaSelecionada === 'entrar' ? 'criarConta' : 'entrar')}>
                   <Text style={styles.footerLink}>{telaSelecionada === 'entrar' ? 'Cadastre-se' : 'Entrar'}</Text>
                 </Pressable>
               </View>
@@ -1333,7 +1334,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 430,
     backgroundColor: '#ffffff',
-    borderRadius: 30,
+    borderRadius: 12,
     overflow: 'hidden',
     shadowColor: '#477499',
     shadowOffset: { width: 0, height: 12 },
@@ -1355,12 +1356,14 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 20,
     left: 18,
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: 19,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
     zIndex: 2,
     elevation: 3,
   },
@@ -1408,8 +1411,8 @@ const styles = StyleSheet.create({
     paddingTop: 22,
     paddingBottom: 26,
     backgroundColor: '#ffffff',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
 
   recoveryContent: {
@@ -1486,7 +1489,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     backgroundColor: '#eef5fb',
-    borderRadius: 14,
+    borderRadius: 12,
   },
 
   recoveryInfoText: {
@@ -1506,8 +1509,10 @@ const styles = StyleSheet.create({
 
   recoveryLinkButton: {
     alignItems: 'center',
-    marginTop: 24,
-    paddingVertical: 6,
+    justifyContent: 'center',
+    minHeight: 44,
+    marginTop: 16,
+    paddingHorizontal: 10,
   },
 
   codeInputContainer: {
@@ -1540,7 +1545,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eef5fb',
     borderWidth: 1,
     borderColor: '#eef5fb',
-    borderRadius: 14,
+    borderRadius: 8,
   },
 
   codeDigitActive: {
@@ -1587,17 +1592,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     width: '100%',
     backgroundColor: '#eaf3fa',
-    borderRadius: 24,
+    borderRadius: 8,
     position: 'relative',
     overflow: 'hidden',
-    height: 44,
+    height: 52,
     padding: 4,
     marginBottom: 2,
   },
 
   button: {
     flex: 1,
-    height: 36,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1,
@@ -1607,9 +1612,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     left: 4,
-    height: 36,
+    height: 44,
     backgroundColor: '#5791ca',
-    borderRadius: 20,
+    borderRadius: 8,
     shadowColor: '#4c83b7',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
@@ -1654,13 +1659,13 @@ const styles = StyleSheet.create({
 
   tipoPerfilButton: {
     flex: 1,
-    height: 38,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#eef5fb',
     borderWidth: 1,
-    borderColor: '#e2edf7',
-    borderRadius: 14,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
   },
 
   tipoPerfilSelecionado: {
@@ -1687,8 +1692,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     backgroundColor: '#eef5fb',
     borderWidth: 1,
-    borderColor: '#e5eff8',
-    borderRadius: 15,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
   },
 
   inputField: {
@@ -1699,13 +1704,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
+  passwordToggleButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
   formButton: {
-    height: 50,
+    minHeight: 48,
     marginTop: 2,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#5791ca',
-    borderRadius: 14,
+    borderRadius: 8,
     shadowColor: '#4c83b7',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.24,
@@ -1739,15 +1751,15 @@ const styles = StyleSheet.create({
 
   googleButton: {
     width: '100%',
-    height: 44,
+    minHeight: 44,
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#dbe7f0',
-    borderRadius: 14,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
     shadowColor: '#587b9b',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
@@ -1757,6 +1769,11 @@ const styles = StyleSheet.create({
 
   googleButtonDisabled: {
     opacity: 0.6,
+  },
+
+  disabledButton: {
+    backgroundColor: '#94A3B8',
+    opacity: 0.75,
   },
 
   googleButtonText: {
@@ -1773,11 +1790,15 @@ const styles = StyleSheet.create({
 
   googleCancelButton: {
     alignItems: 'center',
-    marginTop: 14,
+    justifyContent: 'center',
+    minHeight: 44,
+    marginTop: 8,
   },
 
   forgotPassword: {
     alignSelf: 'flex-end',
+    minHeight: 44,
+    justifyContent: 'center',
     marginTop: 0,
     marginBottom: 12,
   },
@@ -1802,6 +1823,12 @@ const styles = StyleSheet.create({
     color: '#315f8b',
     fontSize: 12,
     fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
+
+  footerLinkButton: {
+    minHeight: 44,
+    justifyContent: 'center',
   },
 
   overlay: {
@@ -1824,11 +1851,11 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: '#fffaf5',
-    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     padding: 22,
     borderWidth: 1,
-    borderColor: '#f0d6c2',
+    borderColor: '#CBD5E1',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
@@ -1837,37 +1864,37 @@ const styles = StyleSheet.create({
   },
 
   modalCardSuccess: {
-    borderColor: '#7abf87',
+    borderColor: '#16A34A',
   },
 
   modalCardError: {
-    borderColor: '#d97b65',
+    borderColor: '#DC2626',
   },
 
   modalCardWarning: {
-    borderColor: '#e3a85a',
+    borderColor: '#D97706',
   },
 
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#2b1a13',
+    color: '#334155',
     marginBottom: 8,
     textAlign: 'center',
   },
 
   modalMessage: {
     fontSize: 15,
-    color: '#4a3428',
+    color: '#334155',
     lineHeight: 22,
     textAlign: 'center',
     marginBottom: 18,
   },
 
   modalButton: {
-    backgroundColor: '#7a4b2a',
-    borderRadius: 10,
-    height: 42,
+    backgroundColor: '#5791ca',
+    borderRadius: 8,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },

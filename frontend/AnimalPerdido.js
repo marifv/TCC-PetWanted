@@ -1,7 +1,8 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Alert, Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarEntradaData } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
@@ -33,6 +34,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
     const [areaExpandida, setAreaExpandida] = useState({});
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
+    const [salvando, setSalvando] = useState(false);
     const [confirmacaoAlvo, setConfirmacaoAlvo] = useState(null);
     const [confirmacaoEdicaoAlvo, setConfirmacaoEdicaoAlvo] = useState(null);
     const [confirmacaoExclusaoAlvo, setConfirmacaoExclusaoAlvo] = useState(null);
@@ -196,6 +198,8 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
     };
 
     const salvarAnimal = async () => {
+        if (salvando) return;
+
         if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
             abrirMensagem('Atenção', 'Preencha nome, espécie, raça, cor, porte, sexo, local e data do desaparecimento.');
             return;
@@ -205,6 +209,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
             return;
         }
 
+        setSalvando(true);
         try {
             const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
                 method: 'POST',
@@ -240,6 +245,8 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
             setModalVisivel(false);
         } catch (error) {
             abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
+        } finally {
+            setSalvando(false);
         }
     };
 
@@ -248,8 +255,8 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
             <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
 
             <View style={styles.cabecalho}>
-                <Pressable onPress={onVoltar}>
-                    <FontAwesome name="arrow-left" size={22} color="#292929" />
+                <Pressable style={styles.headerActionButton} onPress={onVoltar} accessibilityLabel="Voltar">
+                    <FontAwesome name="arrow-left" size={18} color="#64748B" />
                 </Pressable>
 
                 <Text style={styles.titulo}>Animais Perdidos</Text>
@@ -257,7 +264,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                 <View style={styles.acoesHeader}>
                     <FontAwesome name="bell" size={20} color="#555" />
 
-                    <Pressable onPress={setTelaAtual}>
+                    <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>
                             {fotoPerfil ? (
                                 <Image source={{ uri: fotoPerfil }} style={styles.profileImage} />
@@ -377,7 +384,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                                     </View>
 
                                     <Pressable style={styles.botaoExcluir} onPress={() => setConfirmacaoExclusaoAlvo(animal.id)}>
-                                        <FontAwesome name="trash" size={16} color="#d9534f" />
+                                        <FontAwesome name="trash" size={16} color="#ffffff" />
                                     </Pressable>
                                 </View>
                             )}
@@ -399,7 +406,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                     <View style={styles.modalCard}>
                         <View style={styles.modalCabecalho}>
                             <Text style={styles.modalTitulo}>Novo Animal Perdido</Text>
-                            <Pressable onPress={fecharFormulario}>
+                            <Pressable style={styles.modalCloseButton} onPress={fecharFormulario} accessibilityLabel="Fechar">
                                 <FontAwesome name="times" size={20} color="#292929" />
                             </Pressable>
                         </View>
@@ -461,8 +468,9 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                             <Text style={styles.campoLabel}>Descrição adicional</Text>
                             <TextInput style={[styles.campoInput, styles.campoInputMultilinha]} placeholder="Características, comportamento, coleira, etc." placeholderTextColor="gray" value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline numberOfLines={4} />
 
-                            <Pressable style={styles.botaoSalvar} onPress={salvarAnimal}>
-                                <Text style={styles.botaoSalvarTexto}>Salvar</Text>
+                            <Pressable style={[styles.botaoSalvar, salvando && styles.botaoDesabilitado]} onPress={salvarAnimal} disabled={salvando}>
+                                {salvando && <ActivityIndicator size="small" color="#ffffff" />}
+                                <Text style={styles.botaoSalvarTexto}>{salvando ? 'Salvando...' : 'Salvar'}</Text>
                             </Pressable>
                         </ScrollView>
                     </View>
@@ -494,14 +502,14 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
             <Modal visible={!!confirmacaoExclusaoAlvo} transparent animationType="fade" onRequestClose={() => setConfirmacaoExclusaoAlvo(null)}>
                 <View style={styles.confirmOverlay}>
                     <View style={styles.confirmCard}>
-                        <FontAwesome name="trash" size={30} color="#d9534f" />
+                        <FontAwesome name="trash" size={30} color="#DC2626" />
                         <Text style={styles.confirmTitulo}>Excluir animal</Text>
                         <Text style={styles.confirmMensagem}>Tem certeza que deseja excluir este animal?</Text>
                         <View style={styles.confirmBotoesContainer}>
                             <Pressable style={styles.confirmBotaoCancelar} onPress={() => setConfirmacaoExclusaoAlvo(null)}>
                                 <Text style={styles.confirmBotaoCancelarTexto}>Cancelar</Text>
                             </Pressable>
-                            <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
+                            <Pressable style={[styles.confirmBotaoConfirmar, styles.confirmBotaoDestrutivo]} onPress={() => {
                                 const id = confirmacaoExclusaoAlvo;
                                 setConfirmacaoExclusaoAlvo(null);
                                 excluirAnimal(id);
@@ -577,6 +585,35 @@ const styles = StyleSheet.create({
         borderBottomColor: '#e1e1e1',
     },
 
+    headerActionButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+    },
+
+    profileButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+
+    modalCloseButton: {
+        width: 44,
+        height: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#CBD5E1',
+    },
+
     titulo: {
         fontSize: 18,
         fontWeight: 'bold',
@@ -617,7 +654,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 14,
         padding: 4,
         backgroundColor: '#f0f0f0',
-        borderRadius: 22,
+        borderRadius: 8,
     },
 
     segmentoBotao: {
@@ -626,12 +663,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        height: 36,
-        borderRadius: 18,
+        minHeight: 44,
+        borderRadius: 8,
     },
 
     segmentoBotaoSelecionado: {
-        backgroundColor: '#e08a3e',
+        backgroundColor: '#5791ca',
     },
 
     segmentoTexto: {
@@ -647,10 +684,10 @@ const styles = StyleSheet.create({
     botaoAdicionar: {
         width: 44,
         height: 44,
-        borderRadius: 22,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#e08a3e',
+        backgroundColor: '#5791ca',
     },
 
     buscaLinha: {
@@ -669,7 +706,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         height: 44,
         backgroundColor: '#f0f0f0',
-        borderRadius: 22,
+        borderRadius: 8,
     },
 
     iconeBusca: {
@@ -706,7 +743,7 @@ const styles = StyleSheet.create({
 
     card: {
         backgroundColor: '#fffdf7',
-        borderRadius: 16,
+        borderRadius: 12,
         marginBottom: 16,
         borderWidth: 1,
         borderColor: '#f0e6d2',
@@ -716,8 +753,8 @@ const styles = StyleSheet.create({
     fotoContainer: {
         position: 'relative',
         backgroundColor: '#f7f7f7',
-        borderTopLeftRadius: 16,
-        borderTopRightRadius: 16,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
@@ -766,7 +803,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
-        backgroundColor: '#d9534f',
+        backgroundColor: '#D97706',
     },
 
     badgeStatusEncontrado: {
@@ -845,16 +882,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        height: 40,
+        minHeight: 44,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#45a9d5',
+        borderColor: '#CBD5E1',
     },
 
     botaoEditarTexto: {
         fontSize: 13,
         fontWeight: 'bold',
-        color: '#45a9d5',
+        color: '#64748B',
     },
 
     statusToggleContainer: {
@@ -862,9 +899,9 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 4,
         padding: 3,
-        height: 40,
+        minHeight: 50,
         borderRadius: 8,
-        backgroundColor: '#f2ede4',
+        backgroundColor: '#f1f5f9',
     },
 
     statusToggleBotao: {
@@ -873,15 +910,15 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         flexDirection: 'row',
         gap: 4,
-        borderRadius: 6,
+        borderRadius: 8,
     },
 
     statusToggleBotaoPerdidoAtivo: {
-        backgroundColor: '#d9534f',
+        backgroundColor: '#D97706',
     },
 
     statusToggleBotaoEncontradoAtivo: {
-        backgroundColor: '#3fae6a',
+        backgroundColor: '#16A34A',
     },
 
     statusToggleTexto: {
@@ -896,13 +933,14 @@ const styles = StyleSheet.create({
     },
 
     botaoExcluir: {
-        width: 40,
-        height: 40,
+        width: 44,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#d9534f',
+        borderColor: '#DC2626',
+        backgroundColor: '#DC2626',
     },
 
     rodape: {
@@ -918,8 +956,8 @@ const styles = StyleSheet.create({
     modalCard: {
         maxHeight: '88%',
         backgroundColor: '#ffffff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
         padding: 18,
     },
 
@@ -956,7 +994,7 @@ const styles = StyleSheet.create({
         height: 130,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
         borderStyle: 'dashed',
         alignItems: 'center',
         justifyContent: 'center',
@@ -983,7 +1021,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         backgroundColor: '#ffffff',
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
         borderRadius: 8,
         fontSize: 14,
     },
@@ -1003,18 +1041,18 @@ const styles = StyleSheet.create({
 
     opcaoBotao: {
         paddingHorizontal: 14,
-        height: 36,
+        minHeight: 44,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 18,
+        borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
         backgroundColor: '#ffffff',
     },
 
     opcaoBotaoSelecionada: {
-        backgroundColor: '#e08a3e',
-        borderColor: '#e08a3e',
+        backgroundColor: '#5791ca',
+        borderColor: '#5791ca',
     },
 
     opcaoTexto: {
@@ -1033,14 +1071,18 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#e08a3e',
-        borderRadius: 10,
+        backgroundColor: '#5791ca',
+        borderRadius: 8,
     },
 
     botaoSalvarTexto: {
         fontSize: 15,
         fontWeight: 'bold',
         color: '#ffffff',
+    },
+
+    botaoDesabilitado: {
+        backgroundColor: '#94A3B8',
     },
 
     confirmOverlay: {
@@ -1087,13 +1129,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#d8d8d8',
+        borderColor: '#CBD5E1',
+        backgroundColor: '#ffffff',
     },
 
     confirmBotaoCancelarTexto: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#4a4a4a',
+        color: '#64748B',
     },
 
     confirmBotaoConfirmar: {
@@ -1102,12 +1145,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: 8,
-        backgroundColor: '#e08a3e',
+        backgroundColor: '#5791ca',
     },
 
     confirmBotaoConfirmarTexto: {
         fontSize: 14,
         fontWeight: 'bold',
         color: '#ffffff',
+    },
+
+    confirmBotaoDestrutivo: {
+        backgroundColor: '#DC2626',
     },
 });

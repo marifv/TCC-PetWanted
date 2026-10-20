@@ -1,5 +1,6 @@
 import { FontAwesome } from '@expo/vector-icons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Pressable from './ButtonPressable';
 
 const ITEMS = [
   { id: 'perdidos', icon: 'search', label: 'Animais perdidos', action: 'onLost' },
@@ -54,16 +55,22 @@ export default function BottomNavigation({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
+    height: 82,
+    flexGrow: 0,
+    flexShrink: 0,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 10,
+    justifyContent: 'center',
   },
   bar: {
-    height: 60,
+    height: 64,
+    flexShrink: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     backgroundColor: '#ffffff',
-    borderRadius: 30,
+    borderRadius: 12,
     shadowColor: '#476f91',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
@@ -72,16 +79,17 @@ const styles = StyleSheet.create({
   },
   item: {
     flex: 1,
-    height: '100%',
+    height: 64,
+    minWidth: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconContainer: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
+    borderRadius: 8,
   },
   iconContainerSelected: {
     backgroundColor: '#eaf3fa',

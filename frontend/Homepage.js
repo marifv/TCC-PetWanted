@@ -1,8 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
-import { Image, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable } from 'react-native';
+import { Image, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import MapaPet from './MapaPet';
 import BottomNavigation from './BottomNavigation';
+import Pressable from './ButtonPressable';
 
 export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome }) {
 	const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
@@ -21,7 +22,7 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 					<Pressable style={styles.headerIconButton} accessibilityLabel="Notificações">
 						<FontAwesome name="bell-o" size={16} color="#6887a4" />
 					</Pressable>
-					<Pressable onPress={setTelaAtual}>
+					<Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
 						<View style={styles.avatar}>
 							{fotoPerfil ? (
 								<Image source={{ uri: fotoPerfil }} style={styles.profileImage} />
@@ -96,12 +97,19 @@ const styles = StyleSheet.create({
 	},
 
 	headerIconButton: {
-		width: 32,
-		height: 32,
+		width: 44,
+		height: 44,
 		alignItems: 'center',
 		justifyContent: 'center',
 		backgroundColor: '#ffffff',
-		borderRadius: 16,
+		borderRadius: 8,
+	},
+
+	profileButton: {
+		width: 44,
+		height: 44,
+		alignItems: 'center',
+		justifyContent: 'center',
 	},
 
 	avatar: {

@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { API_ANIMAIS } from './config/api';
+import Pressable from './ButtonPressable';
 
 export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
   const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
@@ -225,9 +226,11 @@ const styles = StyleSheet.create({
   permissionButton: {
     marginTop: 10,
     paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 6,
-    backgroundColor: '#2d6a4f',
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#5791ca',
   },
   permissionButtonText: {
     color: '#fff',
@@ -245,12 +248,12 @@ const styles = StyleSheet.create({
     zIndex: 4,
   },
   mapFilter: {
-    minHeight: 36,
+    minHeight: 44,
     paddingHorizontal: 14,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: 20,
+    borderRadius: 8,
     shadowColor: '#476f91',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.18,
@@ -258,9 +261,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   mapFilterActive: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#5791ca',
     borderWidth: 1,
-    borderColor: '#b7d5ef',
+    borderColor: '#5791ca',
   },
   mapFilterText: {
     color: '#718ba2',
@@ -268,6 +271,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   mapFilterTextActive: {
-    color: '#315f8b',
+    color: '#ffffff',
   },
 });
