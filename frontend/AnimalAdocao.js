@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { formatarData } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
+import BottomNavigation from './BottomNavigation';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -726,66 +727,13 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                 ))}
             </ScrollView>
 
-            <View style={styles.rodape}>
-                <Pressable
-                    style={styles.itemRodape}
-                    onPress={abrirAnimalPerdido}
-                >
-                    <FontAwesome
-                        name="search"
-                        size={20}
-                        color="#6b6b6b"
-                    />
-
-                    <Text style={styles.textoRodape}>
-                        Perdido
-                    </Text>
-                </Pressable>
-
-                <Pressable
-                    style={styles.itemRodape}
-                    onPress={abrirAnimalEncontrado}
-                >
-                    <FontAwesome
-                        name="paw"
-                        size={20}
-                        color="#6b6b6b"
-                    />
-
-                    <Text style={styles.textoRodape}>
-                        Encontrado
-                    </Text>
-                </Pressable>
-
-                <Pressable style={styles.itemRodape}>
-                    <FontAwesome
-                        name="comment-o"
-                        size={20}
-                        color="#6b6b6b"
-                    />
-
-                    <Text style={styles.textoRodape}>
-                        Chat
-                    </Text>
-                </Pressable>
-
-                <View
-                    style={[
-                        styles.itemRodapeAdocao,
-                        styles.itemSelecionado,
-                    ]}
-                >
-                    <FontAwesome
-                        name="heart"
-                        size={20}
-                        color="#ffffff"
-                    />
-
-                    <Text style={styles.textoRodapeSelecionado}>
-                        Adoção
-                    </Text>
-                </View>
-            </View>
+            <BottomNavigation
+                active="adocao"
+                onMap={onVoltar}
+                onLost={abrirAnimalPerdido}
+                onFound={abrirAnimalEncontrado}
+                containerStyle={styles.rodape}
+            />
 
             <Modal
                 visible={filtroVisivel}
@@ -1458,43 +1406,7 @@ const styles = StyleSheet.create({
     },
 
     rodape: {
-        height: 76,
-        paddingHorizontal: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        backgroundColor: '#ffffff',
-    },
-
-    itemRodape: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderLeftWidth: 1,
-    },
-
-    itemRodapeAdocao: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-    },
-
-    itemSelecionado: {
-        backgroundColor: '#5ecfff',
-    },
-
-    textoRodape: {
-        marginTop: 4,
-        fontSize: 10,
-        color: '#6b6b6b',
-    },
-
-    textoRodapeSelecionado: {
-        marginTop: 4,
-        fontSize: 10,
-        color: '#ffffff',
+        paddingBottom: Platform.OS === 'android' ? 10 : 8,
     },
 
     modalOverlay: {
@@ -1759,4 +1671,3 @@ const styles = StyleSheet.create({
 
     
 });
-

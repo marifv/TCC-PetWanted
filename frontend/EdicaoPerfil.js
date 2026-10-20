@@ -76,22 +76,17 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
+            <StatusBar style="dark" hidden={false} backgroundColor="#dcecf9" />
 
             <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <Pressable onPress={onVoltar}>
-                        <FontAwesome name="arrow-left" size={24} color="#292929" />
-                    </Pressable>
-                </View>
-
-                <Text style={styles.title}>Editar Perfil</Text>
-
-                <View style={styles.headerRight}>
-                </View>
+                <Pressable style={styles.headerBackButton} onPress={onVoltar} accessibilityLabel="Voltar">
+                    <FontAwesome name="arrow-left" size={16} color="#4e718f" />
+                </Pressable>
+                <Text style={styles.title}>Editar perfil</Text>
+                <View style={styles.headerPlaceholder} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
                 <Pressable style={styles.avatar} onPress={escolherFoto}>
                     {novaFotoPerfil ? (
                         <Image
@@ -113,82 +108,83 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
                     {novoNome || 'Seu Nome'}
                 </Text>
 
-                <Text style={styles.primaryLabel}>Nome</Text>
+                <View style={styles.formCard}>
+                    <View style={styles.info}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="user-o" size={16} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>Nome</Text>
+                            <TextInput
+                                style={styles.valorInput}
+                                placeholder="Digite seu nome"
+                                placeholderTextColor="#8ca8c0"
+                                value={novoNome}
+                                onChangeText={setNovoNome}
+                            />
+                        </View>
+                    </View>
 
-                <View style={styles.info}>
-                    <View style={styles.infoTexto}>
-                        <TextInput
-                            style={styles.valorInput}
-                            placeholder="Digite seu nome"
-                            placeholderTextColor="#999"
-                            value={novoNome}
-                            onChangeText={setNovoNome}
-                        />
+                    <Pressable
+                        style={styles.info}
+                        onPress={() => mostrarModal('E-mail', 'O e-mail não pode ser modificado.')}
+                    >
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="envelope-o" size={15} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>E-mail</Text>
+                            <Text style={styles.valor}>{email || 'E-mail não informado'}</Text>
+                        </View>
+                        <FontAwesome name="lock" size={15} color="#9ab2c7" />
+                    </Pressable>
+                    <Pressable
+                        style={styles.info}
+                        onPress={() => mostrarModal('Documento', 'O CPF/CNPJ não pode ser modificado.')}
+                    >
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="id-card-o" size={15} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>{novoTipoPerfil === 'ONG' ? 'CNPJ' : 'CPF'}</Text>
+                            <Text style={styles.valor}>{documento || 'Documento não informado'}</Text>
+                        </View>
+                        <FontAwesome name="lock" size={15} color="#9ab2c7" />
+                    </Pressable>
+                    <View style={styles.info}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="phone" size={16} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>Telefone</Text>
+                            <TextInput
+                                style={styles.valorInput}
+                                placeholder="Digite seu telefone"
+                                placeholderTextColor="#8ca8c0"
+                                keyboardType="phone-pad"
+                                value={novoTelefone}
+                                onChangeText={setNovoTelefone}
+                            />
+                        </View>
+                    </View>
+                    <View style={[styles.info, styles.infoLast]}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="map-marker" size={16} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>Localização</Text>
+                            <TextInput
+                                style={styles.valorInput}
+                                placeholder="Digite sua localização"
+                                placeholderTextColor="#8ca8c0"
+                                value={novaLocalizacao}
+                                onChangeText={setNovaLocalizacao}
+                            />
+                        </View>
                     </View>
                 </View>
 
-                <Pressable
-                    style={styles.info}
-                    onPress={() => mostrarModal('E-mail', 'O e-mail não pode ser modificado.')}
-                >
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>E-mail</Text>
-                        <Text style={styles.valor}>{email || 'E-mail não informado'}</Text>
-                    </View>
-
-                    <FontAwesome name="lock" size={16} color="#999999" />
-                </Pressable>
-
-                <Pressable
-                    style={styles.info}
-                    onPress={() => mostrarModal('Documento', 'O CPF/CNPJ não pode ser modificado.')}
-                >
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>
-                            {novoTipoPerfil === 'ONG' ? 'CNPJ' : 'CPF'}
-                        </Text>
-
-                        <Text style={styles.valor}>
-                            {documento || 'Documento não informado'}
-                        </Text>
-                    </View>
-
-                    <FontAwesome name="lock" size={16} color="#999999" />
-                </Pressable>
-
-                <View style={styles.info}>
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>Telefone</Text>
-
-                        <TextInput
-                            style={styles.valorInput}
-                            placeholder="Digite seu telefone"
-                            placeholderTextColor="#999"
-                            keyboardType="phone-pad"
-                            value={novoTelefone}
-                            onChangeText={setNovoTelefone}
-                        />
-                    </View>
-                </View>
-
-                <View style={styles.info}>
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>Localização</Text>
-
-                        <TextInput
-                            style={styles.valorInput}
-                            placeholder="Digite sua localização"
-                            placeholderTextColor="#999"
-                            value={novaLocalizacao}
-                            onChangeText={setNovaLocalizacao}
-                        />
-                    </View>
-                </View>
-
-                <Pressable
-                    style={styles.saveButton}
-                    onPress={salvarAlteracoes}
-                >
+                <Pressable style={styles.saveButton} onPress={salvarAlteracoes}>
                     <Text style={styles.saveButtonText}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
@@ -252,63 +248,73 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fafafa',
+        backgroundColor: '#eaf4fc',
     },
 
     header: {
         height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
         paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
-        paddingHorizontal: 12,
+        paddingHorizontal: 18,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e1e1e1',
+        backgroundColor: '#dcecf9',
     },
 
-    headerLeft: {
-        width: 40,
-        alignItems: 'flex-start',
+    headerBackButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#edf6fc',
+        alignItems: 'center',
         justifyContent: 'center',
     },
 
-    headerRight: {
-        width: 40,
-        alignItems: 'flex-end',
-        justifyContent: 'center',
+    headerPlaceholder: {
+        width: 36,
+        height: 36,
     },
 
     title: {
         flex: 1,
-        fontSize: 18,
+        fontSize: 17,
         fontWeight: 'bold',
-        color: '#292929',
+        color: '#365d7d',
         textAlign: 'center',
     },
 
+    scroll: {
+        flex: 1,
+    },
+
     content: {
-        paddingHorizontal: 30,
-        paddingTop: 30,
-        paddingBottom: 30,
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingTop: 16,
+        paddingBottom: 32,
     },
 
     avatar: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: '#f8b385',
+        width: 92,
+        height: 92,
+        borderRadius: 46,
+        borderWidth: 3,
+        borderColor: '#ffffff',
+        backgroundColor: '#5791ca',
         alignItems: 'center',
         justifyContent: 'center',
-        alignSelf: 'center',
-        marginBottom: 6,
         overflow: 'hidden',
+        elevation: 5,
+        shadowColor: '#477499',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
     },
 
     profileImage: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
+        width: 86,
+        height: 86,
+        borderRadius: 43,
     },
 
     avatarText: {
@@ -319,89 +325,80 @@ const styles = StyleSheet.create({
 
     changePhotoText: {
         fontSize: 12,
-        color: '#888888',
+        color: '#6c879e',
         textAlign: 'center',
-        marginBottom: 10,
+        marginTop: 9,
+        marginBottom: 5,
     },
 
     name: {
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#000',
+        color: '#365d7d',
         textAlign: 'center',
-        marginBottom: 25,
+        marginBottom: 17,
     },
 
-    primaryLabel: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#292929',
-        marginBottom: 8,
+    formCard: {
+        width: '100%',
+        paddingHorizontal: 14,
+        paddingVertical: 4,
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        shadowColor: '#477499',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
     },
 
     info: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#ffffff',
-        padding: 6,
-        marginBottom: 12,
-        borderRadius: 10,
-        borderWidth: 1,
-        borderColor: '#eeeeee',
+        minHeight: 58,
+        gap: 11,
+        borderBottomWidth: 1,
+        borderBottomColor: '#edf3f8',
+    },
+
+    infoLast: {
+        borderBottomWidth: 0,
+    },
+
+    infoIcon: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#eaf3fa',
+        borderRadius: 16,
     },
 
     infoTexto: {
         flex: 1,
+        minWidth: 0,
     },
 
     label: {
-        fontSize: 12,
-        color: '#999999',
-        marginBottom: 3,
+        fontSize: 10,
+        color: '#8299ad',
+        marginBottom: 1,
     },
 
     valor: {
-        fontSize: 15,
-        color: '#292929',
+        fontSize: 12,
+        color: '#304f6b',
+        fontWeight: 'bold',
+        flexShrink: 1,
     },
 
     valorInput: {
-        fontSize: 15,
-        color: '#292929',
-        padding: 6,
-        margin: 0,
-    },
-
-    profileTypeContainer: {
-        flexDirection: 'row',
-        marginBottom: 12,
-        gap: 8,
-    },
-
-    profileTypeButton: {
-        flex: 1,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#d5b39b',
-        borderRadius: 6,
-    },
-
-    selectedProfileType: {
-        backgroundColor: '#7a4b2a',
-        borderColor: '#7a4b2a',
-    },
-
-    profileTypeText: {
-        fontSize: 14,
+        minHeight: 29,
+        fontSize: 13,
         fontWeight: 'bold',
-        color: '#7a4b2a',
-    },
-
-    selectedProfileTypeText: {
-        color: '#ffffff',
+        color: '#304f6b',
+        paddingVertical: 3,
+        margin: 0,
     },
 
     modalOverlay: {
@@ -417,29 +414,29 @@ const styles = StyleSheet.create({
         maxWidth: 360,
         padding: 22,
         backgroundColor: '#ffffff',
-        borderRadius: 12,
+        borderRadius: 20,
     },
 
     modalTitulo: {
         marginBottom: 8,
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#292929',
+        color: '#365d7d',
     },
 
     modalMensagem: {
         marginBottom: 20,
         fontSize: 15,
         lineHeight: 21,
-        color: '#555555',
+        color: '#607b92',
     },
 
     modalButton: {
         alignItems: 'center',
         justifyContent: 'center',
-        height: 42,
-        backgroundColor: '#7a4b2a',
-        borderRadius: 6,
+        minHeight: 42,
+        backgroundColor: '#5791ca',
+        borderRadius: 22,
     },
 
     modalButtonText: {
@@ -457,25 +454,31 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        height: 42,
+        minHeight: 42,
         borderWidth: 1,
-        borderColor: '#7a4b2a',
-        borderRadius: 6,
+        borderColor: '#8db6d8',
+        borderRadius: 22,
     },
 
     modalCancelarTexto: {
         fontSize: 15,
         fontWeight: 'bold',
-        color: '#7a4b2a',
+        color: '#4e718f',
     },
 
     saveButton: {
-        height: 46,
+        width: '100%',
+        minHeight: 48,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#7a4b2a',
-        borderRadius: 6,
-        marginTop: 10,
+        backgroundColor: '#5791ca',
+        borderRadius: 24,
+        marginTop: 18,
+        elevation: 3,
+        shadowColor: '#477499',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
     },
 
     saveButtonText: {

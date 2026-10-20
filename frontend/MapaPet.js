@@ -11,6 +11,7 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
   const [permissaoNegada, setPermissaoNegada] = useState(false);
   const [podePerguntarNovamente, setPodePerguntarNovamente] = useState(true);
   const [animaisComLocalizacao, setAnimaisComLocalizacao] = useState([]);
+  const [filtrosAtivos, setFiltrosAtivos] = useState({ Perdido: true, Encontrado: true });
   const mapaRef = useRef(null);
   const salvarLocalizacaoRef = useRef(onSalvarLocalizacao);
 
@@ -109,6 +110,10 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
     }
   };
 
+  const alternarFiltro = (tipo) => {
+    setFiltrosAtivos((atual) => ({ ...atual, [tipo]: !atual[tipo] }));
+  };
+
   return (
     <View style={styles.container}>
       {carregando && (
@@ -158,7 +163,9 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
             description="Local atual"
           />
         )}
-        {animaisComLocalizacao.map((animal) => (
+        {animaisComLocalizacao
+          .filter((animal) => filtrosAtivos[animal.tipo_registro])
+          .map((animal) => (
           <Marker
             key={`${animal.tipo_registro}-${animal.id}`}
             coordinate={{
@@ -169,8 +176,28 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
             description={animal.local || 'Local do registro'}
             pinColor={animal.tipo_registro === 'Perdido' ? '#d1495b' : '#2d6a4f'}
           />
-        ))}
+          ))}
       </MapView>
+      <View style={styles.mapFilters}>
+        {['Perdido', 'Encontrado'].map((tipo) => {
+          const ativo = filtrosAtivos[tipo];
+          const perdido = tipo === 'Perdido';
+          return (
+            <Pressable
+              key={tipo}
+              style={[styles.mapFilter, ativo && styles.mapFilterActive]}
+              onPress={() => alternarFiltro(tipo)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: ativo }}
+              accessibilityLabel={`Filtrar animais ${perdido ? 'perdidos' : 'encontrados'}`}
+            >
+              <Text style={[styles.mapFilterText, ativo && styles.mapFilterTextActive]}>
+                {perdido ? 'Perdidos' : 'Encontrados'}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -208,5 +235,39 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  mapFilters: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    flexDirection: 'row',
+    gap: 8,
+    zIndex: 4,
+  },
+  mapFilter: {
+    minHeight: 36,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    shadowColor: '#476f91',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  mapFilterActive: {
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#b7d5ef',
+  },
+  mapFilterText: {
+    color: '#718ba2',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  mapFilterTextActive: {
+    color: '#315f8b',
   },
 });

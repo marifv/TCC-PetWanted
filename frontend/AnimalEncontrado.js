@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarEntradaData } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
+import BottomNavigation from './BottomNavigation';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -374,27 +375,13 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                 ))}
             </ScrollView>
 
-            <View style={styles.rodape}>
-                <Pressable style={styles.itemRodape} onPress={abrirAnimalPerdido}>
-                    <FontAwesome name="search" size={20} color="#6b6b6b" />
-                    <Text style={styles.textoRodape}>Perdido</Text>
-                </Pressable>
-
-                <View style={[styles.itemRodape, styles.itemSelecionado]}>
-                    <FontAwesome name="paw" size={20} color="#fff" />
-                    <Text style={styles.textoRodape}>Encontrado</Text>
-                </View>
-
-                <Pressable style={styles.itemRodape}>
-                    <FontAwesome name="comment-o" size={20} color="#6b6b6b" />
-                    <Text style={styles.textoRodape}>Chat</Text>
-                </Pressable>
-
-                <Pressable style={styles.itemRodapeAdocao} onPress={abrirAdocao}>
-                    <FontAwesome name="heart" size={20} color="#6b6b6b" />
-                    <Text style={styles.textoRodape}>Adoção</Text>
-                </Pressable>
-            </View>
+            <BottomNavigation
+                active="encontrados"
+                onMap={onVoltar}
+                onLost={abrirAnimalPerdido}
+                onAdoption={abrirAdocao}
+                containerStyle={styles.rodape}
+            />
 
             <Modal visible={modalVisivel} animationType="slide" transparent onRequestClose={fecharFormulario}>
                 <View style={styles.modalOverlay}>
@@ -958,37 +945,7 @@ const styles = StyleSheet.create({
     },
 
     rodape: {
-        height: 76,
-        paddingHorizontal: 10,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-around',
-        backgroundColor: '#ffffff',
-    },
-
-    itemRodape: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderLeftWidth: 1,
-    },
-
-    itemRodapeAdocao: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderLeftWidth: 1,
-        borderRightWidth: 1,
-    },
-
-    itemSelecionado: {
-        backgroundColor: '#5ecfff',
-    },
-
-    textoRodape: {
-        marginTop: 4,
-        fontSize: 10,
-        color: '#6b6b6b',
+        paddingBottom: Platform.OS === 'android' ? 10 : 8,
     },
 
     modalOverlay: {

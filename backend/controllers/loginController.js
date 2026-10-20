@@ -20,7 +20,9 @@ async function loginUsuario(req, res) {
             });
         }
 
-        const senhaValida = await bcrypt.compare(senha, usuario.rows[0].senha);
+        const senhaValida = usuario.rows[0].senha
+            ? await bcrypt.compare(senha, usuario.rows[0].senha)
+            : false;
 
         if (!senhaValida) {
             return res.status(401).json({

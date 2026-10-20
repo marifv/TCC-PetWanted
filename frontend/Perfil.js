@@ -9,29 +9,29 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
+            <StatusBar style="dark" hidden={false} backgroundColor="#dcecf9" />
 
             <View style={styles.header}>
-                <View style={styles.headerLeft}>
-                    <Pressable onPress={onVoltar}>
-                        <FontAwesome name="arrow-left" size={24} color="#292929" />
-                    </Pressable>
+                <Pressable style={styles.headerIconButton} onPress={onVoltar} accessibilityLabel="Voltar">
+                    <FontAwesome name="arrow-left" size={16} color="#4e718f" />
+                </Pressable>
 
-                    <Text style={styles.appName}>PetWanted</Text>
-                </View>
-
+                <Text style={styles.headerTitle}>Meu perfil</Text>
                 <View style={styles.headerRight}>
-                    <FontAwesome name="bell" size={20} color="#555" />
-
-                    <Pressable onPress={() => setConfirmacaoEdicaoVisivel(true)}>
-                        <FontAwesome name="pencil" size={22} color="#292929" />
+                    <Pressable style={styles.headerIconButton} accessibilityLabel="Notificações">
+                        <FontAwesome name="bell-o" size={16} color="#6887a4" />
+                    </Pressable>
+                    <Pressable
+                        style={styles.headerIconButton}
+                        onPress={() => setConfirmacaoEdicaoVisivel(true)}
+                        accessibilityLabel="Editar perfil"
+                    >
+                        <FontAwesome name="pencil" size={16} color="#4e718f" />
                     </Pressable>
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
-                <Text style={styles.title}>Meu Perfil</Text>
-
+            <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
                 <View style={styles.avatar}>
                     {fotoPerfil ? (
                         <Image
@@ -45,84 +45,86 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
                     )}
                 </View>
 
-                <View style={styles.cardInfo}>
-                    <FontAwesome name="user" size={20} color="#45a9d5" />
+                <View style={styles.infoCard}>
+                    <View style={styles.cardInfo}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="user-o" size={16} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>Nome</Text>
+                            <Text style={styles.valor}>{nome || 'Seu Nome'}</Text>
+                        </View>
+                    </View>
 
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>Nome</Text>
-                        <Text style={styles.valor}>
-                            {nome || 'Seu Nome'}
-                        </Text>
+                    <View style={styles.cardInfo}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="users" size={16} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>Tipo de perfil</Text>
+                            <Text style={styles.valor}>{tipoPerfil || 'Tipo de perfil não definido'}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.cardInfo}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="envelope-o" size={15} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>E-mail</Text>
+                            <Text style={styles.valor}>{email || 'seu.email@exemplo.com'}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.cardInfo}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="phone" size={16} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>Telefone</Text>
+                            <Text style={styles.valor}>{telefone || 'Seu telefone'}</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.cardInfo}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="map-marker" size={16} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>Localização</Text>
+                            <Text style={styles.valor}>{localizacao || 'Sua localização'}</Text>
+                        </View>
+                    </View>
+
+                    <View style={[styles.cardInfo, styles.cardInfoLast]}>
+                        <View style={styles.infoIcon}>
+                            <FontAwesome name="id-card-o" size={15} color="#6b9bc5" />
+                        </View>
+                        <View style={styles.infoTexto}>
+                            <Text style={styles.label}>{tipoPerfil === 'ONG' ? 'CNPJ' : 'CPF'}</Text>
+                            <Text style={styles.valor}>{documento || (tipoPerfil === 'ONG' ? 'CNPJ' : 'CPF')}</Text>
+                        </View>
                     </View>
                 </View>
+            </ScrollView>
 
-                <View style={styles.cardInfo}>
-                    <FontAwesome name="users" size={20} color="#45a9d5" />
-
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>Tipo de perfil</Text>
-                        <Text style={styles.valor}>
-                            {tipoPerfil || 'Tipo de perfil não definido'}
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.cardInfo}>
-                    <FontAwesome name="envelope" size={20} color="#45a9d5" />
-
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>E-mail</Text>
-                        <Text style={styles.valor}>
-                            {email || 'seu.email@exemplo.com'}
-                        </Text>
-                    </View>
-                </View>
-
-                <View style={styles.cardInfo}>
-                    <FontAwesome name="phone" size={20} color="#45a9d5" />
-
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>Telefone</Text>
-                        <Text style={styles.valor}>{telefone || 'Seu telefone'}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.cardInfo}>
-                    <FontAwesome name="map-marker" size={20} color="#45a9d5" />
-
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>Localização</Text>
-                        <Text style={styles.valor}>{localizacao || 'Sua localização'}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.cardInfo}>
-                    <FontAwesome name="id-card" size={20} color="#45a9d5" />
-
-                    <View style={styles.infoTexto}>
-                        <Text style={styles.label}>
-                            {tipoPerfil === 'ONG' ? 'CNPJ' : 'CPF'}
-                        </Text>
-
-                        <Text style={styles.valor}>
-                            {documento || (tipoPerfil === 'ONG' ? 'CNPJ' : 'CPF')}
-                        </Text>
-                    </View>
-                </View>
+            <View style={styles.footer}>
+                <Pressable
+                    style={styles.logoutButton}
+                    onPress={onDeslogar}
+                >
+                    <FontAwesome name="sign-out" size={16} color="#4e718f" />
+                    <Text style={styles.logoutButtonText}>Sair da conta</Text>
+                </Pressable>
 
                 <Pressable
                     style={styles.deleteButton}
                     onPress={() => setConfirmacaoExclusaoVisivel(true)}
                 >
-                    <FontAwesome name="trash" size={16} color="#d9534f" />
+                    <FontAwesome name="trash" size={15} color="#bf6965" />
                     <Text style={styles.deleteButtonText}>Excluir perfil</Text>
                 </Pressable>
-
-                <Pressable style={styles.logoutButton} onPress={onDeslogar}>
-                    <FontAwesome name="sign-out" size={16} color="#7a4b2a" />
-                    <Text style={styles.logoutButtonText}>Sair da conta</Text>
-                </Pressable>
-            </ScrollView>
+            </View>
 
             <Modal
                 transparent
@@ -200,84 +202,118 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fafafa',
+        backgroundColor: '#eaf4fc',
     },
 
     header: {
         height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
         paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
-        paddingHorizontal: 12,
+        paddingHorizontal: 18,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e1e1e1',
+        backgroundColor: '#dcecf9',
     },
 
-    headerLeft: {
-        flexDirection: 'row',
+    headerIconButton: {
+        width: 34,
+        height: 34,
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'center',
+        backgroundColor: '#ffffff',
+        borderRadius: 17,
+        elevation: 2,
     },
 
     headerRight: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16,
+        gap: 10,
     },
 
-    title: {
-        marginTop: 20,
-        marginBottom: 20,
-        fontSize: 18,
+    headerTitle: {
+        flex: 1,
+        marginLeft: 12,
+        color: '#315f8b',
+        fontSize: 15,
         fontWeight: 'bold',
-        color: '#292929',
-        textAlign: 'center',
+    },
+
+    scroll: {
+        flex: 1,
     },
 
     content: {
         flexGrow: 1,
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: 10,
-        paddingBottom: 30,
+        paddingHorizontal: 18,
+        paddingTop: 8,
+        paddingBottom: 14,
     },
 
     avatar: {
         width: 90,
         height: 90,
+        marginTop: 2,
+        marginBottom: 14,
         borderRadius: 45,
-        backgroundColor: '#f8b385',
+        borderWidth: 3,
+        borderColor: '#ffffff',
+        backgroundColor: '#5791ca',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 20,
         overflow: 'hidden',
+        elevation: 5,
+        shadowColor: '#477499',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
     },
 
     profileImage: {
-        width: 90,
-        height: 90,
-        borderRadius: 45,
+        width: 84,
+        height: 84,
+        borderRadius: 42,
     },
 
     avatarText: {
-        fontSize: 34,
+        fontSize: 32,
         fontWeight: 'bold',
         color: '#fff',
+    },
+
+    infoCard: {
+        width: '100%',
+        paddingHorizontal: 14,
+        paddingVertical: 4,
+        backgroundColor: '#ffffff',
+        borderRadius: 20,
+        shadowColor: '#477499',
+        shadowOffset: { width: 0, height: 5 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
     },
 
     cardInfo: {
         width: '100%',
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 16,
-        marginBottom: 12,
-        backgroundColor: '#ffffff',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#eeeeee',
-        gap: 14,
+        minHeight: 48,
+        gap: 11,
+    },
+
+    cardInfoLast: {
+        marginBottom: 0,
+    },
+
+    infoIcon: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#eaf3fa',
+        borderRadius: 16,
     },
 
     infoTexto: {
@@ -285,58 +321,57 @@ const styles = StyleSheet.create({
     },
 
     label: {
-        fontSize: 12,
-        color: '#999999',
-        marginBottom: 3,
+        fontSize: 10,
+        color: '#8299ad',
+        marginBottom: 1,
     },
 
     valor: {
-        fontSize: 15,
-        color: '#292929',
-        fontWeight: '500',
-    },
-
-    appName: {
-        fontSize: 15,
+        fontSize: 12,
+        color: '#304f6b',
         fontWeight: 'bold',
-        color: '#292929',
+        flexShrink: 1,
     },
 
-    deleteButton: {
-        width: '100%',
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
+    footer: {
+        paddingHorizontal: 18,
+        paddingTop: 8,
+        paddingBottom: Platform.OS === 'android' ? 14 : 18,
+        backgroundColor: '#eaf4fc',
         gap: 8,
-        paddingVertical: 13,
-        marginTop: 8,
-        borderWidth: 1,
-        borderColor: '#d9534f',
-        borderRadius: 8,
-    },
-
-    deleteButtonText: {
-        color: '#d9534f',
-        fontSize: 14,
-        fontWeight: 'bold',
     },
 
     logoutButton: {
         width: '100%',
+        minHeight: 42,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
-        paddingVertical: 13,
-        marginTop: 10,
-        borderWidth: 1,
-        borderColor: '#7a4b2a',
-        borderRadius: 8,
+        backgroundColor: '#deedf8',
+        borderRadius: 22,
     },
 
     logoutButtonText: {
-        color: '#7a4b2a',
-        fontSize: 14,
+        color: '#4e718f',
+        fontSize: 13,
+        fontWeight: 'bold',
+    },
+
+    deleteButton: {
+        width: '100%',
+        minHeight: 42,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        backgroundColor: '#fcebea',
+        borderRadius: 22,
+    },
+
+    deleteButtonText: {
+        color: '#b95e5a',
+        fontSize: 13,
         fontWeight: 'bold',
     },
 

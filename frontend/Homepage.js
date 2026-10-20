@@ -1,11 +1,10 @@
 import { StatusBar } from 'expo-status-bar';
 import { Image, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Pressable } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useState } from 'react';
 import MapaPet from './MapaPet';
+import BottomNavigation from './BottomNavigation';
 
 export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome }) {
-	const [opcaoSelecionada, setOpcaoSelecionada] = useState('');
 	const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
 
 	return (
@@ -13,11 +12,15 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 			<StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
 			<View style={styles.header}>
 				<View style={styles.petWanted}>
-					<Image source={require('./assets/dog2.jpg')} style={styles.logo} />
+					<View style={styles.logoBadge}>
+						<FontAwesome name="paw" size={18} color="#4e8bc6" />
+					</View>
 					<Text style={styles.appName}>PetWanted</Text>
 				</View>
 				<View style={styles.headerActions}>
-					<FontAwesome name="bell" size={20} color="#555" />
+					<Pressable style={styles.headerIconButton} accessibilityLabel="Notificações">
+						<FontAwesome name="bell-o" size={16} color="#6887a4" />
+					</Pressable>
 					<Pressable onPress={setTelaAtual}>
 						<View style={styles.avatar}>
 							{fotoPerfil ? (
@@ -38,48 +41,14 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 				/>
 			</View>
 
-			<View style={styles.footer}>
-				<Pressable
-					style={[styles.footerItem, opcaoSelecionada === 'Perdido' && styles.selectedItem]}
-					onPress={() => {
-						setOpcaoSelecionada('Perdido');
-						abrirAnimalPerdido?.();
-					}}
-				>
-					<FontAwesome name="search" size={20} color={opcaoSelecionada === 'Perdido' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.footerText}>Perdido</Text>
-				</Pressable>
-
-				<Pressable
-					style={[styles.footerItem, opcaoSelecionada === 'Encontrado' && styles.selectedItem]}
-					onPress={() => {
-						setOpcaoSelecionada('Encontrado');
-						abrirAnimalEncontrado?.();
-					}}
-				>
-					<FontAwesome name="paw" size={20} color={opcaoSelecionada === 'Encontrado' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.footerText}>Encontrado</Text>
-				</Pressable>
-
-				<Pressable
-					style={[styles.footerItem, opcaoSelecionada === 'Chat' && styles.selectedItem]}
-					onPress={() => setOpcaoSelecionada('Chat')}
-				>
-					<FontAwesome name="comment-o" size={20} color={opcaoSelecionada === 'Chat' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.footerText}>Chat</Text>
-				</Pressable>
-
-				<Pressable
-					style={[styles.adoptionFooterItem, opcaoSelecionada === 'Adoção' && styles.selectedItem]}
-					onPress={() => {
-						setOpcaoSelecionada('Adoção');
-						abrirAdocao?.();
-					}}
-				>
-					<FontAwesome name="heart" size={20} color={opcaoSelecionada === 'Adoção' ? '#6b6b6b' : '#6b6b6b'} />
-					<Text style={styles.footerText}>Adoção</Text>
-				</Pressable>
-			</View>
+			<BottomNavigation
+				active="mapa"
+				onLost={abrirAnimalPerdido}
+				onFound={abrirAnimalEncontrado}
+				onChat={abrirChat}
+				onAdoption={abrirAdocao}
+				containerStyle={styles.footer}
+			/>
 		</SafeAreaView>
 	);
 }
@@ -97,31 +66,42 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		backgroundColor: '#ffffff',
-		borderBottomWidth: 1,
-		borderBottomColor: '#e1e1e1',
+		backgroundColor: '#dcecf9',
 	},
 
 	petWanted: { 
 		flexDirection: 'row', 
 		alignItems: 'center' 
 	},
-	logo: { 
-		width: 34, 
-		height: 34, 
-		marginRight: 8, 
-		borderRadius: 17 
+	logoBadge: {
+		width: 32,
+		height: 32,
+		marginRight: 8,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: '#ffffff',
+		borderRadius: 16,
+		elevation: 2,
 	},
 
-	appName: { fontSize: 15, 
-		fontWeight: 'bold', 
-		color: '#292929' 
+	appName: { fontSize: 15,
+		fontWeight: 'bold',
+		color: '#315f8b'
 	},
 
 	headerActions: { 
 		flexDirection: 'row', 
 		alignItems: 'center', 
-		gap: 14 
+		gap: 10,
+	},
+
+	headerIconButton: {
+		width: 32,
+		height: 32,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: '#ffffff',
+		borderRadius: 16,
 	},
 
 	avatar: {
@@ -129,7 +109,7 @@ const styles = StyleSheet.create({
 		height: 30,
 		alignItems: 'center',
 		justifyContent: 'center',
-		backgroundColor: '#f8b385',
+		backgroundColor: '#5791ca',
 		borderRadius: 15,
 		overflow: 'hidden',
 	},
@@ -154,34 +134,10 @@ const styles = StyleSheet.create({
 		justifyContent: 'flex-start',
 	},
 	footer: {
-		height: 76,
-		paddingHorizontal: 10,
-		flexDirection: 'row',
-		alignItems: 'center',
-		justifyContent: 'space-around',
-		backgroundColor: '#ffffff',
-	},
-	footerItem: {
-		flex: 1,
-		alignItems: 'center',
-		justifyContent: 'center',
-		borderLeftWidth: 1,
-	},
-	adoptionFooterItem: {
-		flex: 1,
-		alignItems: 'center',
-		justifyContent: 'center',
-		borderLeftWidth: 1,
-		borderRightWidth: 1,
-	},
-
-	selectedItem: {
-		backgroundColor: '#5ecfff',
-	},
-
-	footerText: { 
-		marginTop: 4, 
-		fontSize: 10, 
-		color: '#6b6b6b' 
+		position: 'absolute',
+		right: 0,
+		bottom: 4,
+		left: 0,
+		zIndex: 5,
 	},
 });
