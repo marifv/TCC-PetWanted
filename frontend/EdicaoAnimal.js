@@ -152,7 +152,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                 <View style={styles.headerSpace} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
                 <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
                     {formulario.foto ? (
                         <Image source={{ uri: formulario.foto }} style={styles.uploadFotoPreview} />
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
     headerBackButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#CBD5E1' },
     title: { fontSize: 18, fontWeight: 'bold', color: '#292929' },
     headerSpace: { width: 44, height: 44 },
-    content: { padding: 20, paddingBottom: 36 },
+    content: { padding: 20, paddingBottom: 64 },
     uploadFoto: { alignSelf: 'center', width: 140, height: 140, borderRadius: 70, backgroundColor: '#eff7fa', alignItems: 'center', justifyContent: 'center', marginBottom: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#45a9d5' },
     uploadFotoPreview: { width: '100%', height: '100%' },
     uploadFotoVazio: { alignItems: 'center', justifyContent: 'center' },

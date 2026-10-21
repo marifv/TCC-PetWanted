@@ -372,7 +372,14 @@ export default function App() {
     }
   };
 
-  const salvarPerfil = async (novoNome, novoTipoPerfil, novoTelefone, novaLocalizacao, novaFotoPerfil) => {
+  const salvarPerfil = async (
+    novoNome,
+    novoTipoPerfil,
+    novoTelefone,
+    novaLocalizacao,
+    novaFotoPerfil,
+    novasCoordenadas
+  ) => {
     try {
       const resposta = await fetch(`${API_URL}/${usuarioId}`, {
         method: 'PUT',
@@ -383,6 +390,8 @@ export default function App() {
           nome: novoNome,
           telefone: novoTelefone,
           localizacao: novaLocalizacao,
+          latitude: novasCoordenadas?.latitude,
+          longitude: novasCoordenadas?.longitude,
           foto: novaFotoPerfil?.startsWith('data:image/') ? novaFotoPerfil : null,
         }),
       });
@@ -398,6 +407,9 @@ export default function App() {
       setTipoPerfil(dados.tipo_perfil);
       setTelefone(dados.telefone || '');
       setLocalizacao(dados.localizacao || '');
+      if (novasCoordenadas) {
+        setCoordenadasUsuario(novasCoordenadas);
+      }
       setFotoPerfil(dados.foto || novaFotoPerfil || null);
       setTelaAtual('perfil');
     } catch (erro) {
@@ -1234,6 +1246,7 @@ export default function App() {
               telefone={telefone}
               localizacao={localizacao}
               fotoPerfil={fotoPerfil}
+              token={token}
               email={email}
               documento={documento}
               onSalvar={salvarPerfil}
@@ -1242,7 +1255,7 @@ export default function App() {
         </Animated.View>
       )}
 
-      {animalPerdidoAtivo && (
+      {animalPerdidoAtivo && !animalEditando && (
         <View style={styles.overlay}>
           <AnimalPerdido
             usuarioId={usuarioId}
@@ -1258,7 +1271,7 @@ export default function App() {
         </View>
       )}
 
-      {animalEncontradoAtivo && (
+      {animalEncontradoAtivo && !animalEditando && (
         <View style={styles.overlay}>
           <AnimalEncontrado
             usuarioId={usuarioId}
@@ -1274,7 +1287,7 @@ export default function App() {
         </View>
       )}
 
-      {animalAdocaoAtivo && (
+      {animalAdocaoAtivo && !animalEditando && (
         <View style={styles.overlay}>
           <AnimalAdocao
             usuarioId={usuarioId}

@@ -1,41 +1,5 @@
-const fs = require('fs');
-const path = require('path');
 const pool = require('../database/connection');
-
-const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-function salvarFotoPerfil(idUsuario, fotoBase64, req) {
-    if (!fotoBase64 || typeof fotoBase64 !== 'string') return null;
-
-    const correspondencia = fotoBase64.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/i);
-    if (!correspondencia) return null;
-
-    const extensao = correspondencia[1].toLowerCase() === 'jpeg'
-        ? 'jpg'
-        : correspondencia[1].toLowerCase();
-    const base64Limpo = fotoBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-    const fotosAnteriores = fs.existsSync(UPLOAD_DIR)
-        ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => (
-            arquivo.startsWith(`perfil-${idUsuario}.`) || arquivo.startsWith(`perfil-${idUsuario}-`)
-        ))
-        : [];
-
-    fotosAnteriores.forEach((arquivo) => {
-        fs.unlinkSync(path.join(UPLOAD_DIR, arquivo));
-    });
-
-    const arquivo = `perfil-${idUsuario}-${Date.now()}.${extensao}`;
-
-    fs.writeFileSync(
-        path.join(UPLOAD_DIR, arquivo),
-        Buffer.from(base64Limpo, 'base64')
-    );
-
-    const host = req?.get('host') || 'localhost:3000';
-    const protocolo = req?.protocol || 'http';
-    return `${protocolo}://${host}/uploads/${arquivo}`;
-}
+const { salvarImagem } = require('../services/imageStorage');
 
 async function modificarPerfil(req, res) {
     try {
@@ -54,7 +18,7 @@ async function modificarPerfil(req, res) {
             });
         }
 
-        const fotoUrl = salvarFotoPerfil(id, foto, req);
+        const fotoUrl = await salvarImagem(foto, 'usuarios', `perfil-${id}`, req);
         const resultado = await pool.query(
             `UPDATE usuarios
              SET nome = $1,

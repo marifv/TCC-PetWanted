@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const pool = require('../database/connection');
+const { salvarImagem } = require('../services/imageStorage');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -31,7 +32,8 @@ const CAMPOS_RETORNO = `
     faixa_etaria AS "faixaEtaria",
     responsavel,
     contato,
-    descricao
+    descricao,
+    foto
 `;
 
 const TIPOS_REGISTRO = ['Perdido', 'Encontrado', 'Adocao'];
@@ -89,53 +91,6 @@ function obterDadosRegistro(body, usuarioId) {
     };
 }
 
-function base64ParaExtensao(base64) {
-    if (!base64 || typeof base64 !== 'string') return null;
-
-    const match = base64.match(/^data:image\/([a-zA-Z0-9.+-]+);base64,/i);
-    if (!match) return null;
-
-    const extensaoMap = {
-        jpeg: 'jpg',
-        png: 'png',
-        jpg: 'jpg',
-        webp: 'webp',
-    };
-
-    return extensaoMap[match[1].toLowerCase()] || 'jpg';
-}
-
-function salvarFotoArquivo(idAnimal, fotoBase64, req) {
-    if (!fotoBase64 || typeof fotoBase64 !== 'string' || !fotoBase64.startsWith('data:image')) {
-        return null;
-    }
-
-    const extensao = base64ParaExtensao(fotoBase64);
-    if (!extensao) {
-        return null;
-    }
-
-    const base64Limpo = fotoBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '');
-    const fotosAnteriores = fs.existsSync(UPLOAD_DIR)
-        ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => (
-            arquivo.startsWith(`${idAnimal}.`) || arquivo.startsWith(`${idAnimal}-`)
-        ))
-        : [];
-
-    fotosAnteriores.forEach((arquivo) => {
-        fs.unlinkSync(path.join(UPLOAD_DIR, arquivo));
-    });
-
-    const arquivo = `${idAnimal}-${Date.now()}.${extensao}`;
-    const caminho = path.join(UPLOAD_DIR, arquivo);
-
-    fs.writeFileSync(caminho, Buffer.from(base64Limpo, 'base64'));
-
-    const host = req?.get('host') || 'localhost:3000';
-    const protocolo = req?.protocol || 'http';
-    return `${protocolo}://${host}/uploads/${arquivo}`;
-}
-
 function fotoRegistrada(idAnimal, req) {
     const arquivos = fs.existsSync(UPLOAD_DIR)
         ? fs.readdirSync(UPLOAD_DIR).filter((arquivo) => (
@@ -156,7 +111,7 @@ function fotoRegistrada(idAnimal, req) {
 }
 
 function anexarFotoAoRegistro(req, registro) {
-    if (!registro || !registro.id) {
+    if (!registro || registro.foto || !registro.id) {
         return registro;
     }
 
@@ -299,12 +254,13 @@ async function criarRegistro(req, res) {
         );
 
         const animalCriado = resultado.rows[0];
-        const foto = salvarFotoArquivo(animalCriado.id, dados.foto, req);
+        const foto = await salvarImagem(dados.foto, 'animais', String(animalCriado.id), req);
+        if (foto) {
+            await pool.query('UPDATE animais SET foto = $1 WHERE id_animal = $2', [foto, animalCriado.id]);
+            animalCriado.foto = foto;
+        }
 
-        return res.status(201).json({
-            ...animalCriado,
-            ...(foto ? { foto } : {}),
-        });
+        return res.status(201).json(anexarFotoAoRegistro(req, animalCriado));
     } catch (error) {
         console.error('Erro ao criar registro de animal:', error);
         const mensagem = error?.message || 'Erro ao criar registro de animal.';
@@ -365,10 +321,17 @@ async function atualizarRegistro(req, res) {
             return res.status(404).json({ mensagem: 'Registro não encontrado.' });
         }
 
-        const foto = salvarFotoArquivo(Number(req.params.id), dados.foto, req);
-        const atualizado = { ...resultado.rows[0], ...(foto ? { foto } : {}) };
+        const foto = await salvarImagem(dados.foto, 'animais', String(req.params.id), req);
+        let atualizado = resultado.rows[0];
+        if (foto) {
+            const fotoAtualizada = await pool.query(
+                'UPDATE animais SET foto = $1 WHERE id_animal = $2 RETURNING foto',
+                [foto, req.params.id]
+            );
+            atualizado = { ...atualizado, foto: fotoAtualizada.rows[0].foto };
+        }
 
-        return res.json(atualizado);
+        return res.json(anexarFotoAoRegistro(req, atualizado));
     } catch (error) {
         console.error('Erro ao atualizar registro de animal:', error);
         const mensagem = error?.message || 'Erro ao atualizar registro de animal.';

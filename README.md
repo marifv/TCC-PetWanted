@@ -21,9 +21,20 @@ Before starting the backend, apply these migrations to the PostgreSQL database i
 ```text
 backend/database/migrations/001_google_accounts.sql
 backend/database/migrations/002_password_recovery.sql
+backend/database/migrations/003_animal_photo_url.sql
 ```
 
 The first allows Google-only accounts to have no password and adds a unique Google identity to user records. The second stores only hashed, expiring password recovery codes and reset tokens.
+
+Animal and profile photos are uploaded by the backend to Cloudinary when the following credentials are set in `backend/.env`:
+
+```env
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+Create a Cloudinary account on its free plan and copy these values from the Cloudinary Console. Keep the API secret private and never commit `backend/.env`. The app stores only each Cloudinary image URL in PostgreSQL; uploads are limited to 1200 × 1200 pixels and use automatic quality/format optimization. Without Cloudinary credentials, the backend keeps using its local `backend/uploads` storage, which is intended only for local development and is not persistent on many hosting providers. Existing local photos are not moved automatically; upload them again after Cloudinary is configured.
 
 Password recovery is available through `POST /api/usuarios/recuperar-senha/enviar-codigo`, `POST /api/usuarios/recuperar-senha/verificar-codigo`, and `POST /api/usuarios/recuperar-senha/redefinir`. Codes expire after 10 minutes, are limited to five verification attempts, and code requests for existing accounts are throttled to one email per minute. The API returns a generic response when requesting a code to avoid revealing whether an address is registered.
 

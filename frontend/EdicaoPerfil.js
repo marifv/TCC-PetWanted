@@ -4,12 +4,14 @@ import { Alert, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Pressable from './ButtonPressable';
+import GooglePlacesInput from './GooglePlacesInput';
 
-export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil, onSalvar }) {
+export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil, token, onSalvar }) {
     const [novoNome, setNovoNome] = useState(nome || '');
     const [novoTipoPerfil, setNovoTipoPerfil] = useState(tipoPerfil || '');
     const [novoTelefone, setNovoTelefone] = useState(telefone || '');
     const [novaLocalizacao, setNovaLocalizacao] = useState(localizacao || '');
+    const [coordenadasLocalizacao, setCoordenadasLocalizacao] = useState(null);
     const [novaFotoPerfil, setNovaFotoPerfil] = useState(fotoPerfil || null);
     const [modalVisivel, setModalVisivel] = useState(false);
     const [modalTitulo, setModalTitulo] = useState('');
@@ -72,7 +74,14 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
 
     const confirmarSalvar = () => {
         setConfirmacaoSalvarVisivel(false);
-        onSalvar(novoNome.trim(), novoTipoPerfil, novoTelefone.trim(), novaLocalizacao.trim(), novaFotoPerfil);
+        onSalvar(
+            novoNome.trim(),
+            novoTipoPerfil,
+            novoTelefone.trim(),
+            novaLocalizacao.trim(),
+            novaFotoPerfil,
+            coordenadasLocalizacao
+        );
     };
 
     return (
@@ -174,12 +183,16 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
                         </View>
                         <View style={styles.infoTexto}>
                             <Text style={styles.label}>Localização</Text>
-                            <TextInput
+                            <GooglePlacesInput
                                 style={styles.valorInput}
-                                placeholder="Digite sua localização"
-                                placeholderTextColor="#8ca8c0"
+                                placeholder="Busque seu endereço"
                                 value={novaLocalizacao}
-                                onChangeText={setNovaLocalizacao}
+                                onChangeText={(valor) => {
+                                    setNovaLocalizacao(valor);
+                                    setCoordenadasLocalizacao(null);
+                                }}
+                                onLocationSelected={setCoordenadasLocalizacao}
+                                token={token}
                             />
                         </View>
                     </View>

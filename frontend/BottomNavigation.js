@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     backgroundColor: '#ffffff',
-    borderRadius: 12,
+    borderRadius: 32,
     shadowColor: '#476f91',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.18,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 22,
   },
   iconContainerSelected: {
     backgroundColor: '#eaf3fa',

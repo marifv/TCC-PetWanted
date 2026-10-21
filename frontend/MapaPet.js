@@ -1,9 +1,68 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import { Directory, File, Paths } from 'expo-file-system';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { API_ANIMAIS } from './config/api';
 import Pressable from './ButtonPressable';
+
+const downloadsFotosMarcadores = new Map();
+
+function urlImagemMarcador(url, tipoRegistro) {
+  const corAro = tipoRegistro === 'Perdido' ? 'd1495b' : '2d6a4f';
+  const partesCloudinary = url.match(/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/);
+  if (!partesCloudinary) {
+    throw new Error('A foto do marcador não está hospedada no Cloudinary.');
+  }
+
+  return `${partesCloudinary[1]}c_fill,w_112,h_112,r_max/bo_8px_solid_rgb:${corAro},r_max/c_pad,w_160,h_160,b_transparent,r_max/f_png/${partesCloudinary[2]}`;
+}
+
+function hashImagem(valor) {
+  let hash = 2166136261;
+  for (let indice = 0; indice < valor.length; indice += 1) {
+    hash = Math.imul(hash ^ valor.charCodeAt(indice), 16777619);
+  }
+  return (hash >>> 0).toString(16);
+}
+
+function baixarImagemMarcador(url, tipoRegistro) {
+  const urlTransformada = urlImagemMarcador(url, tipoRegistro);
+  const nomeArquivo = `marker-${hashImagem(urlTransformada)}.png`;
+  const diretorio = new Directory(Paths.cache, 'petwanted-marker-icons');
+  const arquivo = new File(diretorio, nomeArquivo);
+
+  if (arquivo.exists) return Promise.resolve(arquivo.uri);
+  if (downloadsFotosMarcadores.has(urlTransformada)) {
+    return downloadsFotosMarcadores.get(urlTransformada);
+  }
+
+  const download = (async () => {
+    try {
+      diretorio.create({ idempotent: true, intermediates: true });
+      const imagemBaixada = await File.downloadFileAsync(urlTransformada, arquivo, { idempotent: true });
+      if (!imagemBaixada.exists) {
+        throw new Error('O arquivo da imagem do marcador não foi criado.');
+      }
+      return imagemBaixada.uri;
+    } catch (erro) {
+      if (arquivo.exists) {
+        try {
+          arquivo.delete();
+        } catch (erroLimpeza) {
+          console.warn('Não foi possível remover o arquivo incompleto do marcador:', erroLimpeza);
+        }
+      }
+      throw erro;
+    } finally {
+      downloadsFotosMarcadores.delete(urlTransformada);
+    }
+  })();
+
+  downloadsFotosMarcadores.set(urlTransformada, download);
+  return download;
+}
 
 export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
   const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
@@ -12,6 +71,7 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
   const [permissaoNegada, setPermissaoNegada] = useState(false);
   const [podePerguntarNovamente, setPodePerguntarNovamente] = useState(true);
   const [animaisComLocalizacao, setAnimaisComLocalizacao] = useState([]);
+  const [estadoFotosMarcadores, setEstadoFotosMarcadores] = useState({});
   const [filtrosAtivos, setFiltrosAtivos] = useState({ Perdido: true, Encontrado: true });
   const mapaRef = useRef(null);
   const salvarLocalizacaoRef = useRef(onSalvarLocalizacao);
@@ -65,6 +125,39 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
   }, [carregarLocalizacao]);
 
   useEffect(() => {
+    let ativo = true;
+
+    animaisComLocalizacao.forEach((animal) => {
+      if (!animal.foto) return;
+
+      const markerId = `${animal.tipo_registro}-${animal.id}`;
+      const estadoFoto = estadoFotosMarcadores[markerId];
+      if (estadoFoto?.url === animal.foto && ['carregada', 'erro'].includes(estadoFoto.status)) return;
+
+      baixarImagemMarcador(animal.foto, animal.tipo_registro).then((fotoLocal) => {
+        if (!ativo) return;
+
+        setEstadoFotosMarcadores((atual) => ({
+          ...atual,
+          [markerId]: { url: animal.foto, status: 'carregada', uri: fotoLocal },
+        }));
+      }).catch((erro) => {
+        if (!ativo) return;
+
+        console.warn(`Erro ao carregar a foto do animal ${animal.id} para o marcador:`, erro);
+        setEstadoFotosMarcadores((atual) => ({
+          ...atual,
+          [markerId]: { url: animal.foto, status: 'erro' },
+        }));
+      });
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [animaisComLocalizacao, estadoFotosMarcadores]);
+
+  useEffect(() => {
     if (!usuarioId || !token) return undefined;
 
     let ativo = true;
@@ -83,12 +176,20 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
         ]);
         if (!ativo) return;
 
-        setAnimaisComLocalizacao([...perdidos, ...encontrados].filter((animal) => (
+        const animaisValidos = [...perdidos, ...encontrados].filter((animal) => (
           Number.isFinite(Number(animal.local_latitude))
           && Number.isFinite(Number(animal.local_longitude))
           && animal.local_latitude != null
           && animal.local_longitude != null
-        )));
+        ));
+        const animaisUnicos = new Map();
+        animaisValidos.forEach((animal) => {
+          const markerId = `${animal.tipo_registro}-${animal.id}`;
+          if (!animaisUnicos.has(markerId)) {
+            animaisUnicos.set(markerId, animal);
+          }
+        });
+        setAnimaisComLocalizacao([...animaisUnicos.values()]);
       } catch (error) {
         if (ativo) setAnimaisComLocalizacao([]);
       }
@@ -166,18 +267,38 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
         )}
         {animaisComLocalizacao
           .filter((animal) => filtrosAtivos[animal.tipo_registro])
-          .map((animal) => (
-          <Marker
-            key={`${animal.tipo_registro}-${animal.id}`}
-            coordinate={{
-              latitude: Number(animal.local_latitude),
-              longitude: Number(animal.local_longitude),
-            }}
-            title={animal.nome || `Animal ${animal.tipo_registro === 'Perdido' ? 'perdido' : 'encontrado'}`}
-            description={animal.local || 'Local do registro'}
-            pinColor={animal.tipo_registro === 'Perdido' ? '#d1495b' : '#2d6a4f'}
-          />
-          ))}
+          .map((animal) => {
+            const markerId = `${animal.tipo_registro}-${animal.id}`;
+            const fotoUrl = animal.foto;
+            const estadoFoto = estadoFotosMarcadores[markerId];
+            const estadoAtual = estadoFoto?.url === fotoUrl ? estadoFoto.status : null;
+            const fotoDisponivel = fotoUrl && estadoAtual === 'carregada' && estadoFoto.uri;
+
+            return (
+              <Marker
+                key={markerId}
+                identifier={markerId}
+                coordinate={{
+                  latitude: Number(animal.local_latitude),
+                  longitude: Number(animal.local_longitude),
+                }}
+                title={animal.nome || `Animal ${animal.tipo_registro === 'Perdido' ? 'perdido' : 'encontrado'}`}
+                description={animal.local || 'Local do registro'}
+                anchor={{ x: 0.5, y: 0.5 }}
+                zIndex={2}
+                image={fotoDisponivel ? { uri: estadoFoto.uri } : undefined}
+              >
+                {!fotoDisponivel && (
+                  <View style={[
+                    styles.animalMarker,
+                    animal.tipo_registro === 'Perdido' ? styles.animalMarkerPerdido : styles.animalMarkerEncontrado,
+                  ]}>
+                    <FontAwesome name="paw" size={20} color="#6e8ba3" />
+                  </View>
+                )}
+              </Marker>
+            );
+          })}
       </MapView>
       <View style={styles.mapFilters}>
         {['Perdido', 'Encontrado'].map((tipo) => {
@@ -238,6 +359,27 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  animalMarker: {
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    borderWidth: 3,
+    backgroundColor: '#ffffff',
+    overflow: 'hidden',
+    shadowColor: '#29465e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  animalMarkerPerdido: {
+    borderColor: '#d1495b',
+  },
+  animalMarkerEncontrado: {
+    borderColor: '#2d6a4f',
   },
   mapFilters: {
     position: 'absolute',

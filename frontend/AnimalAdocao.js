@@ -38,6 +38,8 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
     const [animais, setAnimais] = useState([]);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
     const [visualizacao, setVisualizacao] = useState('todos');
+    const [busca, setBusca] = useState('');
+    const [menuAbertoId, setMenuAbertoId] = useState(null);
 
     const [filtroEspecie, setFiltroEspecie] = useState('Todos');
     const [filtroPorte, setFiltroPorte] = useState('Todos');
@@ -304,6 +306,16 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             return false;
         }
 
+        const termo = busca.trim().toLowerCase();
+        if (termo && ![
+            animal.nome,
+            animal.especie,
+            animal.raca,
+            animal.local,
+        ].some((valor) => (valor || '').toLowerCase().includes(termo))) {
+            return false;
+        }
+
         if (
             filtroEspecie !== 'Todos' &&
             animal.especie !== filtroEspecie
@@ -374,7 +386,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             <StatusBar
                 style="dark"
                 hidden={false}
-                backgroundColor="#ffffff"
+                backgroundColor="#eaf4fb"
             />
 
             <View style={styles.cabecalho}>
@@ -386,16 +398,12 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                     />
                 </Pressable>
 
-                <Text style={styles.titulo}>
-                    Animais para Adoção
-                </Text>
+                <Text style={styles.titulo}>Animais para Adoção</Text>
 
                 <View style={styles.acoesHeader}>
-                    <FontAwesome
-                        name="bell"
-                        size={20}
-                        color="#555"
-                    />
+                    <View style={styles.notificationButton}>
+                        <FontAwesome name="bell" size={17} color="#6e8ba3" />
+                    </View>
 
                     <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>
@@ -445,50 +453,29 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                 ))}
             </View>
 
-            <View style={styles.acoesLinha}>
-                <View>
-                    <Text style={styles.filtrosTitulo}>
-                        Animais disponíveis
-                    </Text>
-
-                    {quantidadeFiltrosAtivos > 0 && (
-                        <Text style={styles.filtrosAtivos}>
-                            {quantidadeFiltrosAtivos} filtro(s) ativo(s)
-                        </Text>
-                    )}
+            <View style={styles.buscaLinha}>
+                <View style={styles.buscaContainer}>
+                    <FontAwesome name="search" size={16} color="#9b9b9b" style={styles.iconeBusca} />
+                    <TextInput
+                        style={styles.inputBusca}
+                        placeholder="Buscar por nome, raça ou local..."
+                        placeholderTextColor="#9b9b9b"
+                        value={busca}
+                        onChangeText={setBusca}
+                    />
                 </View>
 
-                <View style={styles.botoesAcoes}>
-                    <Pressable
-                        style={[
-                            styles.botaoFiltro,
-                            quantidadeFiltrosAtivos > 0 &&
-                                styles.botaoFiltroAtivo,
-                        ]}
-                        onPress={() => setFiltroVisivel(true)}
-                    >
-                        <FontAwesome
-                            name="filter"
-                            size={17}
-                            color={
-                                quantidadeFiltrosAtivos > 0
-                                    ? '#ffffff'
-                                    : '#45a9d5'
-                            }
-                        />
-                    </Pressable>
+                <Pressable
+                    style={[styles.botaoFiltro, quantidadeFiltrosAtivos > 0 && styles.botaoFiltroAtivo]}
+                    onPress={() => setFiltroVisivel(true)}
+                    accessibilityLabel={`Filtrar animais${quantidadeFiltrosAtivos > 0 ? `, ${quantidadeFiltrosAtivos} filtros ativos` : ''}`}
+                >
+                    <FontAwesome name="filter" size={17} color={quantidadeFiltrosAtivos > 0 ? '#ffffff' : '#6e9fc8'} />
+                </Pressable>
 
-                    <Pressable
-                        style={styles.botaoAdicionar}
-                        onPress={abrirFormulario}
-                    >
-                        <FontAwesome
-                            name="plus"
-                            size={18}
-                            color="#ffffff"
-                        />
-                    </Pressable>
-                </View>
+                <Pressable style={styles.botaoAdicionar} onPress={abrirFormulario} accessibilityLabel="Adicionar animal para adoção">
+                    <FontAwesome name="plus" size={18} color="#ffffff" />
+                </Pressable>
             </View>
 
             <ScrollView
@@ -506,22 +493,67 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                         <Text style={styles.vazioTexto}>
                             {animais.length === 0
                                 ? 'Nenhum animal disponível para adoção. Toque no + para adicionar.'
-                                : 'Nenhum animal encontrado com esses filtros.'}
+                                : 'Nenhum animal encontrado com essa busca ou filtros.'}
                         </Text>
                     </View>
                 )}
 
                 {animaisFiltrados.map((animal) => (
-                    <View
-                        key={animal.id}
-                        style={styles.card}
-                    >
+                    <View key={animal.id} style={styles.card}>
+                        <View style={styles.cardCabecalho}>
+                            <View style={styles.avatarAnimal}>
+                                {animal.foto ? (
+                                    <Image source={{ uri: animal.foto }} style={styles.avatarAnimalImagem} />
+                                ) : (
+                                    <FontAwesome name="paw" size={18} color="#6e9fc8" />
+                                )}
+                            </View>
+                            <View style={styles.cardCabecalhoTexto}>
+                                <Text style={styles.nomeAnimal} numberOfLines={1}>{animal.nome || 'Animal sem nome'}</Text>
+                                <Text style={styles.especieAnimal} numberOfLines={1}>{animal.especie}{animal.raca ? ` · ${animal.raca}` : ''}</Text>
+                            </View>
+                            {animal.meuAnimal && (
+                                <View style={styles.menuWrapper}>
+                                    <Pressable
+                                        style={styles.menuBotao}
+                                        onPress={() => setMenuAbertoId((atual) => atual === animal.id ? null : animal.id)}
+                                        accessibilityLabel={`Opções para ${animal.nome || 'animal'}`}
+                                    >
+                                        <FontAwesome name="ellipsis-h" size={18} color="#49647a" />
+                                    </Pressable>
+                                    {menuAbertoId === animal.id && (
+                                        <View style={styles.menuDropdown}>
+                                            <Pressable
+                                                style={styles.menuItem}
+                                                onPress={() => {
+                                                    setMenuAbertoId(null);
+                                                    setConfirmacaoEdicaoAlvo(animal);
+                                                }}
+                                            >
+                                                <FontAwesome name="pencil" size={14} color="#5791ca" />
+                                                <Text style={styles.menuItemTexto}>Editar</Text>
+                                            </Pressable>
+                                            <Pressable
+                                                style={styles.menuItem}
+                                                onPress={() => {
+                                                    setMenuAbertoId(null);
+                                                    setConfirmacaoExclusaoAlvo(animal.id);
+                                                }}
+                                            >
+                                                <FontAwesome name="trash" size={14} color="#c75a5a" />
+                                                <Text style={[styles.menuItemTexto, styles.menuItemExcluir]}>Excluir</Text>
+                                            </Pressable>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+                        </View>
                         <View style={styles.fotoContainer}>
                             {animal.foto ? (
                                 <Image
                                     source={{ uri: animal.foto }}
                                     style={styles.foto}
-                                    resizeMode="contain"
+                                    resizeMode="cover"
                                 />
                             ) : (
                                 <View
@@ -538,19 +570,6 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 </View>
                             )}
 
-                            <View style={styles.fotoOverlay}>
-                                <Text style={styles.nomeAnimal}>
-                                    {animal.nome}
-                                </Text>
-
-                                <Text style={styles.especieAnimal}>
-                                    {animal.especie}
-                                    {animal.raca
-                                        ? ` • ${animal.raca}`
-                                        : ''}
-                                </Text>
-                            </View>
-
                             <View
                                 style={[
                                     styles.badgeStatus,
@@ -558,50 +577,32 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                         styles.badgeStatusAdotado,
                                 ]}
                             >
-                                <Text style={styles.badgeStatusTexto}>
+                                <Text style={[
+                                    styles.badgeStatusTexto,
+                                    animal.status === STATUS_ADOTADO && styles.badgeStatusTextoAdotado,
+                                ]}>
                                     {animal.status}
                                 </Text>
                             </View>
                         </View>
 
                         <View style={styles.infoContainer}>
-                            <Text style={styles.infoLinha}>
-                                <Text style={styles.infoLabel}>
-                                    Cor:{' '}
-                                </Text>
-                                {animal.cor}{'   '}
-
-                                <Text style={styles.infoLabel}>
-                                    Porte:{' '}
-                                </Text>
-                                {animal.porte}{'   '}
-
-                                <Text style={styles.infoLabel}>
-                                    Sexo:{' '}
-                                </Text>
-                                {animal.sexo}
-                            </Text>
-
-                            <View style={styles.linhaComIcone}>
-                                <FontAwesome
-                                    name="birthday-cake"
-                                    size={13}
-                                    color="#45a9d5"
-                                />
-
-                                <Text style={styles.textoComIcone}>
-                                    {animal.idade} anos • {animal.faixaEtaria}
-                                </Text>
+                            <View style={styles.chipsContainer}>
+                                <Text style={styles.infoChip}>Cor <Text style={styles.infoChipValor}>{animal.cor || '-'}</Text></Text>
+                                <Text style={styles.infoChip}>Porte <Text style={styles.infoChipValor}>{animal.porte || '-'}</Text></Text>
+                                <Text style={styles.infoChip}>Sexo <Text style={styles.infoChipValor}>{animal.sexo || '-'}</Text></Text>
+                                <Text style={styles.infoChip}>Idade <Text style={styles.infoChipValor}>{animal.idade} anos</Text></Text>
+                                <Text style={styles.infoChip}>Faixa <Text style={styles.infoChipValor}>{animal.faixaEtaria || '-'}</Text></Text>
                             </View>
 
                             <View style={styles.linhaComIcone}>
                                 <FontAwesome
                                     name="map-marker"
                                     size={14}
-                                    color="#45a9d5"
+                                    color="#6e9fc8"
                                 />
 
-                                <Text style={styles.textoComIcone}>
+                                <Text style={styles.textoComIcone} numberOfLines={2}>
                                     {animal.local}
                                 </Text>
                             </View>
@@ -610,10 +611,10 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 <FontAwesome
                                     name="user"
                                     size={13}
-                                    color="#45a9d5"
+                                    color="#6e9fc8"
                                 />
 
-                                <Text style={styles.textoComIcone}>
+                                <Text style={styles.textoComIcone} numberOfLines={1}>
                                     Responsável: {animal.responsavel}
                                 </Text>
                             </View>
@@ -622,10 +623,10 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 <FontAwesome
                                     name="phone"
                                     size={13}
-                                    color="#45a9d5"
+                                    color="#6e9fc8"
                                 />
 
-                                <Text style={styles.textoComIcone}>
+                                <Text style={styles.textoComIcone} numberOfLines={1}>
                                     Contato: {animal.contato}
                                 </Text>
                             </View>
@@ -640,7 +641,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 <FontAwesome
                                     name="calendar"
                                     size={13}
-                                    color="#45a9d5"
+                                    color="#6e9fc8"
                                 />
 
                                 <Text style={styles.textoComIcone}>
@@ -648,87 +649,59 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 </Text>
                             </View>
 
-                            <View style={styles.botoesContainer}>
-                                {animal.meuAnimal && <Pressable
-                                    style={styles.botaoEditar}
-                                    onPress={() => setConfirmacaoEdicaoAlvo(animal)}
-                                >
-                                    <FontAwesome
-                                        name="pencil"
-                                        size={14}
-                                        color="#45a9d5"
-                                    />
-
-                                    <Text
-                                        style={styles.botaoEditarTexto}
-                                    >
-                                        Editar
-                                    </Text>
-                                </Pressable>}
-
-                                {animal.meuAnimal && <View style={styles.statusToggleContainer}>
-                                    <Pressable
-                                        style={[
-                                            styles.statusToggleBotao,
-                                            animal.status === STATUS_ADOCAO &&
-                                                styles.statusToggleBotaoAdocaoAtivo,
-                                        ]}
-                                        onPress={() =>
-                                            solicitarAlteracaoStatus(
-                                                animal.id,
-                                                STATUS_ADOCAO
-                                            )
-                                        }
-                                    >
-                                        <Text
+                            {animal.meuAnimal && (
+                                <View style={styles.botoesContainer}>
+                                    <View style={styles.statusToggleContainer}>
+                                        <Pressable
                                             style={[
-                                                styles.statusToggleTexto,
+                                                styles.statusToggleBotao,
                                                 animal.status === STATUS_ADOCAO &&
-                                                    styles.statusToggleTextoAtivo,
+                                                    styles.statusToggleBotaoAdocaoAtivo,
                                             ]}
+                                            onPress={() =>
+                                                solicitarAlteracaoStatus(
+                                                    animal.id,
+                                                    STATUS_ADOCAO
+                                                )
+                                            }
                                         >
-                                            Adoção
-                                        </Text>
-                                    </Pressable>
+                                            <Text
+                                                style={[
+                                                    styles.statusToggleTexto,
+                                                    animal.status === STATUS_ADOCAO &&
+                                                        styles.statusToggleTextoAtivo,
+                                                ]}
+                                            >
+                                                Adoção
+                                            </Text>
+                                        </Pressable>
 
-                                    <Pressable
-                                        style={[
-                                            styles.statusToggleBotao,
-                                            animal.status === STATUS_ADOTADO &&
-                                                styles.statusToggleBotaoAdotadoAtivo,
-                                        ]}
-                                        onPress={() =>
-                                            solicitarAlteracaoStatus(
-                                                animal.id,
-                                                STATUS_ADOTADO
-                                            )
-                                        }
-                                    >
-                                        <Text
+                                        <Pressable
                                             style={[
-                                                styles.statusToggleTexto,
+                                                styles.statusToggleBotao,
                                                 animal.status === STATUS_ADOTADO &&
-                                                    styles.statusToggleTextoAtivo,
+                                                    styles.statusToggleBotaoAdotadoAtivo,
                                             ]}
+                                            onPress={() =>
+                                                solicitarAlteracaoStatus(
+                                                    animal.id,
+                                                    STATUS_ADOTADO
+                                                )
+                                            }
                                         >
-                                            Adotado
-                                        </Text>
-                                    </Pressable>
-                                </View>}
-
-                                {animal.meuAnimal && <Pressable
-                                    style={styles.botaoExcluir}
-                                    onPress={() =>
-                                        setConfirmacaoExclusaoAlvo(animal.id)
-                                    }
-                                >
-                                    <FontAwesome
-                                        name="trash"
-                                        size={16}
-                                        color="#ffffff"
-                                    />
-                                </Pressable>}
-                            </View>
+                                            <Text
+                                                style={[
+                                                    styles.statusToggleTexto,
+                                                    animal.status === STATUS_ADOTADO &&
+                                                        styles.statusToggleTextoAtivo,
+                                                ]}
+                                            >
+                                                Adotado
+                                            </Text>
+                                        </Pressable>
+                                    </View>
+                                </View>
+                            )}
                         </View>
                     </View>
                 ))}
@@ -1066,7 +1039,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fafafa',
+        backgroundColor: '#eaf4fb',
     },
 
     cabecalho: {
@@ -1076,59 +1049,70 @@ const styles = StyleSheet.create({
         paddingTop: Platform.OS === 'android'
             ? NativeStatusBar.currentHeight || 0
             : 0,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e1e1e1',
+        gap: 10,
+        backgroundColor: '#eaf4fb',
     },
 
     headerActionButton: {
-        width: 44,
-        height: 44,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 8,
+        borderRadius: 18,
         backgroundColor: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
+        elevation: 2,
     },
 
     profileButton: {
-        width: 44,
-        height: 44,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 18,
+        backgroundColor: '#75a9d8',
+        elevation: 2,
     },
 
     titulo: {
-        fontSize: 18,
+        flex: 1,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#292929',
+        color: '#29465e',
     },
 
     acoesHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        gap: 8,
+    },
+
+    notificationButton: {
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 18,
+        backgroundColor: '#ffffff',
+        elevation: 2,
     },
 
     avatar: {
-        width: 30,
-        height: 30,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f8b385',
-        borderRadius: 15,
+        backgroundColor: '#75a9d8',
+        borderRadius: 18,
         overflow: 'hidden',
     },
 
     profileImage: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
     },
 
     avatarText: {
@@ -1139,11 +1123,11 @@ const styles = StyleSheet.create({
 
     segmentoContainer: {
         flexDirection: 'row',
-        marginTop: 14,
-        marginHorizontal: 14,
-        padding: 4,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 8,
+        marginTop: 2,
+        marginHorizontal: 18,
+        padding: 3,
+        backgroundColor: '#dcebf7',
+        borderRadius: 24,
     },
 
     segmentoBotao: {
@@ -1152,60 +1136,63 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        minHeight: 44,
-        borderRadius: 8,
+        minHeight: 36,
+        borderRadius: 20,
     },
 
     segmentoBotaoSelecionado: {
         backgroundColor: '#5791ca',
+        elevation: 2,
     },
 
     segmentoTexto: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 'bold',
-        color: '#8a8a8a',
+        color: '#65829a',
     },
 
     segmentoTextoSelecionado: {
         color: '#ffffff',
     },
 
-    acoesLinha: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginHorizontal: 14,
-        marginTop: 12,
-        marginBottom: 8,
-    },
-
-    filtrosTitulo: {
-        fontSize: 15,
-        fontWeight: 'bold',
-        color: '#292929',
-    },
-
-    filtrosAtivos: {
-        fontSize: 11,
-        color: '#45a9d5',
-        marginTop: 2,
-    },
-
-    botoesAcoes: {
+    buscaLinha: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
+        marginHorizontal: 16,
+        marginTop: 10,
+        marginBottom: 12,
+    },
+
+    buscaContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 14,
+        height: 42,
+        backgroundColor: '#ffffff',
+        borderRadius: 24,
+        elevation: 2,
+    },
+
+    iconeBusca: {
+        marginRight: 8,
+    },
+
+    inputBusca: {
+        flex: 1,
+        fontSize: 12,
+        color: '#29465e',
     },
 
     botaoFiltro: {
-        width: 44,
-        height: 44,
-        borderRadius: 8,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
+        elevation: 2,
     },
 
     botaoFiltroAtivo: {
@@ -1213,12 +1200,13 @@ const styles = StyleSheet.create({
     },
 
     botaoAdicionar: {
-        width: 44,
-        height: 44,
-        borderRadius: 8,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#5791ca',
+        elevation: 3,
     },
 
     lista: {
@@ -1245,160 +1233,224 @@ const styles = StyleSheet.create({
 
     card: {
         backgroundColor: '#ffffff',
-        borderRadius: 12,
-        marginBottom: 16,
+        borderRadius: 18,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#e1e1e1',
+        borderColor: '#e1edf5',
         overflow: 'hidden',
+        elevation: 2,
+    },
+
+    cardCabecalho: {
+        minHeight: 48,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        gap: 8,
+        backgroundColor: '#ffffff',
+        zIndex: 2,
+    },
+
+    avatarAnimal: {
+        width: 34,
+        height: 34,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 17,
+        backgroundColor: '#e4f0f8',
+        overflow: 'hidden',
+    },
+
+    avatarAnimalImagem: {
+        width: 34,
+        height: 34,
+    },
+
+    cardCabecalhoTexto: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+
+    menuWrapper: {
+        position: 'relative',
+        zIndex: 3,
+    },
+
+    menuBotao: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 16,
+        backgroundColor: '#eef6fb',
+    },
+
+    menuDropdown: {
+        position: 'absolute',
+        top: 34,
+        right: 0,
+        width: 118,
+        paddingVertical: 4,
+        borderRadius: 12,
+        backgroundColor: '#ffffff',
+        elevation: 7,
+        shadowColor: '#29465e',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 7,
+    },
+
+    menuItem: {
+        minHeight: 34,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        gap: 8,
+    },
+
+    menuItemTexto: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#38566e',
+    },
+
+    menuItemExcluir: {
+        color: '#b94d4d',
     },
 
     fotoContainer: {
         position: 'relative',
-        backgroundColor: '#f7f7f7',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
+        backgroundColor: '#cfe3f2',
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 170,
+        minHeight: 96,
     },
 
     foto: {
         width: '100%',
-        height: 170,
-        backgroundColor: '#f7f7f7',
+        height: 96,
+        backgroundColor: '#cfe3f2',
     },
 
     fotoPlaceholder: {
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f2f2f2',
-    },
-
-    fotoOverlay: {
-        position: 'absolute',
-        left: 12,
-        bottom: 10,
+        backgroundColor: '#cfe3f2',
     },
 
     nomeAnimal: {
-        fontSize: 20,
+        fontSize: 13,
         fontWeight: 'bold',
-        color: '#ffffff',
-        textShadowColor: 'rgba(0,0,0,0.6)',
-        textShadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        textShadowRadius: 3,
+        color: '#29465e',
     },
 
     especieAnimal: {
-        fontSize: 13,
-        color: '#f2f2f2',
-        textShadowColor: 'rgba(0,0,0,0.6)',
-        textShadowOffset: {
-            width: 0,
-            height: 1,
-        },
-        textShadowRadius: 3,
+        fontSize: 10,
+        color: '#6c879b',
     },
 
     badgeStatus: {
         position: 'absolute',
-        top: 10,
-        right: 10,
-        paddingHorizontal: 10,
+        top: 8,
+        left: 10,
+        paddingHorizontal: 9,
         paddingVertical: 4,
         borderRadius: 12,
-        backgroundColor: '#5791ca',
+        backgroundColor: '#d6eee2',
     },
 
     badgeStatusAdotado: {
-        backgroundColor: '#16A34A',
+        backgroundColor: '#e5edf3',
     },
 
     badgeStatusTexto: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#24734b',
+    },
+
+    badgeStatusTextoAdotado: {
+        color: '#587084',
     },
 
     infoContainer: {
-        padding: 14,
+        paddingHorizontal: 10,
+        paddingTop: 8,
+        paddingBottom: 10,
     },
 
-    infoLinha: {
-        fontSize: 13,
-        color: '#4a4a4a',
-        marginBottom: 8,
+    chipsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 5,
+        marginBottom: 6,
+    },
+
+    infoChip: {
+        paddingHorizontal: 7,
+        paddingVertical: 4,
+        borderRadius: 10,
+        backgroundColor: '#edf5fa',
+        fontSize: 10,
+        color: '#6b8192',
+    },
+
+    infoChipValor: {
+        fontWeight: 'bold',
+        color: '#38566e',
     },
 
     infoLabel: {
         fontWeight: 'bold',
-        color: '#292929',
+        color: '#38566e',
     },
 
     linhaComIcone: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 6,
+        alignItems: 'flex-start',
+        gap: 7,
+        marginBottom: 4,
     },
 
     textoComIcone: {
-        fontSize: 13,
-        color: '#4a4a4a',
+        flex: 1,
+        fontSize: 11,
+        color: '#49647a',
+        lineHeight: 15,
     },
 
     descricao: {
-        fontSize: 13,
-        color: '#4a4a4a',
-        marginTop: 4,
-        marginBottom: 10,
-        lineHeight: 18,
+        fontSize: 11,
+        color: '#38566e',
+        marginTop: 3,
+        marginBottom: 5,
+        lineHeight: 15,
     },
 
     botoesContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginTop: 10,
-    },
-
-    botaoEditar: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        minHeight: 44,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
-    },
-
-    botaoEditarTexto: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#64748B',
+        gap: 0,
+        marginTop: 7,
     },
 
     statusToggleContainer: {
-        flex: 1.8,
+        flex: 1,
         flexDirection: 'row',
-        gap: 4,
+        gap: 3,
         padding: 3,
-        minHeight: 50,
-        borderRadius: 8,
-        backgroundColor: '#f1f5f9',
+        minHeight: 36,
+        borderRadius: 22,
+        backgroundColor: '#e5f0f8',
     },
 
     statusToggleBotao: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 8,
+        borderRadius: 20,
     },
 
     statusToggleBotaoAdocaoAtivo: {
@@ -1406,29 +1458,18 @@ const styles = StyleSheet.create({
     },
 
     statusToggleBotaoAdotadoAtivo: {
-        backgroundColor: '#16A34A',
+        backgroundColor: '#5791ca',
     },
 
     statusToggleTexto: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
-        color: '#6b6b6b',
+        color: '#65829a',
         textAlign: 'center',
     },
 
     statusToggleTextoAtivo: {
         color: '#ffffff',
-    },
-
-    botaoExcluir: {
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#DC2626',
-        backgroundColor: '#DC2626',
     },
 
     rodape: {

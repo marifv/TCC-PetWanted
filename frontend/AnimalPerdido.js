@@ -32,6 +32,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
     const [busca, setBusca] = useState('');
     const [visualizacao, setVisualizacao] = useState('todos');
     const [areaExpandida, setAreaExpandida] = useState({});
+    const [menuAbertoId, setMenuAbertoId] = useState(null);
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
     const [salvando, setSalvando] = useState(false);
@@ -252,7 +253,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
 
     return (
         <SafeAreaView style={styles.container}>
-            <StatusBar style="dark" hidden={false} backgroundColor="#ffffff" />
+            <StatusBar style="dark" hidden={false} backgroundColor="#eaf4fb" />
 
             <View style={styles.cabecalho}>
                 <Pressable style={styles.headerActionButton} onPress={onVoltar} accessibilityLabel="Voltar">
@@ -262,7 +263,9 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                 <Text style={styles.titulo}>Animais Perdidos</Text>
 
                 <View style={styles.acoesHeader}>
-                    <FontAwesome name="bell" size={20} color="#555" />
+                    <View style={styles.notificationButton}>
+                        <FontAwesome name="bell" size={17} color="#6e8ba3" />
+                    </View>
 
                     <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>
@@ -312,61 +315,98 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
 
                 {animaisFiltrados.map((animal) => (
                     <View key={animal.id} style={styles.card}>
+                        <View style={styles.cardCabecalho}>
+                            <View style={styles.avatarAnimal}>
+                                {animal.foto ? (
+                                    <Image source={{ uri: animal.foto }} style={styles.avatarAnimalImagem} />
+                                ) : (
+                                    <FontAwesome name="paw" size={18} color="#6e9fc8" />
+                                )}
+                            </View>
+                            <View style={styles.cardCabecalhoTexto}>
+                                <Text style={styles.nomeAnimal} numberOfLines={1}>{animal.nome || 'Animal sem nome'}</Text>
+                                <Text style={styles.especieAnimal} numberOfLines={1}>{animal.especie}{animal.raca ? ` · ${animal.raca}` : ''}</Text>
+                            </View>
+                            {animal.meuAnimal && (
+                                <View style={styles.menuWrapper}>
+                                    <Pressable
+                                        style={styles.menuBotao}
+                                        onPress={() => setMenuAbertoId((atual) => atual === animal.id ? null : animal.id)}
+                                        accessibilityLabel={`Opções para ${animal.nome || 'animal'}`}
+                                    >
+                                        <FontAwesome name="ellipsis-h" size={18} color="#49647a" />
+                                    </Pressable>
+                                    {menuAbertoId === animal.id && (
+                                        <View style={styles.menuDropdown}>
+                                            <Pressable
+                                                style={styles.menuItem}
+                                                onPress={() => {
+                                                    setMenuAbertoId(null);
+                                                    setConfirmacaoEdicaoAlvo(animal);
+                                                }}
+                                            >
+                                                <FontAwesome name="pencil" size={14} color="#5791ca" />
+                                                <Text style={styles.menuItemTexto}>Editar</Text>
+                                            </Pressable>
+                                            <Pressable
+                                                style={styles.menuItem}
+                                                onPress={() => {
+                                                    setMenuAbertoId(null);
+                                                    setConfirmacaoExclusaoAlvo(animal.id);
+                                                }}
+                                            >
+                                                <FontAwesome name="trash" size={14} color="#c75a5a" />
+                                                <Text style={[styles.menuItemTexto, styles.menuItemExcluir]}>Excluir</Text>
+                                            </Pressable>
+                                        </View>
+                                    )}
+                                </View>
+                            )}
+                        </View>
                         <View style={styles.fotoContainer}>
                             {animal.foto ? (
-                                <Image source={{ uri: animal.foto }} style={styles.foto} resizeMode="contain" />
+                                <Image source={{ uri: animal.foto }} style={styles.foto} resizeMode="cover" />
                             ) : (
                                 <View style={[styles.foto, styles.fotoPlaceholder]}>
                                     <FontAwesome name="paw" size={32} color="#cfcfcf" />
                                 </View>
                             )}
-
-                            <View style={styles.fotoOverlay}>
-                                <Text style={styles.nomeAnimal}>{animal.nome}</Text>
-                                <Text style={styles.especieAnimal}>{animal.especie}{animal.raca ? ` • ${animal.raca}` : ''}</Text>
-                            </View>
-
                             <View style={[styles.badgeStatus, animal.status === STATUS_ENCONTRADO && styles.badgeStatusEncontrado]}>
-                                <Text style={styles.badgeStatusTexto}>{animal.status}</Text>
+                                <Text style={[styles.badgeStatusTexto, animal.status === STATUS_ENCONTRADO && styles.badgeStatusTextoEncontrado]}>{animal.status}</Text>
                             </View>
                         </View>
 
                         <View style={styles.infoContainer}>
-                            <Text style={styles.infoLinha}>
-                                <Text style={styles.infoLabel}>Cor: </Text>{animal.cor || '-'}{'   '}
-                                <Text style={styles.infoLabel}>Porte: </Text>{animal.porte || '-'}{'   '}
-                                <Text style={styles.infoLabel}>Sexo: </Text>{animal.sexo || '-'}
-                            </Text>
-
-                            <View style={styles.linhaComIcone}>
-                                <FontAwesome name="map-marker" size={14} color="#e08a3e" />
-                                <Text style={styles.textoComIcone}>{animal.local}</Text>
+                            <View style={styles.chipsContainer}>
+                                <Text style={styles.infoChip}>Cor <Text style={styles.infoChipValor}>{animal.cor || '-'}</Text></Text>
+                                <Text style={styles.infoChip}>Porte <Text style={styles.infoChipValor}>{animal.porte || '-'}</Text></Text>
+                                <Text style={styles.infoChip}>Sexo <Text style={styles.infoChipValor}>{animal.sexo || '-'}</Text></Text>
                             </View>
 
                             <View style={styles.linhaComIcone}>
-                                <FontAwesome name="calendar" size={13} color="#e08a3e" />
+                                <FontAwesome name="map-marker" size={14} color="#6e9fc8" />
+                                <Text style={styles.textoComIcone} numberOfLines={2}>{animal.local}</Text>
+                            </View>
+
+                            <View style={styles.linhaComIcone}>
+                                <FontAwesome name="calendar" size={13} color="#6e9fc8" />
                                 <Text style={styles.textoComIcone}>Perdido em: {formatarData(animal.data)}</Text>
                             </View>
 
                             {!!animal.descricao && <Text style={styles.descricao}><Text style={styles.infoLabel}>Descrição: </Text>{animal.descricao}</Text>}
 
                             <Pressable style={styles.areaBuscaLinha} onPress={() => alternarAreaBusca(animal.id)}>
-                                <FontAwesome name="map" size={13} color="#e08a3e" />
-                                <Text style={styles.textoComIcone}>Área de busca ({animal.areaBusca} 5 km)</Text>
+                                <FontAwesome name="map" size={13} color="#6e9fc8" />
+                                <Text style={styles.textoComIcone}>Área de busca ({animal.areaBusca || AREA_BUSCA_PADRAO} km)</Text>
                                 <FontAwesome name={areaExpandida[animal.id] ? 'chevron-up' : 'chevron-down'} size={12} color="#9b9b9b" style={styles.chevron} />
                             </Pressable>
 
                             {areaExpandida[animal.id] && (
-                                <Text style={styles.areaBuscaDetalhe}>Buscas estão sendo feitas em um raio de {animal.areaBusca} km a partir do local do desaparecimento.</Text>
+                                <Text style={styles.areaBuscaDetalhe}>Buscas estão sendo feitas em um raio de {animal.areaBusca || AREA_BUSCA_PADRAO} km a partir do local do desaparecimento.</Text>
                             )}
 
                             {animal.meuAnimal && (
                                 <View style={styles.botoesContainer}>
-                                    <Pressable style={styles.botaoEditar} onPress={() => setConfirmacaoEdicaoAlvo(animal)}>
-                                        <FontAwesome name="pencil" size={14} color="#45a9d5" />
-                                        <Text style={styles.botaoEditarTexto}>Editar</Text>
-                                    </Pressable>
-
                                     <View style={styles.statusToggleContainer}>
                                         <Pressable
                                             style={[styles.statusToggleBotao, animal.status === STATUS_PERDIDO && styles.statusToggleBotaoPerdidoAtivo]}
@@ -383,9 +423,6 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                                         </Pressable>
                                     </View>
 
-                                    <Pressable style={styles.botaoExcluir} onPress={() => setConfirmacaoExclusaoAlvo(animal.id)}>
-                                        <FontAwesome name="trash" size={16} color="#ffffff" />
-                                    </Pressable>
                                 </View>
                             )}
                         </View>
@@ -570,37 +607,37 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fafafa',
+        backgroundColor: '#eaf4fb',
     },
 
     cabecalho: {
         height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58,
         paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
-        paddingHorizontal: 12,
+        paddingHorizontal: 16,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e1e1e1',
+        gap: 10,
+        backgroundColor: '#eaf4fb',
     },
 
     headerActionButton: {
-        width: 44,
-        height: 44,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 8,
+        borderRadius: 18,
         backgroundColor: '#ffffff',
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
+        elevation: 2,
     },
 
     profileButton: {
-        width: 44,
-        height: 44,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
+        borderRadius: 18,
+        backgroundColor: '#75a9d8',
+        elevation: 2,
     },
 
     modalCloseButton: {
@@ -615,31 +652,42 @@ const styles = StyleSheet.create({
     },
 
     titulo: {
-        fontSize: 18,
+        flex: 1,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#292929',
+        color: '#29465e',
     },
 
     acoesHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 14,
+        gap: 8,
+    },
+
+    notificationButton: {
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 18,
+        backgroundColor: '#ffffff',
+        elevation: 2,
     },
 
     avatar: {
-        width: 30,
-        height: 30,
+        width: 36,
+        height: 36,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f8b385',
-        borderRadius: 15,
+        backgroundColor: '#75a9d8',
+        borderRadius: 18,
         overflow: 'hidden',
     },
 
     profileImage: {
-        width: 30,
-        height: 30,
-        borderRadius: 15,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
     },
 
     avatarText: {
@@ -650,11 +698,11 @@ const styles = StyleSheet.create({
 
     segmentoContainer: {
         flexDirection: 'row',
-        marginTop: 14,
-        marginHorizontal: 14,
-        padding: 4,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 8,
+        marginTop: 2,
+        marginHorizontal: 18,
+        padding: 3,
+        backgroundColor: '#dcebf7',
+        borderRadius: 24,
     },
 
     segmentoBotao: {
@@ -663,18 +711,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
-        minHeight: 44,
-        borderRadius: 8,
+        minHeight: 36,
+        borderRadius: 20,
     },
 
     segmentoBotaoSelecionado: {
         backgroundColor: '#5791ca',
+        elevation: 2,
     },
 
     segmentoTexto: {
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 'bold',
-        color: '#8a8a8a',
+        color: '#65829a',
     },
 
     segmentoTextoSelecionado: {
@@ -682,21 +731,22 @@ const styles = StyleSheet.create({
     },
 
     botaoAdicionar: {
-        width: 44,
-        height: 44,
-        borderRadius: 8,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#5791ca',
+        elevation: 3,
     },
 
     buscaLinha: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 10,
-        marginHorizontal: 14,
-        marginTop: 12,
-        marginBottom: 14,
+        marginHorizontal: 16,
+        marginTop: 10,
+        marginBottom: 12,
     },
 
     buscaContainer: {
@@ -704,9 +754,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 14,
-        height: 44,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 8,
+        height: 42,
+        backgroundColor: '#ffffff',
+        borderRadius: 24,
+        elevation: 2,
     },
 
     iconeBusca: {
@@ -715,8 +766,8 @@ const styles = StyleSheet.create({
 
     inputBusca: {
         flex: 1,
-        fontSize: 14,
-        color: '#292929',
+        fontSize: 12,
+        color: '#29465e',
     },
 
     lista: {
@@ -742,120 +793,208 @@ const styles = StyleSheet.create({
     },
 
     card: {
-        backgroundColor: '#fffdf7',
-        borderRadius: 12,
-        marginBottom: 16,
+        backgroundColor: '#ffffff',
+        borderRadius: 18,
+        marginBottom: 12,
         borderWidth: 1,
-        borderColor: '#f0e6d2',
+        borderColor: '#e1edf5',
         overflow: 'hidden',
+        elevation: 2,
+    },
+
+    cardCabecalho: {
+        minHeight: 48,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        gap: 8,
+        backgroundColor: '#ffffff',
+        zIndex: 2,
+    },
+
+    avatarAnimal: {
+        width: 34,
+        height: 34,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 17,
+        backgroundColor: '#e4f0f8',
+        overflow: 'hidden',
+    },
+
+    avatarAnimalImagem: {
+        width: 34,
+        height: 34,
+    },
+
+    cardCabecalhoTexto: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+
+    menuWrapper: {
+        position: 'relative',
+        zIndex: 3,
+    },
+
+    menuBotao: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 16,
+        backgroundColor: '#eef6fb',
+    },
+
+    menuDropdown: {
+        position: 'absolute',
+        top: 34,
+        right: 0,
+        width: 118,
+        paddingVertical: 4,
+        borderRadius: 12,
+        backgroundColor: '#ffffff',
+        elevation: 7,
+        shadowColor: '#29465e',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.2,
+        shadowRadius: 7,
+    },
+
+    menuItem: {
+        minHeight: 34,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        gap: 8,
+    },
+
+    menuItemTexto: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#38566e',
+    },
+
+    menuItemExcluir: {
+        color: '#b94d4d',
     },
 
     fotoContainer: {
         position: 'relative',
-        backgroundColor: '#f7f7f7',
-        borderTopLeftRadius: 12,
-        borderTopRightRadius: 12,
+        backgroundColor: '#cfe3f2',
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 170,
+        minHeight: 96,
     },
 
     foto: {
         width: '100%',
-        height: 170,
-        backgroundColor: '#f7f7f7',
+        height: 96,
+        backgroundColor: '#cfe3f2',
     },
 
     fotoPlaceholder: {
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#f2f2f2',
-    },
-
-    fotoOverlay: {
-        position: 'absolute',
-        left: 12,
-        bottom: 10,
+        backgroundColor: '#cfe3f2',
     },
 
     nomeAnimal: {
-        fontSize: 20,
+        fontSize: 13,
         fontWeight: 'bold',
-        color: '#ffffff',
-        textShadowColor: 'rgba(0,0,0,0.6)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        color: '#29465e',
     },
 
     especieAnimal: {
-        fontSize: 13,
-        color: '#f2f2f2',
-        textShadowColor: 'rgba(0,0,0,0.6)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
+        fontSize: 10,
+        color: '#6c879b',
     },
 
     badgeStatus: {
         position: 'absolute',
-        top: 10,
-        right: 10,
-        paddingHorizontal: 10,
+        top: 8,
+        left: 10,
+        paddingHorizontal: 9,
         paddingVertical: 4,
         borderRadius: 12,
-        backgroundColor: '#D97706',
-    },
-
-    badgeStatusEncontrado: {
-        backgroundColor: '#4caf7d',
+        backgroundColor: '#f3d8d2',
     },
 
     badgeStatusTexto: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
-        color: '#ffffff',
+        color: '#a1483d',
+    },
+
+    badgeStatusEncontrado: {
+        backgroundColor: '#d6eee2',
+    },
+
+    badgeStatusTextoEncontrado: {
+        color: '#24734b',
     },
 
     infoContainer: {
-        padding: 14,
+        paddingHorizontal: 10,
+        paddingTop: 8,
+        paddingBottom: 10,
     },
 
-    infoLinha: {
-        fontSize: 13,
-        color: '#4a4a4a',
-        marginBottom: 8,
+    chipsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 5,
+        marginBottom: 6,
+    },
+
+    infoChip: {
+        paddingHorizontal: 7,
+        paddingVertical: 4,
+        borderRadius: 10,
+        backgroundColor: '#edf5fa',
+        fontSize: 10,
+        color: '#6b8192',
+    },
+
+    infoChipValor: {
+        fontWeight: 'bold',
+        color: '#38566e',
     },
 
     infoLabel: {
         fontWeight: 'bold',
-        color: '#292929',
+        color: '#38566e',
     },
 
     linhaComIcone: {
         flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        marginBottom: 6,
+        alignItems: 'flex-start',
+        gap: 7,
+        marginBottom: 4,
     },
 
     textoComIcone: {
-        fontSize: 13,
-        color: '#4a4a4a',
+        flex: 1,
+        fontSize: 11,
+        color: '#49647a',
+        lineHeight: 15,
     },
 
     descricao: {
-        fontSize: 13,
-        color: '#4a4a4a',
-        marginTop: 4,
-        marginBottom: 10,
-        lineHeight: 18,
+        fontSize: 11,
+        color: '#38566e',
+        marginTop: 3,
+        marginBottom: 5,
+        lineHeight: 15,
     },
 
     areaBuscaLinha: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        paddingVertical: 6,
+        paddingVertical: 4,
     },
 
     chevron: {
@@ -863,8 +1002,8 @@ const styles = StyleSheet.create({
     },
 
     areaBuscaDetalhe: {
-        fontSize: 12,
-        color: '#8a8a8a',
+        fontSize: 10,
+        color: '#6c879b',
         marginBottom: 6,
         lineHeight: 17,
     },
@@ -872,36 +1011,18 @@ const styles = StyleSheet.create({
     botoesContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 10,
-        marginTop: 10,
-    },
-
-    botaoEditar: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        minHeight: 44,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#CBD5E1',
-    },
-
-    botaoEditarTexto: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#64748B',
+        gap: 0,
+        marginTop: 7,
     },
 
     statusToggleContainer: {
-        flex: 1.8,
+        flex: 1,
         flexDirection: 'row',
-        gap: 4,
+        gap: 3,
         padding: 3,
-        minHeight: 50,
-        borderRadius: 8,
-        backgroundColor: '#f1f5f9',
+        minHeight: 36,
+        borderRadius: 22,
+        backgroundColor: '#e5f0f8',
     },
 
     statusToggleBotao: {
@@ -910,37 +1031,26 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         flexDirection: 'row',
         gap: 4,
-        borderRadius: 8,
+        borderRadius: 20,
     },
 
     statusToggleBotaoPerdidoAtivo: {
-        backgroundColor: '#D97706',
+        backgroundColor: '#5791ca',
     },
 
     statusToggleBotaoEncontradoAtivo: {
-        backgroundColor: '#16A34A',
+        backgroundColor: '#5791ca',
     },
 
     statusToggleTexto: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
-        color: '#6b6b6b',
+        color: '#65829a',
         textAlign: 'center',
     },
 
     statusToggleTextoAtivo: {
         color: '#ffffff',
-    },
-
-    botaoExcluir: {
-        width: 44,
-        height: 44,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#DC2626',
-        backgroundColor: '#DC2626',
     },
 
     rodape: {
