@@ -5,8 +5,9 @@ async function modificarPerfil(req, res) {
     try {
         const { id } = req.params;
         const { nome, telefone, localizacao, foto, latitude, longitude } = req.body;
+        const atualizacaoLocalizacao = latitude != null && longitude != null;
 
-        if (!nome?.trim() || !telefone?.trim()) {
+        if ((!nome?.trim() || !telefone?.trim()) && !atualizacaoLocalizacao) {
             return res.status(400).json({
                 mensagem: 'Preencha nome e telefone.'
             });
@@ -21,8 +22,8 @@ async function modificarPerfil(req, res) {
         const fotoUrl = await salvarImagem(foto, 'usuarios', `perfil-${id}`, req);
         const resultado = await pool.query(
             `UPDATE usuarios
-             SET nome = $1,
-                 telefone = $2,
+             SET nome = COALESCE($1, nome),
+                 telefone = COALESCE($2, telefone),
                  localizacao = COALESCE($3, localizacao),
                  latitude = CASE WHEN $4::double precision IS NULL THEN latitude ELSE $4::double precision END,
                  longitude = CASE WHEN $5::double precision IS NULL THEN longitude ELSE $5::double precision END,
@@ -30,8 +31,8 @@ async function modificarPerfil(req, res) {
              WHERE id = $7
              RETURNING id, nome, email, documento, telefone, localizacao, latitude, longitude, tipo_perfil, foto`,
             [
-                nome.trim(),
-                telefone.trim(),
+                nome?.trim() || null,
+                telefone?.trim() || null,
                 localizacao?.trim() || null,
                 latitude ?? null,
                 longitude ?? null,

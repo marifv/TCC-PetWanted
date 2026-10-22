@@ -16,15 +16,13 @@ GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
 
 The backend sends password recovery email through Gmail SMTP using Nodemailer. Enable 2-Step Verification on the Gmail account, create an App Password in the Google Account security settings, and put the account address in `GMAIL_USER` and the App Password in `GMAIL_APP_PASSWORD` in `backend/.env`. Do not use your normal Google password or commit these values. The sender address is the Gmail account itself.
 
-Before starting the backend, apply these migrations to the PostgreSQL database in order:
+For a new PostgreSQL database, run the complete schema script once:
 
 ```text
-backend/database/migrations/001_google_accounts.sql
-backend/database/migrations/002_password_recovery.sql
-backend/database/migrations/003_animal_photo_url.sql
+backend/database/schema.sql
 ```
 
-The first allows Google-only accounts to have no password and adds a unique Google identity to user records. The second stores only hashed, expiring password recovery codes and reset tokens.
+You can run it in the SQL editor of your PostgreSQL provider (for example, Render or pgAdmin). It creates the `usuarios`, `animais`, and `password_reset_requests` tables, including Google sign-in, photo URLs, and password recovery fields. Run it only for a new, empty database; it does not migrate an existing schema.
 
 Animal and profile photos are uploaded by the backend to Cloudinary when the following credentials are set in `backend/.env`:
 

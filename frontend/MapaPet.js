@@ -10,7 +10,11 @@ import Pressable from './ButtonPressable';
 const downloadsFotosMarcadores = new Map();
 
 function urlImagemMarcador(url, tipoRegistro) {
-  const corAro = tipoRegistro === 'Perdido' ? 'd1495b' : '2d6a4f';
+  const corAro = tipoRegistro === 'Perdido'
+    ? 'd1495b'
+    : tipoRegistro === 'Adocao'
+      ? '1877f2'
+      : '2d6a4f';
   const partesCloudinary = url.match(/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/);
   if (!partesCloudinary) {
     throw new Error('A foto do marcador não está hospedada no Cloudinary.');
@@ -72,7 +76,11 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
   const [podePerguntarNovamente, setPodePerguntarNovamente] = useState(true);
   const [animaisComLocalizacao, setAnimaisComLocalizacao] = useState([]);
   const [estadoFotosMarcadores, setEstadoFotosMarcadores] = useState({});
-  const [filtrosAtivos, setFiltrosAtivos] = useState({ Perdido: true, Encontrado: true });
+  const [filtrosAtivos, setFiltrosAtivos] = useState({
+    Perdido: true,
+    Encontrado: true,
+    Adocao: true,
+  });
   const mapaRef = useRef(null);
   const salvarLocalizacaoRef = useRef(onSalvarLocalizacao);
 
@@ -164,19 +172,21 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
     const carregarAnimais = async () => {
       try {
         const headers = { Authorization: `Bearer ${token}` };
-        const [respostaPerdidos, respostaEncontrados] = await Promise.all([
+        const [respostaPerdidos, respostaEncontrados, respostaAdocao] = await Promise.all([
           fetch(`${API_ANIMAIS}/perdidos`, { headers }),
           fetch(`${API_ANIMAIS}/encontrados`, { headers }),
+          fetch(`${API_ANIMAIS}/adocao`, { headers }),
         ]);
-        if (!respostaPerdidos.ok || !respostaEncontrados.ok) return;
+        if (!respostaPerdidos.ok || !respostaEncontrados.ok || !respostaAdocao.ok) return;
 
-        const [perdidos, encontrados] = await Promise.all([
+        const [perdidos, encontrados, adocao] = await Promise.all([
           respostaPerdidos.json(),
           respostaEncontrados.json(),
+          respostaAdocao.json(),
         ]);
         if (!ativo) return;
 
-        const animaisValidos = [...perdidos, ...encontrados].filter((animal) => (
+        const animaisValidos = [...perdidos, ...encontrados, ...adocao].filter((animal) => (
           Number.isFinite(Number(animal.local_latitude))
           && Number.isFinite(Number(animal.local_longitude))
           && animal.local_latitude != null
@@ -282,7 +292,7 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
                   latitude: Number(animal.local_latitude),
                   longitude: Number(animal.local_longitude),
                 }}
-                title={animal.nome || `Animal ${animal.tipo_registro === 'Perdido' ? 'perdido' : 'encontrado'}`}
+                title={animal.nome || `Animal ${animal.tipo_registro === 'Perdido' ? 'perdido' : animal.tipo_registro === 'Adocao' ? 'para adoção' : 'encontrado'}`}
                 description={animal.local || 'Local do registro'}
                 anchor={{ x: 0.5, y: 0.5 }}
                 zIndex={2}
@@ -292,8 +302,13 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
                   <View style={[
                     styles.animalMarker,
                     animal.tipo_registro === 'Perdido' ? styles.animalMarkerPerdido : styles.animalMarkerEncontrado,
+                    animal.tipo_registro === 'Adocao' && styles.animalMarkerAdocao,
                   ]}>
-                    <FontAwesome name="paw" size={20} color="#6e8ba3" />
+                    <FontAwesome
+                      name="paw"
+                      size={20}
+                      color={animal.tipo_registro === 'Adocao' ? '#1877f2' : '#6e8ba3'}
+                    />
                   </View>
                 )}
               </Marker>
@@ -301,9 +316,13 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
           })}
       </MapView>
       <View style={styles.mapFilters}>
-        {['Perdido', 'Encontrado'].map((tipo) => {
+        {['Perdido', 'Encontrado', 'Adocao'].map((tipo) => {
           const ativo = filtrosAtivos[tipo];
-          const perdido = tipo === 'Perdido';
+          const rotulo = tipo === 'Perdido'
+            ? 'Perdidos'
+            : tipo === 'Adocao'
+              ? 'Adoção'
+              : 'Encontrados';
           return (
             <Pressable
               key={tipo}
@@ -311,10 +330,10 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
               onPress={() => alternarFiltro(tipo)}
               accessibilityRole="button"
               accessibilityState={{ selected: ativo }}
-              accessibilityLabel={`Filtrar animais ${perdido ? 'perdidos' : 'encontrados'}`}
+              accessibilityLabel={`Filtrar animais ${rotulo.toLowerCase()}`}
             >
               <Text style={[styles.mapFilterText, ativo && styles.mapFilterTextActive]}>
-                {perdido ? 'Perdidos' : 'Encontrados'}
+                {rotulo}
               </Text>
             </Pressable>
           );
@@ -380,6 +399,9 @@ const styles = StyleSheet.create({
   },
   animalMarkerEncontrado: {
     borderColor: '#2d6a4f',
+  },
+  animalMarkerAdocao: {
+    borderColor: '#1877f2',
   },
   mapFilters: {
     position: 'absolute',

@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
@@ -787,6 +788,10 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                 transparent
                 onRequestClose={fecharFormulario}
             >
+                <KeyboardAvoidingView
+                    style={styles.modalKeyboardAvoiding}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>
                         <View style={styles.modalCabecalho}>
@@ -878,6 +883,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                         </ScrollView>
                     </View>
                 </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             <Modal
@@ -1482,6 +1488,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: 'rgba(17, 12, 9, 0.45)',
         paddingHorizontal: 20,
+    },
+
+    modalKeyboardAvoiding: {
+        flex: 1,
     },
 
     filtroModalCard: {

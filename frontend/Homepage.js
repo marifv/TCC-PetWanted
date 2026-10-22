@@ -1,5 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
-import { Image, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StatusBar as NativeStatusBar, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import MapaPet from './MapaPet';
 import BottomNavigation from './BottomNavigation';

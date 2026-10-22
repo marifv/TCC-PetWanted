@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Platform, SafeAreaView, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
@@ -424,6 +425,10 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
             />
 
             <Modal visible={modalVisivel} animationType="slide" transparent onRequestClose={fecharFormulario}>
+                <KeyboardAvoidingView
+                    style={styles.modalKeyboardAvoiding}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>
                         <View style={styles.modalCabecalho}>
@@ -497,6 +502,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                         </ScrollView>
                     </View>
                 </View>
+                </KeyboardAvoidingView>
             </Modal>
 
             <Modal visible={!!confirmacaoEdicaoAlvo} transparent animationType="fade" onRequestClose={() => setConfirmacaoEdicaoAlvo(null)}>
@@ -1093,6 +1099,10 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'flex-end',
         backgroundColor: 'rgba(17, 12, 9, 0.45)',
+    },
+
+    modalKeyboardAvoiding: {
+        flex: 1,
     },
 
     modalCard: {

@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Modal, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, Text, View, Image, ScrollView } from 'react-native';
+import { Modal, Platform, StatusBar as NativeStatusBar, StyleSheet, Text, View, Image, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 

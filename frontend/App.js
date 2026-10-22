@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Animated, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import { GoogleSignin, isCancelledResponse } from './utils/googleSignIn';
@@ -735,7 +735,15 @@ export default function App() {
 
   if (telaAtual === 'login') {
     return (
-      <ScrollView contentContainerStyle={styles.scrollContainer} style={styles.loginContainer}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        style={styles.loginContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <Modal
           transparent
           animationType="fade"
@@ -1200,10 +1208,15 @@ export default function App() {
 
         <StatusBar hidden />
       </ScrollView>
+      </KeyboardAvoidingView>
     );
   }
 
   return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
     <View style={styles.container}>
       {!perfilAtivo && !animalPerdidoAtivo && !animalEncontradoAtivo && !animalAdocaoAtivo && (
         <Homepage
@@ -1313,6 +1326,7 @@ export default function App() {
         </View>
       )}
     </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1823,6 +1837,7 @@ const styles = StyleSheet.create({
 
   footerTextContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'center',
     marginTop: 22,
   },
