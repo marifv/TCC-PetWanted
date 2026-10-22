@@ -27,6 +27,7 @@ export default function App() {
   const [animalAdocaoAtivo, setAnimalAdocaoAtivo] = useState(false);
   const [animalEditando, setAnimalEditando] = useState(null);
   const [origemEdicaoAnimal, setOrigemEdicaoAnimal] = useState(null);
+  const [anuncioSelecionadoMapa, setAnuncioSelecionadoMapa] = useState(null);
   const [larguraContainer, setLarguraContainer] = useState(0);
   const [tipoPerfil, setTipoPerfil] = useState('Tutor');
   const [nome, setNome] = useState('');
@@ -254,6 +255,17 @@ export default function App() {
     setAnimalAdocaoAtivo(true);
     setAnimalPerdidoAtivo(false);
     setAnimalEncontradoAtivo(false);
+  };
+
+  const abrirAnuncioMapa = (animal) => {
+    setAnuncioSelecionadoMapa(animal);
+    if (animal.tipo_registro === 'Perdido') {
+      abrirAnimalPerdido();
+    } else if (animal.tipo_registro === 'Encontrado') {
+      abrirAnimalEncontrado();
+    } else {
+      abrirAnimalAdocao();
+    }
   };
 
   const voltarParaHomeAnimalAdocao = () => {
@@ -1230,6 +1242,7 @@ export default function App() {
           usuarioId={usuarioId}
           token={token}
           onSalvarLocalizacao={salvarLocalizacaoUsuario}
+          onOpenAnnouncement={abrirAnuncioMapa}
         />
       )}
 
@@ -1280,6 +1293,8 @@ export default function App() {
             abrirAnimalEncontrado={abrirAnimalEncontrado}
             abrirAdocao={abrirAnimalAdocao}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'perdido', atualizarLista)}
+            animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Perdido' ? anuncioSelecionadoMapa.id : null}
+            onAnuncioAlvoExibido={() => setAnuncioSelecionadoMapa(null)}
           />
         </View>
       )}
@@ -1296,6 +1311,8 @@ export default function App() {
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAdocao={abrirAnimalAdocao}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'encontrado', atualizarLista)}
+            animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Encontrado' ? anuncioSelecionadoMapa.id : null}
+            onAnuncioAlvoExibido={() => setAnuncioSelecionadoMapa(null)}
           />
         </View>
       )}
@@ -1312,6 +1329,8 @@ export default function App() {
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'adocao', atualizarLista)}
+            animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Adocao' ? anuncioSelecionadoMapa.id : null}
+            onAnuncioAlvoExibido={() => setAnuncioSelecionadoMapa(null)}
           />
         </View>
       )}
@@ -1320,6 +1339,7 @@ export default function App() {
         <View style={styles.overlay}>
           <EdicaoAnimal
             animal={animalEditando.animal}
+            token={token}
             onVoltar={fecharEdicaoAnimal}
             onSalvar={salvarAnimal}
           />

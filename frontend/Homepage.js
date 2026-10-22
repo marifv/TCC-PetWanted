@@ -6,7 +6,7 @@ import MapaPet from './MapaPet';
 import BottomNavigation from './BottomNavigation';
 import Pressable from './ButtonPressable';
 
-export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome }) {
+export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, onOpenAnnouncement, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome }) {
 	const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
 
 	return (
@@ -40,6 +40,7 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 					usuarioId={usuarioId}
 					token={token}
 					onSalvarLocalizacao={onSalvarLocalizacao}
+					onOpenAnnouncement={onOpenAnnouncement}
 				/>
 			</View>
 
@@ -103,7 +104,7 @@ const styles = StyleSheet.create({
 		alignItems: 'center',
 		justifyContent: 'center',
 		backgroundColor: '#ffffff',
-		borderRadius: 8,
+		borderRadius: 22,
 	},
 
 	profileButton: {

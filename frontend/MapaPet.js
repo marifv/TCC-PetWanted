@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Image, Linking, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Directory, File, Paths } from 'expo-file-system';
 import MapView, { Marker } from 'react-native-maps';
@@ -9,12 +9,13 @@ import Pressable from './ButtonPressable';
 
 const downloadsFotosMarcadores = new Map();
 
-function urlImagemMarcador(url, tipoRegistro) {
+function urlImagemMarcador(url, tipoRegistro, status) {
+  const corStatusEncontrado = status === 'Dono encontrado' ? '2d6a4f' : 'f2c14e';
   const corAro = tipoRegistro === 'Perdido'
     ? 'd1495b'
     : tipoRegistro === 'Adocao'
       ? '1877f2'
-      : '2d6a4f';
+      : corStatusEncontrado;
   const partesCloudinary = url.match(/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/);
   if (!partesCloudinary) {
     throw new Error('A foto do marcador não está hospedada no Cloudinary.');
@@ -31,8 +32,8 @@ function hashImagem(valor) {
   return (hash >>> 0).toString(16);
 }
 
-function baixarImagemMarcador(url, tipoRegistro) {
-  const urlTransformada = urlImagemMarcador(url, tipoRegistro);
+function baixarImagemMarcador(url, tipoRegistro, status) {
+  const urlTransformada = urlImagemMarcador(url, tipoRegistro, status);
   const nomeArquivo = `marker-${hashImagem(urlTransformada)}.png`;
   const diretorio = new Directory(Paths.cache, 'petwanted-marker-icons');
   const arquivo = new File(diretorio, nomeArquivo);
@@ -68,7 +69,7 @@ function baixarImagemMarcador(url, tipoRegistro) {
   return download;
 }
 
-export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
+export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenAnnouncement }) {
   const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erroLocalizacao, setErroLocalizacao] = useState('');
@@ -76,6 +77,7 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
   const [podePerguntarNovamente, setPodePerguntarNovamente] = useState(true);
   const [animaisComLocalizacao, setAnimaisComLocalizacao] = useState([]);
   const [estadoFotosMarcadores, setEstadoFotosMarcadores] = useState({});
+  const [animalSelecionado, setAnimalSelecionado] = useState(null);
   const [filtrosAtivos, setFiltrosAtivos] = useState({
     Perdido: true,
     Encontrado: true,
@@ -140,14 +142,18 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
 
       const markerId = `${animal.tipo_registro}-${animal.id}`;
       const estadoFoto = estadoFotosMarcadores[markerId];
-      if (estadoFoto?.url === animal.foto && ['carregada', 'erro'].includes(estadoFoto.status)) return;
+      if (
+        estadoFoto?.url === animal.foto
+        && estadoFoto.statusAnimal === animal.status
+        && ['carregada', 'erro'].includes(estadoFoto.status)
+      ) return;
 
-      baixarImagemMarcador(animal.foto, animal.tipo_registro).then((fotoLocal) => {
+      baixarImagemMarcador(animal.foto, animal.tipo_registro, animal.status).then((fotoLocal) => {
         if (!ativo) return;
 
         setEstadoFotosMarcadores((atual) => ({
           ...atual,
-          [markerId]: { url: animal.foto, status: 'carregada', uri: fotoLocal },
+          [markerId]: { url: animal.foto, statusAnimal: animal.status, status: 'carregada', uri: fotoLocal },
         }));
       }).catch((erro) => {
         if (!ativo) return;
@@ -155,7 +161,7 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
         console.warn(`Erro ao carregar a foto do animal ${animal.id} para o marcador:`, erro);
         setEstadoFotosMarcadores((atual) => ({
           ...atual,
-          [markerId]: { url: animal.foto, status: 'erro' },
+          [markerId]: { url: animal.foto, statusAnimal: animal.status, status: 'erro' },
         }));
       });
     });
@@ -281,7 +287,9 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
             const markerId = `${animal.tipo_registro}-${animal.id}`;
             const fotoUrl = animal.foto;
             const estadoFoto = estadoFotosMarcadores[markerId];
-            const estadoAtual = estadoFoto?.url === fotoUrl ? estadoFoto.status : null;
+            const estadoAtual = estadoFoto?.url === fotoUrl && estadoFoto.statusAnimal === animal.status
+              ? estadoFoto.status
+              : null;
             const fotoDisponivel = fotoUrl && estadoAtual === 'carregada' && estadoFoto.uri;
 
             return (
@@ -292,17 +300,25 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
                   latitude: Number(animal.local_latitude),
                   longitude: Number(animal.local_longitude),
                 }}
-                title={animal.nome || `Animal ${animal.tipo_registro === 'Perdido' ? 'perdido' : animal.tipo_registro === 'Adocao' ? 'para adoção' : 'encontrado'}`}
-                description={animal.local || 'Local do registro'}
                 anchor={{ x: 0.5, y: 0.5 }}
                 zIndex={2}
                 image={fotoDisponivel ? { uri: estadoFoto.uri } : undefined}
+                onPress={() => {
+                  setAnimalSelecionado(animal);
+                  mapaRef.current?.animateToRegion({
+                    latitude: Number(animal.local_latitude),
+                    longitude: Number(animal.local_longitude),
+                    latitudeDelta: 0.008,
+                    longitudeDelta: 0.008,
+                  }, 400);
+                }}
               >
                 {!fotoDisponivel && (
                   <View style={[
                     styles.animalMarker,
                     animal.tipo_registro === 'Perdido' ? styles.animalMarkerPerdido : styles.animalMarkerEncontrado,
                     animal.tipo_registro === 'Adocao' && styles.animalMarkerAdocao,
+                    animal.tipo_registro === 'Encontrado' && animal.status !== 'Dono encontrado' && styles.animalMarkerProcurando,
                   ]}>
                     <FontAwesome
                       name="paw"
@@ -315,7 +331,7 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
             );
           })}
       </MapView>
-      <View style={styles.mapFilters}>
+      {!animalSelecionado && <View style={styles.mapFilters}>
         {['Perdido', 'Encontrado', 'Adocao'].map((tipo) => {
           const ativo = filtrosAtivos[tipo];
           const rotulo = tipo === 'Perdido'
@@ -338,7 +354,69 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao }) {
             </Pressable>
           );
         })}
-      </View>
+      </View>}
+      {animalSelecionado && (
+        <View style={styles.animalCard}>
+          <View style={styles.animalCardHeader}>
+            <View style={styles.animalCardAvatar}>
+              {animalSelecionado.foto ? (
+                <Image source={{ uri: animalSelecionado.foto }} style={styles.animalCardAvatarImage} />
+              ) : (
+                <FontAwesome name="paw" size={17} color="#6e9fc8" />
+              )}
+            </View>
+            <View style={styles.animalCardHeaderText}>
+              <Text style={styles.animalCardName} numberOfLines={1}>
+                {animalSelecionado.nome || 'Animal sem nome'}
+              </Text>
+              <Text style={styles.animalCardSubtitle} numberOfLines={1}>
+                {[animalSelecionado.especie, animalSelecionado.raca].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+            <Pressable
+              style={styles.closeAnimalCard}
+              onPress={() => setAnimalSelecionado(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar detalhes do animal"
+            >
+              <FontAwesome name="times" size={16} color="#49647a" />
+            </Pressable>
+          </View>
+          {animalSelecionado.foto ? (
+            <Image source={{ uri: animalSelecionado.foto }} style={styles.animalCardPhoto} resizeMode="cover" />
+          ) : (
+            <View style={[styles.animalCardPhoto, styles.animalCardPhotoPlaceholder]}>
+              <FontAwesome name="paw" size={32} color="#cfcfcf" />
+            </View>
+          )}
+          <View style={styles.animalCardDetails}>
+            <Text style={[
+              styles.animalCardStatus,
+              animalSelecionado.status !== 'Dono encontrado' && styles.animalCardStatusProcurando,
+            ]}>
+              {animalSelecionado.status || animalSelecionado.tipo_registro}
+            </Text>
+            <Text style={styles.animalCardLocation} numberOfLines={2}>
+              <FontAwesome name="map-marker" size={13} color="#6e9fc8" />{' '}
+              {animalSelecionado.local || 'Local não informado'}
+            </Text>
+            {!!animalSelecionado.descricao && (
+              <Text style={styles.animalCardDescription} numberOfLines={2}>
+                {animalSelecionado.descricao}
+              </Text>
+            )}
+            <Pressable
+              style={styles.openAnnouncementButton}
+              onPress={() => onOpenAnnouncement?.(animalSelecionado)}
+              accessibilityRole="button"
+              accessibilityLabel={`Ver anúncio de ${animalSelecionado.nome || 'animal'}`}
+            >
+              <Text style={styles.openAnnouncementText}>Ver animal</Text>
+              <FontAwesome name="arrow-right" size={13} color="#ffffff" />
+            </Pressable>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -400,6 +478,9 @@ const styles = StyleSheet.create({
   animalMarkerEncontrado: {
     borderColor: '#2d6a4f',
   },
+  animalMarkerProcurando: {
+    borderColor: '#f2c14e',
+  },
   animalMarkerAdocao: {
     borderColor: '#1877f2',
   },
@@ -436,5 +517,115 @@ const styles = StyleSheet.create({
   },
   mapFilterTextActive: {
     color: '#ffffff',
+  },
+  animalCard: {
+    position: 'absolute',
+    right: 12,
+    bottom: 92,
+    left: 12,
+    overflow: 'hidden',
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#dce9f2',
+    elevation: 8,
+    shadowColor: '#29465e',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 7,
+  },
+  animalCardHeader: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  animalCardAvatar: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 17,
+    backgroundColor: '#e4f0f8',
+    overflow: 'hidden',
+  },
+  animalCardAvatarImage: {
+    width: 34,
+    height: 34,
+  },
+  animalCardHeaderText: {
+    flex: 1,
+  },
+  animalCardName: {
+    color: '#29465e',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  animalCardSubtitle: {
+    color: '#718ba2',
+    fontSize: 11,
+  },
+  closeAnimalCard: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 17,
+    backgroundColor: '#eef6fb',
+  },
+  animalCardPhoto: {
+    width: '100%',
+    height: 160,
+    backgroundColor: '#cfe3f2',
+  },
+  animalCardPhotoPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  animalCardDetails: {
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 10,
+    gap: 5,
+  },
+  animalCardStatus: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+    color: '#2d6a4f',
+    backgroundColor: '#d8efe2',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  animalCardStatusProcurando: {
+    color: '#815f0b',
+    backgroundColor: '#fff1c7',
+  },
+  animalCardLocation: {
+    color: '#526d83',
+    fontSize: 11,
+  },
+  animalCardDescription: {
+    color: '#526d83',
+    fontSize: 11,
+  },
+  openAnnouncementButton: {
+    minHeight: 40,
+    marginTop: 3,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 20,
+    backgroundColor: '#5791ca',
+  },
+  openAnnouncementText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });

@@ -52,6 +52,29 @@ function normalizarData(valor) {
         : data;
 }
 
+function validarDataEvento(dataEvento) {
+    const correspondencia = String(dataEvento || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!correspondencia) {
+        return 'a data do evento deve ser uma data válida no formato DD/MM/AAAA';
+    }
+
+    const ano = Number(correspondencia[1]);
+    const mes = Number(correspondencia[2]);
+    const dia = Number(correspondencia[3]);
+    const data = new Date(ano, mes - 1, dia);
+    if (data.getFullYear() !== ano || data.getMonth() !== mes - 1 || data.getDate() !== dia) {
+        return 'a data informada não existe; confira o dia, o mês e o ano';
+    }
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    if (data > hoje) {
+        return 'a data do evento não pode ser posterior à data atual';
+    }
+
+    return null;
+}
+
 function obterDadosRegistro(body, usuarioId) {
     const tipoRegistro = String(body.tipo_registro || '').trim();
     const localDesaparecimento = String(body.local_desaparecimento || '').trim();
@@ -83,7 +106,7 @@ function obterDadosRegistro(body, usuarioId) {
         idUsuario: usuarioId,
         status: body.status || null,
         idade: tipoRegistro === 'Adocao' ? body.idade?.trim() : null,
-        faixaEtaria: tipoRegistro === 'Adocao' ? body.faixa_etaria?.trim() : null,
+        faixaEtaria: body.faixa_etaria?.trim() || null,
         responsavel: tipoRegistro === 'Adocao' ? body.responsavel?.trim() : null,
         contato: tipoRegistro === 'Adocao' ? body.contato?.trim() : null,
         descricao: body.descricao?.trim() || null,
@@ -133,6 +156,41 @@ function validarRegistro(dados) {
     const camposObrigatoriosFaltando = CAMPOS_OBRIGATORIOS.filter((campo) => !textoPreenchido(dados[campo]));
     if (camposObrigatoriosFaltando.length > 0) {
         falhas.push(`campos obrigatórios faltando: ${camposObrigatoriosFaltando.join(', ')}`);
+    }
+
+    if (textoPreenchido(dados.dataEvento)) {
+        const erroData = validarDataEvento(dados.dataEvento);
+        if (erroData) falhas.push(erroData);
+    }
+
+    if (dados.tipoRegistro === 'Adocao') {
+        const camposAdocaoObrigatorios = [
+            ['nome', dados.nome],
+            ['idade', dados.idade],
+            ['faixa etária', dados.faixaEtaria],
+            ['responsável', dados.responsavel],
+            ['contato', dados.contato],
+        ];
+        camposAdocaoObrigatorios.forEach(([nome, valor]) => {
+            if (!textoPreenchido(valor)) falhas.push(`campo obrigatório faltando: ${nome}`);
+        });
+
+        const idade = String(dados.idade || '').match(/^(\d+)(?:\s*(anos?|mes(?:es)?|m[eê]s))?$/i);
+        if (!idade) {
+            falhas.push('informe a idade do animal em anos ou meses');
+        } else {
+            const quantidade = Number(idade[1]);
+            const unidadeMeses = /mes|mês/i.test(idade[2]);
+            if (!Number.isInteger(quantidade) || quantidade < 1 || (unidadeMeses && quantidade > 12)) {
+                falhas.push(unidadeMeses
+                    ? 'a idade em meses deve estar entre 1 e 12'
+                    : 'a idade em anos deve ser um número inteiro maior que zero');
+            }
+        }
+
+        if (!textoPreenchido(dados.descricao)) {
+            falhas.push('a descrição é obrigatória para anúncios de adoção');
+        }
     }
 
     if (!textoPreenchido(dados.localObrigatorio)) {
@@ -215,6 +273,9 @@ async function criarRegistro(req, res) {
     try {
         const dados = obterDadosRegistro(req.body, req.params.usuarioId);
         const falhas = validarRegistro(dados);
+        if (dados.tipoRegistro === 'Adocao' && !textoPreenchido(dados.foto)) {
+            falhas.push('foto obrigatória para anúncios de adoção');
+        }
 
         if (falhas.length > 0) {
             return res.status(400).json({

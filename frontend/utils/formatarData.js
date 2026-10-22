@@ -20,3 +20,32 @@ export function formatarEntradaData(valor) {
 
     return `${numeros.slice(0, 2)}/${numeros.slice(2, 4)}/${numeros.slice(4)}`;
 }
+
+export function validarDataNaoFutura(valor) {
+    const correspondencia = String(valor || '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!correspondencia) {
+        return 'Informe uma data válida no formato DD/MM/AAAA.';
+    }
+
+    const dia = Number(correspondencia[1]);
+    const mes = Number(correspondencia[2]);
+    const ano = Number(correspondencia[3]);
+    const dataInformada = new Date(ano, mes - 1, dia);
+
+    if (
+        dataInformada.getFullYear() !== ano
+        || dataInformada.getMonth() !== mes - 1
+        || dataInformada.getDate() !== dia
+    ) {
+        return 'A data informada não existe. Confira o dia, o mês e o ano.';
+    }
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    if (dataInformada > hoje) {
+        return 'A data não pode ser futura. Escolha hoje ou uma data anterior.';
+    }
+
+    return null;
+}

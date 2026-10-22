@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -23,7 +23,19 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', idade: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, descricao: '', responsavel: '', contato: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', idade: '', unidadeIdade: 'Anos', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, descricao: '', responsavel: '', contato: '', foto: null };
+}
+
+function formatarIdadeAnimal(idade, unidade) {
+    const numero = Number(idade);
+    if (unidade === 'Meses') return `${idade} ${numero === 1 ? 'mês' : 'meses'}`;
+    return `${idade} ${numero === 1 ? 'ano' : 'anos'}`;
+}
+
+function exibirIdadeAnimal(idade) {
+    const texto = String(idade || '');
+    if (!texto) return '-';
+    return /anos?|m[eê]s(?:es)?/i.test(texto) ? texto : `${texto} anos`;
 }
 
 function formatarDataAtual() {
@@ -35,8 +47,9 @@ function formatarDataAtual() {
     return `${dia}/${mes}/${ano}`;
 }
 
-export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal }) {
+export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
     const [animais, setAnimais] = useState([]);
+    const listaRef = useRef(null);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
     const [visualizacao, setVisualizacao] = useState('todos');
     const [busca, setBusca] = useState('');
@@ -91,6 +104,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
         setFormulario((atual) => ({
             ...atual,
             [campo]: valor,
+            ...(campo === 'unidadeIdade' ? { idade: '' } : {}),
             ...(campo === 'local' ? { local_latitude: null, local_longitude: null } : {}),
         }));
     };
@@ -157,11 +171,20 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             !formulario.descricao ||
             !formulario.responsavel ||
             !formulario.contato
+            || !formulario.foto
         ) {
             abrirMensagem(
                 'Atenção',
                 'Preencha todos os campos obrigatórios para cadastrar o animal.'
             );
+            return;
+        }
+
+        const idade = Number(formulario.idade);
+        if (!Number.isInteger(idade) || idade < 1 || (formulario.unidadeIdade === 'Meses' && idade > 12)) {
+            abrirMensagem('Idade inválida', formulario.unidadeIdade === 'Meses'
+                ? 'A idade em meses deve ser um número entre 1 e 12.'
+                : 'A idade em anos deve ser um número inteiro maior que zero.');
             return;
         }
 
@@ -185,7 +208,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                     local_longitude: formulario.local_longitude,
                     data_evento: formatarDataAtual(),
                     tipo_registro: 'Adocao',
-                    idade: formulario.idade,
+                    idade: formatarIdadeAnimal(formulario.idade, formulario.unidadeIdade),
                     faixa_etaria: formulario.faixaEtaria,
                     responsavel: formulario.responsavel,
                     contato: formulario.contato,
@@ -480,6 +503,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             </View>
 
             <ScrollView
+                ref={listaRef}
                 style={styles.lista}
                 contentContainerStyle={styles.listaConteudo}
             >
@@ -500,7 +524,15 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                 )}
 
                 {animaisFiltrados.map((animal) => (
-                    <View key={animal.id} style={styles.card}>
+                    <View
+                        key={animal.id}
+                        style={styles.card}
+                        onLayout={(event) => {
+                            if (animalAlvoId == null || String(animal.id) !== String(animalAlvoId)) return;
+                            listaRef.current?.scrollTo({ y: Math.max(event.nativeEvent.layout.y - 12, 0), animated: true });
+                            onAnuncioAlvoExibido?.();
+                        }}
+                    >
                         <View style={styles.cardCabecalho}>
                             <View style={styles.avatarAnimal}>
                                 {animal.foto ? (
@@ -592,7 +624,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 <Text style={styles.infoChip}>Cor <Text style={styles.infoChipValor}>{animal.cor || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Porte <Text style={styles.infoChipValor}>{animal.porte || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Sexo <Text style={styles.infoChipValor}>{animal.sexo || '-'}</Text></Text>
-                                <Text style={styles.infoChip}>Idade <Text style={styles.infoChipValor}>{animal.idade} anos</Text></Text>
+                                <Text style={styles.infoChip}>Idade <Text style={styles.infoChipValor}>{exibirIdadeAnimal(animal.idade)}</Text></Text>
                                 <Text style={styles.infoChip}>Faixa <Text style={styles.infoChipValor}>{animal.faixaEtaria || '-'}</Text></Text>
                             </View>
 
@@ -815,6 +847,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                             showsVerticalScrollIndicator={false}
                             keyboardShouldPersistTaps="handled"
                         >
+                            <Text style={styles.campoLabel}>Foto *</Text>
                             <Pressable
                                 style={styles.uploadFoto}
                                 onPress={escolherFoto}
@@ -854,7 +887,26 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                             {renderOpcoes(PORTES, 'porte')}
                             <Text style={styles.campoLabel}>Sexo *</Text>
                             {renderOpcoes(SEXOS, 'sexo')}
-                            {renderCampo('Idade *', 'idade', 'Idade em anos', { numeric: true, keyboardType: 'numeric' })}
+                            <Text style={styles.campoLabel}>Idade *</Text>
+                            {renderOpcoes(['Anos', 'Meses'], 'unidadeIdade')}
+                            {renderCampo(
+                                'Quantidade *',
+                                'idade',
+                                formulario.unidadeIdade === 'Meses' ? 'De 1 a 12 meses' : 'Idade em anos',
+                                {
+                                    numeric: true,
+                                    keyboardType: 'numeric',
+                                    maxLength: formulario.unidadeIdade === 'Meses' ? 2 : 3,
+                                    onChangeText: (valor) => {
+                                        const idade = valor.replace(/[^0-9]/g, '');
+                                        if (formulario.unidadeIdade === 'Meses' && Number(idade) > 12) {
+                                            abrirMensagem('Idade inválida', 'A idade em meses deve ser no máximo 12.');
+                                            return;
+                                        }
+                                        atualizarCampo('idade', idade);
+                                    },
+                                }
+                            )}
                             <Text style={styles.campoLabel}>Faixa etária *</Text>
                             {renderOpcoes(FAIXAS_ETARIAS, 'faixaEtaria')}
                             <Text style={styles.campoLabel}>Localização *</Text>
@@ -868,7 +920,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                             />
                             {renderCampo('Responsável *', 'responsavel', 'Nome do responsável')}
                             {renderCampo('Contato *', 'contato', 'Telefone ou WhatsApp', { keyboardType: 'phone-pad' })}
-                            {renderCampo('Descrição ', 'descricao', 'Características, comportamento, cuidados, etc.', { multiline: true, numberOfLines: 4 })}
+                            {renderCampo('Descrição *', 'descricao', 'Características, comportamento, cuidados, etc.', { multiline: true, numberOfLines: 4 })}
 
                             <Pressable
                                 style={[styles.botaoSalvar, salvando && styles.botaoDesabilitado]}
@@ -1096,11 +1148,11 @@ const styles = StyleSheet.create({
     },
 
     notificationButton: {
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 18,
+        borderRadius: 22,
         backgroundColor: '#ffffff',
         elevation: 2,
     },
@@ -1331,12 +1383,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 96,
+        minHeight: 200,
     },
 
     foto: {
         width: '100%',
-        height: 96,
+        height: 200,
         backgroundColor: '#cfe3f2',
     },
 

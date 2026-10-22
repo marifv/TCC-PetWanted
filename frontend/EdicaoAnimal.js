@@ -4,14 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { formatarData, formatarEntradaData } from './utils/formatarData';
+import { formatarData, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
 import Pressable from './ButtonPressable';
+import GooglePlacesInput from './GooglePlacesInput';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
 const SEXOS = ['Macho', 'Fêmea'];
+const FAIXAS_ETARIAS = ['Filhote', 'Jovem', 'Adulto', 'Idoso'];
 
 function valorInicial(animal) {
+    const idadeTexto = String(animal?.idade || '');
+    const unidadeIdade = /m[eê]s/i.test(idadeTexto) ? 'Meses' : 'Anos';
     return {
         nome: animal?.nome || '',
         especie: animal?.especie || '',
@@ -21,7 +25,8 @@ function valorInicial(animal) {
         sexo: animal?.sexo || '',
         local: animal?.local || '',
         data: formatarData(animal?.data),
-        idade: animal?.idade || '',
+        idade: idadeTexto.match(/\d+/)?.[0] || '',
+        unidadeIdade,
         faixaEtaria: animal?.faixaEtaria || '',
         responsavel: animal?.responsavel || '',
         contato: animal?.contato || '',
@@ -30,8 +35,15 @@ function valorInicial(animal) {
     };
 }
 
-export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
+function formatarIdadeAnimal(idade, unidade) {
+    const numero = Number(idade);
+    if (unidade === 'Meses') return `${idade} ${numero === 1 ? 'mês' : 'meses'}`;
+    return `${idade} ${numero === 1 ? 'ano' : 'anos'}`;
+}
+
+export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
     const [formulario, setFormulario] = useState(valorInicial(animal));
+    const [coordenadasLocalizacao, setCoordenadasLocalizacao] = useState(null);
     const [mensagem, setMensagem] = useState('');
     const [mensagemVisivel, setMensagemVisivel] = useState(false);
     const [confirmacaoSalvarVisivel, setConfirmacaoSalvarVisivel] = useState(false);
@@ -85,6 +97,28 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
             mostrarMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
             return;
         }
+        const erroData = validarDataNaoFutura(formulario.data);
+        if (erroData) {
+            mostrarMensagem(erroData);
+            return;
+        }
+        if (animal?.tipo_registro === 'Adocao') {
+            const idade = Number(formulario.idade);
+            if (!Number.isInteger(idade) || idade < 1 || (formulario.unidadeIdade === 'Meses' && idade > 12)) {
+                mostrarMensagem(formulario.unidadeIdade === 'Meses'
+                    ? 'A idade em meses deve ser um número entre 1 e 12.'
+                    : 'A idade em anos deve ser um número inteiro maior que zero.');
+                return;
+            }
+            if (!formulario.descricao.trim()) {
+                mostrarMensagem('A descrição é obrigatória para anúncios de adoção.');
+                return;
+            }
+            if (!formulario.faixaEtaria || !formulario.responsavel.trim() || !formulario.contato.trim() || !formulario.foto) {
+                mostrarMensagem('Faixa etária, foto, responsável e contato são obrigatórios para adoção.');
+                return;
+            }
+        }
 
         const fotoParaEnviar = formulario.foto?.startsWith('data:image/')
             ? formulario.foto
@@ -98,8 +132,12 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
             porte: formulario.porte,
             sexo: formulario.sexo,
             local: formulario.local,
+            local_latitude: coordenadasLocalizacao?.latitude ?? null,
+            local_longitude: coordenadasLocalizacao?.longitude ?? null,
             data: formulario.data,
-            idade: formulario.idade,
+            idade: tipo === 'Adocao'
+                ? formatarIdadeAnimal(formulario.idade, formulario.unidadeIdade)
+                : formulario.idade,
             faixa_etaria: formulario.faixaEtaria,
             responsavel: formulario.responsavel,
             contato: formulario.contato,
@@ -119,6 +157,28 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
         if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
             mostrarMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
             return;
+        }
+        const erroData = validarDataNaoFutura(formulario.data);
+        if (erroData) {
+            mostrarMensagem(erroData);
+            return;
+        }
+        if (animal?.tipo_registro === 'Adocao') {
+            const idade = Number(formulario.idade);
+            if (!Number.isInteger(idade) || idade < 1 || (formulario.unidadeIdade === 'Meses' && idade > 12)) {
+                mostrarMensagem(formulario.unidadeIdade === 'Meses'
+                    ? 'A idade em meses deve ser um número entre 1 e 12.'
+                    : 'A idade em anos deve ser um número inteiro maior que zero.');
+                return;
+            }
+            if (!formulario.descricao.trim()) {
+                mostrarMensagem('A descrição é obrigatória para anúncios de adoção.');
+                return;
+            }
+            if (!formulario.faixaEtaria || !formulario.responsavel.trim() || !formulario.contato.trim() || !formulario.foto) {
+                mostrarMensagem('Faixa etária, foto, responsável e contato são obrigatórios para adoção.');
+                return;
+            }
         }
 
         setConfirmacaoSalvarVisivel(true);
@@ -141,6 +201,11 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
 
     const tipo = animal?.tipo_registro;
     const labelLocal = tipo === 'Perdido' ? 'Local do desaparecimento' : tipo === 'Encontrado' ? 'Local onde foi encontrado' : 'Localização';
+    const labelData = tipo === 'Perdido'
+        ? 'Data do desaparecimento'
+        : tipo === 'Encontrado'
+            ? 'Data em que foi encontrado'
+            : 'Data da adoção';
 
     return (
         <SafeAreaView style={styles.container}>
@@ -154,6 +219,7 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                {tipo === 'Adocao' && <Text style={styles.label}>Foto *</Text>}
                 <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
                     {formulario.foto ? (
                         <Image source={{ uri: formulario.foto }} style={styles.uploadFotoPreview} />
@@ -201,22 +267,78 @@ export default function EdicaoAnimal({ animal, onVoltar, onSalvar }) {
                 </View>
 
                 <Text style={styles.label}>{labelLocal} *</Text>
-                <TextInput style={styles.input} placeholder={tipo === 'Perdido' ? 'Ex: Parque Ibirapuera, São Paulo - SP' : 'Localização'} placeholderTextColor="gray" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} />
-                <Text style={styles.label}>{tipo === 'Perdido' ? 'Data do desaparecimento' : 'Data'} *</Text>
-                <TextInput style={styles.input} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', formatarEntradaData(valor))} keyboardType="numeric" />
+                <GooglePlacesInput
+                    style={styles.input}
+                    placeholder={tipo === 'Perdido' ? 'Ex: Parque Ibirapuera, São Paulo - SP' : 'Localização'}
+                    value={formulario.local}
+                    onChangeText={(valor) => {
+                        atualizarCampo('local', valor);
+                        setCoordenadasLocalizacao(null);
+                    }}
+                    onLocationSelected={setCoordenadasLocalizacao}
+                    token={token}
+                />
+                <Text style={styles.label}>{labelData} *</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="DD/MM/AAAA"
+                    placeholderTextColor="gray"
+                    value={formulario.data}
+                    onChangeText={(valor) => {
+                        const data = formatarEntradaData(valor);
+                        const erroData = data.length === 10 ? validarDataNaoFutura(data) : null;
+                        if (erroData) {
+                            mostrarMensagem(erroData);
+                            return;
+                        }
+                        atualizarCampo('data', data);
+                    }}
+                    keyboardType="numeric"
+                />
                 {tipo === 'Adocao' && (
                     <>
-                        <Text style={styles.label}>Idade</Text>
-                        <TextInput style={styles.input} value={formulario.idade} onChangeText={(valor) => atualizarCampo('idade', valor.replace(/[^0-9]/g, ''))} keyboardType="numeric" />
-                        <Text style={styles.label}>Faixa etária</Text>
-                        <TextInput style={styles.input} value={formulario.faixaEtaria} onChangeText={(valor) => atualizarCampo('faixaEtaria', valor)} />
-                        <Text style={styles.label}>Responsável</Text>
+                        <Text style={styles.label}>Idade *</Text>
+                        <View style={styles.options}>
+                            {['Anos', 'Meses'].map((unidade) => (
+                                <Pressable
+                                    key={unidade}
+                                    style={[styles.option, formulario.unidadeIdade === unidade && styles.selected]}
+                                    onPress={() => setFormulario((atual) => ({ ...atual, unidadeIdade: unidade, idade: '' }))}
+                                >
+                                    <Text style={[styles.optionText, formulario.unidadeIdade === unidade && styles.selectedText]}>{unidade}</Text>
+                                </Pressable>
+                            ))}
+                        </View>
+                        <TextInput
+                            style={styles.input}
+                            placeholder={formulario.unidadeIdade === 'Meses' ? 'De 1 a 12 meses' : 'Idade em anos'}
+                            value={formulario.idade}
+                            onChangeText={(valor) => {
+                                const idade = valor.replace(/[^0-9]/g, '');
+                                if (formulario.unidadeIdade === 'Meses' && Number(idade) > 12) {
+                                    mostrarMensagem('A idade em meses deve ser no máximo 12.');
+                                    return;
+                                }
+                                atualizarCampo('idade', idade);
+                            }}
+                            keyboardType="numeric"
+                            maxLength={formulario.unidadeIdade === 'Meses' ? 2 : 3}
+                        />
+                        <Text style={styles.label}>Responsável *</Text>
                         <TextInput style={styles.input} value={formulario.responsavel} onChangeText={(valor) => atualizarCampo('responsavel', valor)} />
-                        <Text style={styles.label}>Contato</Text>
+                        <Text style={styles.label}>Contato *</Text>
                         <TextInput style={styles.input} value={formulario.contato} onChangeText={(valor) => atualizarCampo('contato', valor)} keyboardType="phone-pad" />
                     </>
                 )}
-                <Text style={styles.label}>Descrição</Text>
+                <Text style={styles.label}>{tipo === 'Adocao' ? 'Faixa etária *' : 'Faixa etária'}</Text>
+                <View style={styles.options}>
+                    {FAIXAS_ETARIAS.map((opcao) => (
+                        <Pressable key={opcao} style={[styles.option, formulario.faixaEtaria === opcao && styles.selected]} onPress={() => atualizarCampo('faixaEtaria', opcao)}>
+                            <Text style={[styles.optionText, formulario.faixaEtaria === opcao && styles.selectedText]}>{opcao}</Text>
+                        </Pressable>
+                    ))}
+                </View>
+                <Text style={styles.label}>{tipo === 'Adocao' ? 'Descrição *' : 'Descrição'}</Text>
                 <TextInput style={[styles.input, styles.multiline]} value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline />
 
                 <Pressable style={styles.save} onPress={solicitarSalvar}>

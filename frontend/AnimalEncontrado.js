@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
-import { formatarData, formatarEntradaData } from './utils/formatarData';
+import { formatarData, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
@@ -13,6 +13,7 @@ import BottomNavigation from './BottomNavigation';
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
 const SEXOS = ['Macho', 'Fêmea'];
+const FAIXAS_ETARIAS = ['Filhote', 'Jovem', 'Adulto', 'Idoso'];
 
 const STATUS_PROCURANDO = 'Procurando Dono';
 const STATUS_DONO_ENCONTRADO = 'Dono encontrado';
@@ -22,11 +23,12 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
 }
 
-export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirEdicaoAnimal }) {
+export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
     const [animais, setAnimais] = useState([]);
+    const listaRef = useRef(null);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
     const [busca, setBusca] = useState('');
     const [visualizacao, setVisualizacao] = useState('todos');
@@ -204,6 +206,11 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
             abrirMensagem('Atenção', 'Preencha espécie, raça, cor, porte, local e data em que o animal foi encontrado.');
             return;
         }
+        const erroData = validarDataNaoFutura(formulario.data);
+        if (erroData) {
+            abrirMensagem('Data inválida', erroData);
+            return;
+        }
         if (formulario.local_latitude == null || formulario.local_longitude == null) {
             abrirMensagem('Atenção', 'Selecione um endereço nas sugestões do Google Maps para marcar o local no mapa.');
             return;
@@ -221,6 +228,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                     cor: formulario.cor,
                     porte: formulario.porte,
                     sexo: formulario.sexo,
+                    faixa_etaria: formulario.faixaEtaria,
                     local_desaparecimento: '',
                     local_encontrado: formulario.local,
                     local_latitude: formulario.local_latitude,
@@ -295,7 +303,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                 </Pressable>
             </View>
 
-            <ScrollView style={styles.lista} contentContainerStyle={styles.listaConteudo}>
+            <ScrollView ref={listaRef} style={styles.lista} contentContainerStyle={styles.listaConteudo}>
                 {animaisFiltrados.length === 0 && (
                     <View style={styles.vazioContainer}>
                         <FontAwesome name="paw" size={28} color="#d8d8d8" />
@@ -310,7 +318,15 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                 )}
 
                 {animaisFiltrados.map((animal) => (
-                    <View key={animal.id} style={styles.card}>
+                    <View
+                        key={animal.id}
+                        style={styles.card}
+                        onLayout={(event) => {
+                            if (animalAlvoId == null || String(animal.id) !== String(animalAlvoId)) return;
+                            listaRef.current?.scrollTo({ y: Math.max(event.nativeEvent.layout.y - 12, 0), animated: true });
+                            onAnuncioAlvoExibido?.();
+                        }}
+                    >
                         <View style={styles.cardCabecalho}>
                             <View style={styles.avatarAnimal}>
                                 {animal.foto ? (
@@ -377,6 +393,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                                 <Text style={styles.infoChip}>Cor <Text style={styles.infoChipValor}>{animal.cor || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Porte <Text style={styles.infoChipValor}>{animal.porte || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Sexo <Text style={styles.infoChipValor}>{animal.sexo || '-'}</Text></Text>
+                                {!!animal.faixaEtaria && <Text style={styles.infoChip}>Faixa <Text style={styles.infoChipValor}>{animal.faixaEtaria}</Text></Text>}
                             </View>
 
                             <View style={styles.linhaComIcone}>
@@ -486,11 +503,35 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                                 ))}
                             </View>
 
+                            <Text style={styles.campoLabel}>Faixa etária</Text>
+                            <View style={styles.opcoesContainer}>
+                                {FAIXAS_ETARIAS.map((opcao) => (
+                                    <Pressable key={opcao} style={[styles.opcaoBotao, formulario.faixaEtaria === opcao && styles.opcaoBotaoSelecionada]} onPress={() => atualizarCampo('faixaEtaria', opcao)}>
+                                        <Text style={[styles.opcaoTexto, formulario.faixaEtaria === opcao && styles.opcaoTextoSelecionada]}>{opcao}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+
                             <Text style={styles.campoLabel}>Local onde foi encontrado *</Text>
                             <GooglePlacesInput style={styles.campoInput} placeholder="Ex: Rua Augusta, São Paulo - SP" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} onLocationSelected={(coordenadas) => setFormulario((atual) => ({ ...atual, local_latitude: coordenadas.latitude, local_longitude: coordenadas.longitude }))} token={token} />
 
                             <Text style={styles.campoLabel}>Data em que foi encontrado *</Text>
-                            <TextInput style={styles.campoInput} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', formatarEntradaData(valor))} keyboardType="numeric" />
+                            <TextInput
+                                style={styles.campoInput}
+                                placeholder="DD/MM/AAAA"
+                                placeholderTextColor="gray"
+                                value={formulario.data}
+                                onChangeText={(valor) => {
+                                    const data = formatarEntradaData(valor);
+                                    const erroData = data.length === 10 ? validarDataNaoFutura(data) : null;
+                                    if (erroData) {
+                                        abrirMensagem('Data inválida', erroData);
+                                        return;
+                                    }
+                                    atualizarCampo('data', data);
+                                }}
+                                keyboardType="numeric"
+                            />
 
                             <Text style={styles.campoLabel}>Descrição adicional</Text>
                             <TextInput style={[styles.campoInput, styles.campoInputMultilinha]} placeholder="Características, comportamento, coleira, estado de saúde, etc." placeholderTextColor="gray" value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline numberOfLines={4} />
@@ -656,11 +697,11 @@ const styles = StyleSheet.create({
     },
 
     notificationButton: {
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 18,
+        borderRadius: 22,
         backgroundColor: '#ffffff',
         elevation: 2,
     },
@@ -877,12 +918,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 96,
+        minHeight: 200,
     },
 
     foto: {
         width: '100%',
-        height: 96,
+        height: 200,
         backgroundColor: '#cfe3f2',
     },
 

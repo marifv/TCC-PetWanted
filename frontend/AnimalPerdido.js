@@ -1,11 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
-import { formatarData, formatarEntradaData } from './utils/formatarData';
+import { formatarData, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
@@ -13,8 +13,7 @@ import BottomNavigation from './BottomNavigation';
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
 const SEXOS = ['Macho', 'Fêmea'];
-
-const AREA_BUSCA_PADRAO = 5;
+const FAIXAS_ETARIAS = ['Filhote', 'Jovem', 'Adulto', 'Idoso'];
 
 const STATUS_PERDIDO = 'Perdido';
 const STATUS_ENCONTRADO = 'Encontrado';
@@ -24,15 +23,15 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
 }
 
-export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao, abrirEdicaoAnimal }) {
+export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
     const [animais, setAnimais] = useState([]);
+    const listaRef = useRef(null);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
     const [busca, setBusca] = useState('');
     const [visualizacao, setVisualizacao] = useState('todos');
-    const [areaExpandida, setAreaExpandida] = useState({});
     const [menuAbertoId, setMenuAbertoId] = useState(null);
     const [modalVisivel, setModalVisivel] = useState(false);
     const [formulario, setFormulario] = useState(novoFormulario());
@@ -74,10 +73,6 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
         if (!termo) return true;
         return (animal.nome || '').toLowerCase().includes(termo) || (animal.raca || '').toLowerCase().includes(termo) || (animal.local || '').toLowerCase().includes(termo);
     });
-
-    const alternarAreaBusca = (id) => {
-        setAreaExpandida((atual) => ({ ...atual, [id]: !atual[id] }));
-    };
 
     const abrirMensagem = (titulo, mensagem) => {
         Alert.alert(titulo, mensagem, [{ text: 'OK' }]);
@@ -206,6 +201,11 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
             abrirMensagem('Atenção', 'Preencha nome, espécie, raça, cor, porte, sexo, local e data do desaparecimento.');
             return;
         }
+        const erroData = validarDataNaoFutura(formulario.data);
+        if (erroData) {
+            abrirMensagem('Data inválida', erroData);
+            return;
+        }
         if (formulario.local_latitude == null || formulario.local_longitude == null) {
             abrirMensagem('Atenção', 'Selecione um endereço nas sugestões do Google Maps para marcar o local no mapa.');
             return;
@@ -226,6 +226,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                     cor: formulario.cor,
                     porte: formulario.porte,
                     sexo: formulario.sexo,
+                    faixa_etaria: formulario.faixaEtaria,
                     local_desaparecimento: formulario.local,
                     local_latitude: formulario.local_latitude,
                     local_longitude: formulario.local_longitude,
@@ -243,7 +244,6 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                 return;
             }
 
-            setAnimais((atual) => [{ ...dados, areaBusca: AREA_BUSCA_PADRAO, status: STATUS_PERDIDO, meuAnimal: true }, ...atual]);
             setModalVisivel(false);
         } catch (error) {
             abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
@@ -300,7 +300,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                 </Pressable>
             </View>
 
-            <ScrollView style={styles.lista} contentContainerStyle={styles.listaConteudo}>
+            <ScrollView ref={listaRef} style={styles.lista} contentContainerStyle={styles.listaConteudo}>
                 {animaisFiltrados.length === 0 && (
                     <View style={styles.vazioContainer}>
                         <FontAwesome name="paw" size={28} color="#d8d8d8" />
@@ -315,7 +315,15 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                 )}
 
                 {animaisFiltrados.map((animal) => (
-                    <View key={animal.id} style={styles.card}>
+                    <View
+                        key={animal.id}
+                        style={styles.card}
+                        onLayout={(event) => {
+                            if (animalAlvoId == null || String(animal.id) !== String(animalAlvoId)) return;
+                            listaRef.current?.scrollTo({ y: Math.max(event.nativeEvent.layout.y - 12, 0), animated: true });
+                            onAnuncioAlvoExibido?.();
+                        }}
+                    >
                         <View style={styles.cardCabecalho}>
                             <View style={styles.avatarAnimal}>
                                 {animal.foto ? (
@@ -382,6 +390,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                                 <Text style={styles.infoChip}>Cor <Text style={styles.infoChipValor}>{animal.cor || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Porte <Text style={styles.infoChipValor}>{animal.porte || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Sexo <Text style={styles.infoChipValor}>{animal.sexo || '-'}</Text></Text>
+                                {!!animal.faixaEtaria && <Text style={styles.infoChip}>Faixa <Text style={styles.infoChipValor}>{animal.faixaEtaria}</Text></Text>}
                             </View>
 
                             <View style={styles.linhaComIcone}>
@@ -395,16 +404,6 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                             </View>
 
                             {!!animal.descricao && <Text style={styles.descricao}><Text style={styles.infoLabel}>Descrição: </Text>{animal.descricao}</Text>}
-
-                            <Pressable style={styles.areaBuscaLinha} onPress={() => alternarAreaBusca(animal.id)}>
-                                <FontAwesome name="map" size={13} color="#6e9fc8" />
-                                <Text style={styles.textoComIcone}>Área de busca ({animal.areaBusca || AREA_BUSCA_PADRAO} km)</Text>
-                                <FontAwesome name={areaExpandida[animal.id] ? 'chevron-up' : 'chevron-down'} size={12} color="#9b9b9b" style={styles.chevron} />
-                            </Pressable>
-
-                            {areaExpandida[animal.id] && (
-                                <Text style={styles.areaBuscaDetalhe}>Buscas estão sendo feitas em um raio de {animal.areaBusca || AREA_BUSCA_PADRAO} km a partir do local do desaparecimento.</Text>
-                            )}
 
                             {animal.meuAnimal && (
                                 <View style={styles.botoesContainer}>
@@ -501,11 +500,35 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                                 ))}
                             </View>
 
+                            <Text style={styles.campoLabel}>Faixa etária</Text>
+                            <View style={styles.opcoesContainer}>
+                                {FAIXAS_ETARIAS.map((opcao) => (
+                                    <Pressable key={opcao} style={[styles.opcaoBotao, formulario.faixaEtaria === opcao && styles.opcaoBotaoSelecionada]} onPress={() => atualizarCampo('faixaEtaria', opcao)}>
+                                        <Text style={[styles.opcaoTexto, formulario.faixaEtaria === opcao && styles.opcaoTextoSelecionado]}>{opcao}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+
                             <Text style={styles.campoLabel}>Local do desaparecimento *</Text>
                             <GooglePlacesInput style={styles.campoInput} placeholder="Ex: Parque Ibirapuera, São Paulo - SP" value={formulario.local} onChangeText={(valor) => atualizarCampo('local', valor)} onLocationSelected={(coordenadas) => setFormulario((atual) => ({ ...atual, local_latitude: coordenadas.latitude, local_longitude: coordenadas.longitude }))} token={token} />
 
                             <Text style={styles.campoLabel}>Data do desaparecimento *</Text>
-                            <TextInput style={styles.campoInput} placeholder="DD/MM/AAAA" placeholderTextColor="gray" value={formulario.data} onChangeText={(valor) => atualizarCampo('data', formatarEntradaData(valor))} keyboardType="numeric" />
+                            <TextInput
+                                style={styles.campoInput}
+                                placeholder="DD/MM/AAAA"
+                                placeholderTextColor="gray"
+                                value={formulario.data}
+                                onChangeText={(valor) => {
+                                    const data = formatarEntradaData(valor);
+                                    const erroData = data.length === 10 ? validarDataNaoFutura(data) : null;
+                                    if (erroData) {
+                                        abrirMensagem('Data inválida', erroData);
+                                        return;
+                                    }
+                                    atualizarCampo('data', data);
+                                }}
+                                keyboardType="numeric"
+                            />
 
                             <Text style={styles.campoLabel}>Descrição adicional</Text>
                             <TextInput style={[styles.campoInput, styles.campoInputMultilinha]} placeholder="Características, comportamento, coleira, etc." placeholderTextColor="gray" value={formulario.descricao} onChangeText={(valor) => atualizarCampo('descricao', valor)} multiline numberOfLines={4} />
@@ -533,7 +556,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                             <Pressable style={styles.confirmBotaoConfirmar} onPress={() => {
                                 const animal = confirmacaoEdicaoAlvo;
                                 setConfirmacaoEdicaoAlvo(null);
-                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: atualizado.status || item.status, areaBusca: item.areaBusca, meuAnimal: true } : item)));
+                                abrirEdicaoAnimal(animal, (atualizado) => setAnimais((atual) => atual.map((item) => item.id === atualizado.id ? { ...atualizado, status: atualizado.status || item.status, meuAnimal: true } : item)));
                             }}>
                                 <Text style={styles.confirmBotaoConfirmarTexto}>Editar</Text>
                             </Pressable>
@@ -671,11 +694,11 @@ const styles = StyleSheet.create({
     },
 
     notificationButton: {
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: 18,
+        borderRadius: 22,
         backgroundColor: '#ffffff',
         elevation: 2,
     },
@@ -892,12 +915,12 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 96,
+        minHeight: 200,
     },
 
     foto: {
         width: '100%',
-        height: 96,
+        height: 200,
         backgroundColor: '#cfe3f2',
     },
 
@@ -996,35 +1019,8 @@ const styles = StyleSheet.create({
         lineHeight: 15,
     },
 
-    areaBuscaLinha: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-        paddingVertical: 4,
-    },
-
-    chevron: {
-        marginLeft: 'auto',
-    },
-
-    areaBuscaDetalhe: {
-        fontSize: 10,
-        color: '#6c879b',
-        marginBottom: 6,
-        lineHeight: 17,
-    },
-
-    botoesContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 0,
-        marginTop: 7,
-    },
-
     statusToggleContainer: {
-        flex: 1,
         flexDirection: 'row',
-        gap: 3,
         padding: 3,
         minHeight: 36,
         borderRadius: 22,
