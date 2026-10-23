@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome } from '@expo/vector-icons';
@@ -218,6 +218,7 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                 <View style={styles.headerSpace} />
             </View>
 
+            <KeyboardAvoidingView style={styles.keyboardAvoiding} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
                 {tipo === 'Adocao' && <Text style={styles.label}>Foto *</Text>}
                 <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
@@ -345,6 +346,7 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                     <Text style={styles.saveText}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
+            </KeyboardAvoidingView>
 
             <Modal transparent animationType="fade" visible={mensagemVisivel} onRequestClose={() => setMensagemVisivel(false)}>
                 <View style={styles.modalOverlay}>
@@ -398,6 +400,7 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fafafa' },
+    keyboardAvoiding: { flex: 1 },
     header: { height: Platform.OS === 'android' ? 58 + (NativeStatusBar.currentHeight || 0) : 58, paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#ffffff', borderBottomWidth: 1, borderBottomColor: '#e1e1e1' },
     back: { fontSize: 30, lineHeight: 36, color: '#64748B' },
     headerBackButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#CBD5E1' },

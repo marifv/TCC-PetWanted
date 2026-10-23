@@ -769,7 +769,7 @@ export default function App() {
     return (
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <ScrollView
         contentContainerStyle={styles.scrollContainer}
@@ -1247,7 +1247,7 @@ export default function App() {
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
     <View style={styles.container}>
       {!perfilAtivo && !animalPerdidoAtivo && !animalEncontradoAtivo && !animalAdocaoAtivo && (

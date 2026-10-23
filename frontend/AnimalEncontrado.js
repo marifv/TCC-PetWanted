@@ -447,7 +447,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
             <Modal visible={modalVisivel} animationType="slide" transparent onRequestClose={fecharFormulario}>
                 <KeyboardAvoidingView
                     style={styles.modalKeyboardAvoiding}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>

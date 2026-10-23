@@ -822,7 +822,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             >
                 <KeyboardAvoidingView
                     style={styles.modalKeyboardAvoiding}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalCard}>

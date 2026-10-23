@@ -1,6 +1,6 @@
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
-import { Alert, Platform, StatusBar as NativeStatusBar, StyleSheet, Text, View, TextInput, Modal, ScrollView, Image } from 'react-native';
+import { Alert, KeyboardAvoidingView, Platform, StatusBar as NativeStatusBar, StyleSheet, Text, View, TextInput, Modal, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -97,6 +97,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
                 <View style={styles.headerPlaceholder} />
             </View>
 
+            <KeyboardAvoidingView style={styles.keyboardAvoiding} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
                 <Pressable style={styles.avatar} onPress={escolherFoto}>
                     {novaFotoPerfil ? (
@@ -203,6 +204,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
                     <Text style={styles.saveButtonText}>Salvar alterações</Text>
                 </Pressable>
             </ScrollView>
+            </KeyboardAvoidingView>
 
             <Modal
                 visible={confirmacaoSalvarVisivel}
@@ -301,6 +303,10 @@ const styles = StyleSheet.create({
     },
 
     scroll: {
+        flex: 1,
+    },
+
+    keyboardAvoiding: {
         flex: 1,
     },
 
