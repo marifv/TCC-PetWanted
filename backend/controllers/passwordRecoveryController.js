@@ -8,6 +8,55 @@ const SENHA_FORTE_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,
 const RESPOSTA_GENERICA = 'Se o e-mail estiver associado a uma conta, enviaremos um código de verificação.';
 const MAX_TENTATIVAS_CODIGO = 5;
 
+function diagnosticoErroEnvio(erro) {
+    if (erro.code === '42P01') {
+        return {
+            codigo: 'TABELA_RECUPERACAO_AUSENTE',
+            mensagem: 'O banco do Render não possui a tabela de recuperação de senha. Aplique o schema atualizado.'
+        };
+    }
+
+    if (erro.code === 'BREVO_NOT_CONFIGURED') {
+        return {
+            codigo: 'EMAIL_NAO_CONFIGURADO',
+            mensagem: 'O serviço de e-mail não está configurado. Confira BREVO_API_KEY e BREVO_SENDER_EMAIL no Render.'
+        };
+    }
+
+    if (erro.code === 'BREVO_API_ERROR' && [401, 403].includes(Number(erro.status))) {
+        return {
+            codigo: 'EMAIL_CREDENCIAIS_INVALIDAS',
+            mensagem: 'O Brevo recusou a API key. Confira se ela está ativa e tem permissão para enviar e-mails transacionais.'
+        };
+    }
+
+    if (erro.code === 'BREVO_API_ERROR' && [400, 422].includes(Number(erro.status))) {
+        return {
+            codigo: 'REMETENTE_BREVO_INVALIDO',
+            mensagem: 'O Brevo recusou os dados do remetente ou da mensagem. Confira se o e-mail remetente está verificado.'
+        };
+    }
+
+    if (erro.code === 'BREVO_NETWORK_ERROR') {
+        return {
+            codigo: 'EMAIL_SEM_CONEXAO',
+            mensagem: 'O backend não conseguiu conectar à API do Brevo por HTTPS. Confira os logs do Render e tente novamente.'
+        };
+    }
+
+    if (erro.code === 'BREVO_API_ERROR') {
+        return {
+            codigo: 'ERRO_API_BREVO',
+            mensagem: `O Brevo não aceitou o envio (HTTP ${erro.status}). Confira o status do serviço e os logs do Render.`
+        };
+    }
+
+    return {
+        codigo: 'ERRO_INTERNO_RECUPERACAO',
+        mensagem: 'Não foi possível enviar o código. Consulte os logs do backend no Render para identificar a causa.'
+    };
+}
+
 function hashRecuperacao(tipo, valor) {
     const segredo = process.env.JWT_SECRET;
     if (!segredo) throw new Error('JWT_SECRET não está configurado.');
@@ -92,7 +141,7 @@ async function enviarCodigoRecuperacao(req, res) {
             );
         }
         console.error('Erro ao solicitar recuperação de senha:', erro);
-        return res.status(500).json({ mensagem: 'Não foi possível enviar o código agora. Tente novamente mais tarde.' });
+        return res.status(500).json(diagnosticoErroEnvio(erro));
     }
 }
 

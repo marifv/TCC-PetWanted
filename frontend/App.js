@@ -110,7 +110,11 @@ export default function App() {
       });
       const dados = await resposta.json();
       if (!resposta.ok) {
-        mostrarAlerta('Não foi possível enviar o código', dados.mensagem || 'Tente novamente mais tarde.');
+        const codigoDiagnostico = dados.codigo ? `\nCódigo: ${dados.codigo}` : '';
+        mostrarAlerta(
+          'Não foi possível enviar o código',
+          `${dados.mensagem || 'Tente novamente mais tarde.'}${codigoDiagnostico}`
+        );
         return;
       }
       setCodigoRecuperacao('');

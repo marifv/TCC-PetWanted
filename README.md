@@ -3,18 +3,19 @@
 
 ## Backend
 
-Configure the database variables already used by the project and add a secret for login tokens:
+Configure the database variables already used by the project and add the secrets for login tokens and transactional email:
 
 ```env
 JWT_SECRET=use-a-long-random-value-here
 GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
-GMAIL_USER=petwantednoreply@gmail.com
-GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+BREVO_API_KEY=your-brevo-api-key
+BREVO_SENDER_EMAIL=verified-sender@example.com
+BREVO_SENDER_NAME=PetWanted
 ```
 
 `GOOGLE_CLIENT_ID` must be the Web OAuth client ID from the same Google Cloud project configured in the Android app. Never put a Google client secret in the app.
 
-The backend sends password recovery email through Gmail SMTP using Nodemailer. Enable 2-Step Verification on the Gmail account, create an App Password in the Google Account security settings, and put the account address in `GMAIL_USER` and the App Password in `GMAIL_APP_PASSWORD` in `backend/.env`. Do not use your normal Google password or commit these values. The sender address is the Gmail account itself.
+The backend sends password recovery email through the Brevo transactional email API over HTTPS. Create an API key with transactional email sending permission, verify the sender address in Brevo, and configure `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and optionally `BREVO_SENDER_NAME` in `backend/.env` and in the backend service's Render environment. Never put the API key in the mobile app or commit it.
 
 For a new PostgreSQL database, run the complete schema script once:
 
