@@ -1,6 +1,5 @@
 const express = require('express');
 const {
-    listarRegistros,
     listarAnimaisPerdidos,
     listarAnimaisEncontrados,
     listarAnimaisAdocao,

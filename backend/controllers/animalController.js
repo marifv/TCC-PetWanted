@@ -206,25 +206,6 @@ function validarRegistro(dados) {
     return falhas;
 }
 
-async function listarRegistros(req, res) {
-    try {
-        const resultado = await pool.query(
-            `SELECT ${CAMPOS_RETORNO}
-             FROM animais
-             WHERE id_usuario = $1
-                             AND LOWER(BTRIM(status)) IS DISTINCT FROM 'dono encontrado'
-                             AND status IS DISTINCT FROM 'Dono encontrado'
-             ORDER BY id_animal DESC`,
-            [req.params.usuarioId]
-        );
-
-        return res.json(resultado.rows.map((registro) => anexarFotoAoRegistro(req, registro)));
-    } catch (error) {
-        console.error('Erro ao listar registros de animais:', error);
-        return res.status(500).json({ mensagem: 'Erro ao listar registros de animais.' });
-    }
-}
-
 async function listarAnimaisPerdidos(req, res) {
     try {
         const resultado = await pool.query(
@@ -431,7 +412,6 @@ async function excluirRegistro(req, res) {
 }
 
 module.exports = {
-    listarRegistros,
     listarAnimaisPerdidos,
     listarAnimaisEncontrados,
     listarAnimaisAdocao,

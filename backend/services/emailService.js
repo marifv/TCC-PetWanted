@@ -46,16 +46,3 @@ async function enviarEmail({ to, subject, html, text }) {
 }
 
 module.exports = { enviarEmail };
-        }
-    });
-
-    return transporter.sendMail({
-        from: `PetWanted <${user}>`,
-        to,
-        subject,
-        html,
-        text
-    });
-}
-
-module.exports = { enviarEmail };
