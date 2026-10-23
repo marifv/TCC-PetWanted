@@ -50,7 +50,6 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 				onFound={abrirAnimalEncontrado}
 				onChat={abrirChat}
 				onAdoption={abrirAdocao}
-				containerStyle={styles.footer}
 			/>
 		</SafeAreaView>
 	);
@@ -142,12 +141,5 @@ const styles = StyleSheet.create({
 	contentMapa: {
 		alignItems: 'stretch',
 		justifyContent: 'flex-start',
-	},
-	footer: {
-		position: 'absolute',
-		right: 0,
-		bottom: 4,
-		left: 0,
-		zIndex: 5,
 	},
 });

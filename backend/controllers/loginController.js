@@ -8,10 +8,17 @@ async function loginUsuario(req, res) {
             email,
             senha,
         } = req.body;
+        const emailNormalizado = email?.trim().toLowerCase();
+
+        if (!emailNormalizado || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado)) {
+            return res.status(400).json({
+                mensagem: 'Informe um endereço de e-mail válido.'
+            });
+        }
 
         const usuario = await pool.query(
-            'SELECT * FROM usuarios WHERE email = $1',
-            [email]
+            'SELECT * FROM usuarios WHERE LOWER(email) = $1',
+            [emailNormalizado]
         );
 
         if (usuario.rows.length === 0) {

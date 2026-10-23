@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
-import { formatarData, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
+import { formatarData, formatarDataParaApi, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
@@ -135,7 +135,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                     sexo: animal.sexo,
                     local_desaparecimento: '',
                     local_encontrado: animal.local,
-                    data_evento: animal.data,
+                    data_evento: formatarDataParaApi(animal.data),
                     tipo_registro: 'Encontrado',
                     status: 'Dono encontrado',
                     descricao: animal.descricao,
@@ -231,7 +231,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                     local_latitude: formulario.local_latitude,
                     local_longitude: formulario.local_longitude,
                     local_encontrado: '',
-                    data_evento: formulario.data,
+                    data_evento: formatarDataParaApi(formulario.data),
                     tipo_registro: 'Perdido',
                     descricao: formulario.descricao,
                     foto: formulario.foto || null,

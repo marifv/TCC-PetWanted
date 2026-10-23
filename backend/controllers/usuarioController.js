@@ -24,6 +24,12 @@ async function criarUsuario(req, res) {
             });
         }
 
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado)) {
+            return res.status(400).json({
+                mensagem: 'Informe um endereço de e-mail válido.'
+            });
+        }
+
         if (tipo_perfil !== 'Tutor' && tipo_perfil !== 'ONG') {
             return res.status(400).json({
                 mensagem: 'O tipo de perfil deve ser Tutor ou ONG.'

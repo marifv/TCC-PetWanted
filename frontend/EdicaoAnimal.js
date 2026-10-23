@@ -218,7 +218,7 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                 <View style={styles.headerSpace} />
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+            <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
                 {tipo === 'Adocao' && <Text style={styles.label}>Foto *</Text>}
                 <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
                     {formulario.foto ? (

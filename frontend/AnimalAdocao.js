@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
-import { formatarData } from './utils/formatarData';
+import { formatarData, formatarDataParaApi } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
@@ -44,7 +44,7 @@ function formatarDataAtual() {
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const ano = hoje.getFullYear();
 
-    return `${dia}/${mes}/${ano}`;
+    return `${ano}-${mes}-${dia}`;
 }
 
 export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
@@ -272,7 +272,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                     porte: animal.porte,
                     sexo: animal.sexo,
                     local_encontrado: animal.local,
-                    data_evento: animal.data,
+                    data_evento: formatarDataParaApi(animal.data),
                     tipo_registro: 'Adocao',
                     status: confirmacaoAlvo.novoStatus,
                     idade: animal.idade,

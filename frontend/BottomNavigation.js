@@ -1,12 +1,12 @@
-import { FontAwesome } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { StyleSheet, Text, View } from 'react-native';
 import Pressable from './ButtonPressable';
 
 const ITEMS = [
-  { id: 'perdidos', icon: 'search', label: 'Animais perdidos', action: 'onLost' },
-  { id: 'encontrados', icon: 'paw', label: 'Animais encontrados', action: 'onFound' },
-  { id: 'chat', icon: 'comment-o', label: 'Chat', action: 'onChat' },
-  { id: 'adocao', icon: 'heart-o', label: 'Adoção', action: 'onAdoption' },
+  { id: 'perdidos', icon: 'magnify', label: 'Perdidos', action: 'onLost' },
+  { id: 'encontrados', icon: 'map-marker', label: 'Encontrados', action: 'onFound' },
+  { id: 'chat', icon: 'chat-outline', label: 'Chat', action: 'onChat' },
+  { id: 'adocao', icon: 'home-heart', label: 'Adoção', action: 'onAdoption' },
 ];
 
 export default function BottomNavigation({
@@ -37,12 +37,25 @@ export default function BottomNavigation({
               accessibilityLabel={item.label}
               accessibilityState={{ selected }}
             >
-              <View style={[styles.iconContainer, selected && styles.iconContainerSelected]}>
-                <FontAwesome
-                  name={item.icon}
-                  size={20}
-                  color={selected ? '#4e8bc6' : '#91a8bc'}
-                />
+              <View style={styles.itemContent}>
+                <View style={[styles.iconContainer, selected && styles.iconContainerSelected]}>
+                  <MaterialCommunityIcons
+                    name={item.icon}
+                    size={item.id === 'encontrados' ? 34 : 30}
+                    color={selected ? '#1677ed' : '#82a3c0'}
+                  />
+                  {item.id === 'encontrados' && (
+                    <MaterialCommunityIcons
+                      name="paw"
+                      size={9}
+                      color="#ffffff"
+                      style={styles.pawOverlay}
+                    />
+                  )}
+                </View>
+                <Text style={[styles.label, selected && styles.labelSelected]} numberOfLines={1}>
+                  {item.label}
+                </Text>
               </View>
             </Pressable>
           );
@@ -56,6 +69,7 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     height: 82,
+    marginBottom: 14,
     flexGrow: 0,
     flexShrink: 0,
     paddingHorizontal: 10,
@@ -84,6 +98,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  itemContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   iconContainer: {
     width: 44,
     height: 44,
@@ -93,5 +111,20 @@ const styles = StyleSheet.create({
   },
   iconContainerSelected: {
     backgroundColor: '#eaf3fa',
+  },
+  pawOverlay: {
+    position: 'absolute',
+    top: 12,
+  },
+  label: {
+    maxWidth: '100%',
+    color: '#82a3c0',
+    fontSize: 12,
+    lineHeight: 15,
+    textAlign: 'center',
+  },
+  labelSelected: {
+    color: '#1677ed',
+    fontWeight: '600',
   },
 });

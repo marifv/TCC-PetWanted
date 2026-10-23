@@ -24,6 +24,8 @@ backend/database/schema.sql
 
 You can run it in the SQL editor of your PostgreSQL provider (for example, Render or pgAdmin). It creates the `usuarios`, `animais`, and `password_reset_requests` tables, including Google sign-in, photo URLs, and password recovery fields. Run it only for a new, empty database; it does not migrate an existing schema.
 
+For an existing database that does not yet have the password recovery table, run `backend/database/migration_password_reset_requests.sql` once in the provider's SQL editor.
+
 Animal and profile photos are uploaded by the backend to Cloudinary when the following credentials are set in `backend/.env`:
 
 ```env

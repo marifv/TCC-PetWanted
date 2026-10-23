@@ -46,16 +46,19 @@ function textoPreenchido(valor) {
 function normalizarData(valor) {
     const data = String(valor || '').trim();
     const brasileira = data.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    const iso = data.match(/^(\d{4}-\d{2}-\d{2})(?:T.*)?$/);
 
-    return brasileira
-        ? `${brasileira[3]}-${brasileira[2]}-${brasileira[1]}`
-        : data;
+    if (brasileira) {
+        return `${brasileira[3]}-${brasileira[2]}-${brasileira[1]}`;
+    }
+
+    return iso ? iso[1] : data;
 }
 
 function validarDataEvento(dataEvento) {
     const correspondencia = String(dataEvento || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!correspondencia) {
-        return 'a data do evento deve ser uma data válida no formato DD/MM/AAAA';
+        return 'a data do evento deve ser uma data válida no formato AAAA-MM-DD';
     }
 
     const ano = Number(correspondencia[1]);
@@ -209,6 +212,8 @@ async function listarRegistros(req, res) {
             `SELECT ${CAMPOS_RETORNO}
              FROM animais
              WHERE id_usuario = $1
+                             AND LOWER(BTRIM(status)) IS DISTINCT FROM 'dono encontrado'
+                             AND status IS DISTINCT FROM 'Dono encontrado'
              ORDER BY id_animal DESC`,
             [req.params.usuarioId]
         );

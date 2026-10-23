@@ -193,6 +193,8 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
         if (!ativo) return;
 
         const animaisValidos = [...perdidos, ...encontrados, ...adocao].filter((animal) => (
+          String(animal.status || '').trim().toLowerCase() !== 'dono encontrado'
+          &&
           Number.isFinite(Number(animal.local_latitude))
           && Number.isFinite(Number(animal.local_longitude))
           && animal.local_latitude != null

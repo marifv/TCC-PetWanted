@@ -12,8 +12,11 @@ import AnimalEncontrado from './AnimalEncontrado';
 import AnimalAdocao from './AnimalAdocao';
 import EdicaoAnimal from './EdicaoAnimal';
 import { API_ANIMAIS, API_USUARIOS } from './config/api';
+import { formatarDataParaApi } from './utils/formatarData';
 
 const API_URL = API_USUARIOS;
+
+const emailValido = (valor) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
 
 export default function App() {
   const [telaSelecionada, setTelaSelecionada] = useState('entrar');
@@ -44,6 +47,7 @@ export default function App() {
   const [senha, setSenha] = useState('');
   const [loginSenha, setLoginSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  const [mostrarLoginSenha, setMostrarLoginSenha] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [telaRecuperacao, setTelaRecuperacao] = useState(null);
@@ -324,7 +328,7 @@ export default function App() {
         ...dados,
         local_desaparecimento: animal.tipo_registro === 'Perdido' ? dados.local : '',
         local_encontrado: animal.tipo_registro === 'Perdido' ? '' : dados.local,
-        data_evento: dados.data,
+        data_evento: formatarDataParaApi(dados.data),
         tipo_registro: animal.tipo_registro,
         status: animal.status,
       }),
@@ -494,6 +498,12 @@ export default function App() {
       return;
     }
 
+    const emailNormalizado = email.trim().toLowerCase();
+    if (!emailValido(emailNormalizado)) {
+      mostrarAlerta('E-mail inválido', 'Informe um endereço de e-mail válido.', 'warning');
+      return;
+    }
+
     if (senha !== confirmarSenha) {
       mostrarAlerta('Atenção', 'As senhas não são iguais.', 'warning');
       return;
@@ -515,7 +525,7 @@ export default function App() {
         },
         body: JSON.stringify({
           nome: nome,
-          email: email,
+          email: emailNormalizado,
           documento: documentoLimpo,
           senha: senha,
           tipo_perfil: tipoPerfil,
@@ -546,8 +556,14 @@ export default function App() {
   };
 
   const entrarNoAplicativo = async () => {
-    if (!loginEmail.trim() || !loginSenha) {
+    const emailNormalizado = loginEmail.trim().toLowerCase();
+    if (!emailNormalizado || !loginSenha) {
       mostrarAlerta('Atenção', 'Informe seu e-mail e sua senha.', 'warning');
+      return;
+    }
+
+    if (!emailValido(emailNormalizado)) {
+      mostrarAlerta('E-mail inválido', 'Informe um endereço de e-mail válido.', 'warning');
       return;
     }
 
@@ -558,7 +574,7 @@ export default function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: loginEmail.trim(),
+          email: emailNormalizado,
           senha: loginSenha,
         }),
       });
@@ -907,7 +923,7 @@ export default function App() {
                         autoCapitalize="none"
                       />
                       <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarNovaSenha(!mostrarNovaSenha)} accessibilityLabel={mostrarNovaSenha ? 'Ocultar nova senha' : 'Mostrar nova senha'}>
-                        <FontAwesome name={mostrarNovaSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
+                        <FontAwesome name={mostrarNovaSenha ? 'eye' : 'eye-slash'} size={17} color="#80a9ce" />
                       </Pressable>
                     </View>
                     <View style={styles.inputRow}>
@@ -922,7 +938,7 @@ export default function App() {
                         autoCapitalize="none"
                       />
                       <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarConfirmarNovaSenha(!mostrarConfirmarNovaSenha)} accessibilityLabel={mostrarConfirmarNovaSenha ? 'Ocultar confirmação' : 'Mostrar confirmação'}>
-                        <FontAwesome name={mostrarConfirmarNovaSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
+                        <FontAwesome name={mostrarConfirmarNovaSenha ? 'eye' : 'eye-slash'} size={17} color="#80a9ce" />
                       </Pressable>
                     </View>
                     <Text style={styles.passwordCriteriaTitle}>Critérios da senha</Text>
@@ -1095,7 +1111,7 @@ export default function App() {
                   <FontAwesome name="envelope-o" size={17} color="#80a9ce" />
                   <TextInput
                     style={styles.inputField}
-                    placeholder="E-mail ou telefone"
+                    placeholder="exemplo@gmail.com"
                     placeholderTextColor="#8ca8c0"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -1109,12 +1125,12 @@ export default function App() {
                     style={styles.inputField}
                     placeholder="Senha"
                     placeholderTextColor="#8ca8c0"
-                    secureTextEntry={!mostrarSenha}
+                    secureTextEntry={!mostrarLoginSenha}
                     value={loginSenha}
                     onChangeText={setLoginSenha}
                   />
-                  <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarSenha(!mostrarSenha)} accessibilityLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>
-                    <FontAwesome name={mostrarSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
+                  <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarLoginSenha(!mostrarLoginSenha)} accessibilityLabel={mostrarLoginSenha ? 'Ocultar senha' : 'Mostrar senha'}>
+                    <FontAwesome name={mostrarLoginSenha ? 'eye' : 'eye-slash'} size={17} color="#80a9ce" />
                   </Pressable>
                 </View>
                 <Pressable style={styles.forgotPassword} onPress={abrirRecuperacaoSenha}>
@@ -1161,7 +1177,7 @@ export default function App() {
                   <FontAwesome name="envelope-o" size={17} color="#80a9ce" />
                   <TextInput
                     style={styles.inputField}
-                    placeholder="E-mail ou telefone"
+                    placeholder="exemplo@gmail.com"
                     placeholderTextColor="#8ca8c0"
                     keyboardType="email-address"
                     autoCapitalize="none"
@@ -1179,8 +1195,8 @@ export default function App() {
                     value={senha}
                     onChangeText={setSenha}
                   />
-                  <Pressable onPress={() => setMostrarSenha(!mostrarSenha)} accessibilityLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>
-                    <FontAwesome name={mostrarSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
+                  <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarSenha(!mostrarSenha)} accessibilityLabel={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>
+                    <FontAwesome name={mostrarSenha ? 'eye' : 'eye-slash'} size={17} color="#80a9ce" />
                   </Pressable>
                 </View>
                 <View style={styles.inputRow}>
@@ -1194,7 +1210,7 @@ export default function App() {
                     onChangeText={setConfirmarSenha}
                   />
                   <Pressable style={styles.passwordToggleButton} onPress={() => setMostrarConfirmarSenha(!mostrarConfirmarSenha)} accessibilityLabel={mostrarConfirmarSenha ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}>
-                    <FontAwesome name={mostrarConfirmarSenha ? 'eye-slash' : 'eye'} size={17} color="#80a9ce" />
+                    <FontAwesome name={mostrarConfirmarSenha ? 'eye' : 'eye-slash'} size={17} color="#80a9ce" />
                   </Pressable>
                 </View>
                 <Pressable style={styles.formButton} onPress={cadastrarUsuario}>

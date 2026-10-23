@@ -12,6 +12,15 @@ export function formatarData(data) {
     return brasileira ? `${brasileira[1]}/${brasileira[2]}/${brasileira[3]}` : valor;
 }
 
+export function formatarDataParaApi(data) {
+    const valor = String(data || '').trim();
+    const iso = valor.match(/^(\d{4}-\d{2}-\d{2})(?:T.*)?$/);
+    if (iso) return iso[1];
+
+    const brasileira = valor.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    return brasileira ? `${brasileira[3]}-${brasileira[2]}-${brasileira[1]}` : valor;
+}
+
 export function formatarEntradaData(valor) {
     const numeros = String(valor || '').replace(/\D/g, '').slice(0, 8);
 

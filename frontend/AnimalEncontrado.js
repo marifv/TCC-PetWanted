@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import * as ImagePicker from 'expo-image-picker';
-import { formatarData, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
+import { formatarData, formatarDataParaApi, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
@@ -47,7 +47,10 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
 
             if (resposta.ok) {
                 setAnimais(dados
-                    .filter((animal) => animal.tipo_registro === 'Encontrado')
+                    .filter((animal) => (
+                        animal.tipo_registro === 'Encontrado'
+                        && String(animal.status || '').trim().toLowerCase() !== STATUS_DONO_ENCONTRADO.toLowerCase()
+                    ))
                     .map((animal) => ({
                         ...animal,
                         status: animal.status || STATUS_PROCURANDO,
@@ -117,7 +120,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                     sexo: animal.sexo,
                     local_desaparecimento: voltandoParaPerdido ? animal.local : '',
                     local_encontrado: voltandoParaPerdido ? '' : animal.local,
-                    data_evento: animal.data,
+                    data_evento: formatarDataParaApi(animal.data),
                     tipo_registro: voltandoParaPerdido ? 'Perdido' : 'Encontrado',
                     status: voltandoParaPerdido ? 'Perdido' : confirmacaoAlvo.novoStatus,
                     descricao: animal.descricao,
@@ -130,7 +133,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                 return;
             }
 
-            setAnimais((atual) => voltandoParaPerdido
+            setAnimais((atual) => voltandoParaPerdido || confirmacaoAlvo.novoStatus === STATUS_DONO_ENCONTRADO
                 ? atual.filter((item) => item.id !== animal.id)
                 : atual.map((item) => item.id === animal.id ? { ...item, status: confirmacaoAlvo.novoStatus } : item));
             setConfirmacaoAlvo(null);
@@ -233,7 +236,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                     local_encontrado: formulario.local,
                     local_latitude: formulario.local_latitude,
                     local_longitude: formulario.local_longitude,
-                    data_evento: formulario.data,
+                    data_evento: formatarDataParaApi(formulario.data),
                     tipo_registro: 'Encontrado',
                     descricao: formulario.descricao,
                     foto: formulario.foto || null,
