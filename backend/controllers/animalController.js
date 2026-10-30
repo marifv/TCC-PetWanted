@@ -30,10 +30,15 @@ const CAMPOS_RETORNO = `
     status,
     idade,
     faixa_etaria AS "faixaEtaria",
-    responsavel,
-    contato,
     descricao,
     foto
+`;
+
+const CAMPOS_RETORNO_LISTAGEM = `
+    ${CAMPOS_RETORNO},
+    (SELECT usuario.nome FROM usuarios usuario WHERE usuario.id = animais.id_usuario) AS usuario_nome,
+    (SELECT usuario.foto FROM usuarios usuario WHERE usuario.id = animais.id_usuario) AS usuario_foto,
+    (SELECT usuario.tipo_perfil FROM usuarios usuario WHERE usuario.id = animais.id_usuario) AS usuario_tipo_perfil
 `;
 
 const TIPOS_REGISTRO = ['Perdido', 'Encontrado', 'Adocao'];
@@ -110,8 +115,6 @@ function obterDadosRegistro(body, usuarioId) {
         status: body.status || null,
         idade: tipoRegistro === 'Adocao' ? body.idade?.trim() : null,
         faixaEtaria: body.faixa_etaria?.trim() || null,
-        responsavel: tipoRegistro === 'Adocao' ? body.responsavel?.trim() : null,
-        contato: tipoRegistro === 'Adocao' ? body.contato?.trim() : null,
         descricao: body.descricao?.trim() || null,
         foto: body.foto ? String(body.foto).trim() : null,
     };
@@ -171,8 +174,6 @@ function validarRegistro(dados) {
             ['nome', dados.nome],
             ['idade', dados.idade],
             ['faixa etária', dados.faixaEtaria],
-            ['responsável', dados.responsavel],
-            ['contato', dados.contato],
         ];
         camposAdocaoObrigatorios.forEach(([nome, valor]) => {
             if (!textoPreenchido(valor)) falhas.push(`campo obrigatório faltando: ${nome}`);
@@ -209,7 +210,7 @@ function validarRegistro(dados) {
 async function listarAnimaisPerdidos(req, res) {
     try {
         const resultado = await pool.query(
-            `SELECT ${CAMPOS_RETORNO}
+            `SELECT ${CAMPOS_RETORNO_LISTAGEM}
              FROM animais
              WHERE tipo_registro = 'Perdido'
              ORDER BY id_animal DESC`
@@ -225,7 +226,7 @@ async function listarAnimaisPerdidos(req, res) {
 async function listarAnimaisEncontrados(req, res) {
     try {
         const resultado = await pool.query(
-            `SELECT ${CAMPOS_RETORNO}
+            `SELECT ${CAMPOS_RETORNO_LISTAGEM}
              FROM animais
              WHERE tipo_registro = 'Encontrado'
              ORDER BY id_animal DESC`
@@ -241,7 +242,7 @@ async function listarAnimaisEncontrados(req, res) {
 async function listarAnimaisAdocao(req, res) {
     try {
         const resultado = await pool.query(
-            `SELECT ${CAMPOS_RETORNO}
+            `SELECT ${CAMPOS_RETORNO_LISTAGEM}
              FROM animais
                          WHERE tipo_registro = 'Adocao'
                              AND status IS DISTINCT FROM 'Animal Adotado'
@@ -274,8 +275,8 @@ async function criarRegistro(req, res) {
                 nome, especie, raca, cor, porte, sexo,
                 local_desaparecimento, local_encontrado, data_evento,
                 tipo_registro, id_usuario, status, idade, faixa_etaria,
-                responsavel, contato, descricao, local_latitude, local_longitude
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+                descricao, local_latitude, local_longitude
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             RETURNING ${CAMPOS_RETORNO}`,
             [
                 dados.nome,
@@ -292,8 +293,6 @@ async function criarRegistro(req, res) {
                 dados.status || (dados.tipoRegistro === 'Encontrado' ? 'Procurando Dono' : dados.tipoRegistro === 'Adocao' ? 'Animal para Adoção' : 'Perdido'),
                 dados.idade || null,
                 dados.faixaEtaria || null,
-                dados.responsavel || null,
-                dados.contato || null,
                 dados.descricao,
                 dados.localLatitude,
                 dados.localLongitude,
@@ -335,10 +334,10 @@ async function atualizarRegistro(req, res) {
                 nome = $1, especie = $2, raca = $3, cor = $4, porte = $5, sexo = $6,
                 local_desaparecimento = $7, local_encontrado = $8, data_evento = $9,
                 tipo_registro = $10, status = $11, idade = $12, faixa_etaria = $13,
-                responsavel = $14, contato = $15, descricao = $16,
-                local_latitude = COALESCE($17, local_latitude),
-                local_longitude = COALESCE($18, local_longitude)
-            WHERE id_animal = $19 AND id_usuario = $20
+                descricao = $14,
+                local_latitude = COALESCE($15, local_latitude),
+                local_longitude = COALESCE($16, local_longitude)
+            WHERE id_animal = $17 AND id_usuario = $18
             RETURNING ${CAMPOS_RETORNO}`,
             [
                 dados.nome,
@@ -354,8 +353,6 @@ async function atualizarRegistro(req, res) {
                 dados.status || (dados.tipoRegistro === 'Encontrado' ? 'Procurando Dono' : dados.tipoRegistro === 'Adocao' ? 'Animal para Adoção' : 'Perdido'),
                 dados.idade || null,
                 dados.faixaEtaria || null,
-                dados.responsavel || null,
-                dados.contato || null,
                 dados.descricao,
                 dados.localLatitude,
                 dados.localLongitude,

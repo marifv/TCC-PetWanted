@@ -9,6 +9,8 @@ import { formatarData, formatarDataParaApi, formatarEntradaData, validarDataNaoF
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
+import AnuncioAutor from './AnuncioAutor';
+import NotificationBell from './NotificationBell';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -26,7 +28,7 @@ function novoFormulario() {
     return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
 }
 
-export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
+export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao, abrirChat, mensagensNaoLidas, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
     const [animais, setAnimais] = useState([]);
     const listaRef = useRef(null);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
@@ -264,9 +266,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                 <Text style={styles.titulo}>Animais Perdidos</Text>
 
                 <View style={styles.acoesHeader}>
-                    <View style={styles.notificationButton}>
-                        <FontAwesome name="bell" size={17} color="#6e8ba3" />
-                    </View>
+                    <NotificationBell token={token} onPress={abrirChat} containerStyle={styles.notificationButton} />
 
                     <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>
@@ -386,6 +386,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                         </View>
 
                         <View style={styles.infoContainer}>
+                            <AnuncioAutor animal={animal} nomeUsuario={nome} fotoUsuario={fotoPerfil} onIniciarChat={abrirChat} />
                             <View style={styles.chipsContainer}>
                                 <Text style={styles.infoChip}>Cor <Text style={styles.infoChipValor}>{animal.cor || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Porte <Text style={styles.infoChipValor}>{animal.porte || '-'}</Text></Text>
@@ -434,7 +435,9 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                 active="perdidos"
                 onMap={onVoltar}
                 onFound={abrirAnimalEncontrado}
+                onChat={abrirChat}
                 onAdoption={abrirAdocao}
+                mensagensNaoLidas={mensagensNaoLidas}
                 containerStyle={styles.rodape}
             />
 

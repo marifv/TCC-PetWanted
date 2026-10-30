@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE usuarios DROP COLUMN IF EXISTS telefone;
+ALTER TABLE animais DROP COLUMN IF EXISTS responsavel;
+ALTER TABLE animais DROP COLUMN IF EXISTS contato;
+
+COMMIT;

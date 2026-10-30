@@ -55,7 +55,6 @@ async function loginUsuario(req, res) {
             nome: usuario.rows[0].nome,
             email: usuario.rows[0].email,
             documento: usuario.rows[0].documento,
-            telefone: usuario.rows[0].telefone,
             localizacao: usuario.rows[0].localizacao,
             latitude: usuario.rows[0].latitude,
             longitude: usuario.rows[0].longitude,

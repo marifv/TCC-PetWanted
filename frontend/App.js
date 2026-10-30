@@ -11,12 +11,24 @@ import AnimalPerdido from './AnimalPerdido';
 import AnimalEncontrado from './AnimalEncontrado';
 import AnimalAdocao from './AnimalAdocao';
 import EdicaoAnimal from './EdicaoAnimal';
-import { API_ANIMAIS, API_USUARIOS } from './config/api';
+import Chat from './Chat';
+import { registrarPushNotifications } from './services/pushNotifications';
+import { API_ANIMAIS, API_BASE_URL, API_USUARIOS } from './config/api';
 import { formatarDataParaApi } from './utils/formatarData';
 
 const API_URL = API_USUARIOS;
 
 const emailValido = (valor) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+
+async function carregarQuantidadeNaoLidas(token) {
+  if (!token) return 0;
+  const resposta = await fetch(`${API_BASE_URL}/chat/notificacoes`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!resposta.ok) return 0;
+  const dados = await resposta.json();
+  return Number(dados.naoLidas) || 0;
+}
 
 export default function App() {
   const [telaSelecionada, setTelaSelecionada] = useState('entrar');
@@ -28,6 +40,9 @@ export default function App() {
   const [animalPerdidoAtivo, setAnimalPerdidoAtivo] = useState(false);
   const [animalEncontradoAtivo, setAnimalEncontradoAtivo] = useState(false);
   const [animalAdocaoAtivo, setAnimalAdocaoAtivo] = useState(false);
+  const [chatAtivo, setChatAtivo] = useState(false);
+  const [mensagensNaoLidas, setMensagensNaoLidas] = useState(0);
+  const [anuncioParaChat, setAnuncioParaChat] = useState(null);
   const [animalEditando, setAnimalEditando] = useState(null);
   const [origemEdicaoAnimal, setOrigemEdicaoAnimal] = useState(null);
   const [anuncioSelecionadoMapa, setAnuncioSelecionadoMapa] = useState(null);
@@ -36,7 +51,6 @@ export default function App() {
   const [nome, setNome] = useState('');
   const [documento, setDocumento] = useState('');
   const [email, setEmail] = useState('');
-  const [telefone, setTelefone] = useState('');
   const [localizacao, setLocalizacao] = useState('');
   const [loginEmail, setLoginEmail] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -67,6 +81,55 @@ export default function App() {
 
   const deslocamentoBotao = useRef(new Animated.Value(0)).current;
   const perfilOffset = useRef(new Animated.Value(400)).current;
+
+  useEffect(() => {
+    if (!token) return undefined;
+
+    let ativo = true;
+    let cancelarNotificacoes = () => {};
+    registrarPushNotifications(token).then((cancelar) => {
+      if (ativo) cancelarNotificacoes = cancelar;
+      else cancelar();
+    });
+
+    return () => {
+      ativo = false;
+      cancelarNotificacoes();
+    };
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      setMensagensNaoLidas(0);
+      return undefined;
+    }
+
+    let ativo = true;
+    const atualizar = async () => {
+      try {
+        const quantidade = await carregarQuantidadeNaoLidas(token);
+        if (ativo) setMensagensNaoLidas(quantidade);
+      } catch (erro) {
+        console.warn('Não foi possível atualizar o contador de mensagens:', erro.message);
+      }
+    };
+
+    atualizar();
+    const intervalo = setInterval(atualizar, 5000);
+    return () => {
+      ativo = false;
+      clearInterval(intervalo);
+    };
+  }, [token]);
+
+  const atualizarContadorMensagens = async () => {
+    try {
+      const quantidade = await carregarQuantidadeNaoLidas(token);
+      setMensagensNaoLidas(quantidade);
+    } catch (erro) {
+      console.warn('Não foi possível atualizar o contador de mensagens:', erro.message);
+    }
+  };
 
   const mostrarAlerta = (titulo, mensagem, tipo = 'info') => {
     Alert.alert(titulo, mensagem, [{ text: 'OK' }]);
@@ -243,6 +306,7 @@ export default function App() {
     setAnimalPerdidoAtivo(true);
     setAnimalEncontradoAtivo(false);
     setAnimalAdocaoAtivo(false);
+    setChatAtivo(false);
   };
 
   const voltarParaHomeAnimalPerdido = () => {
@@ -253,6 +317,7 @@ export default function App() {
     setAnimalEncontradoAtivo(true);
     setAnimalPerdidoAtivo(false);
     setAnimalAdocaoAtivo(false);
+    setChatAtivo(false);
   };
 
   const voltarParaHomeAnimalEncontrado = () => {
@@ -263,6 +328,16 @@ export default function App() {
     setAnimalAdocaoAtivo(true);
     setAnimalPerdidoAtivo(false);
     setAnimalEncontradoAtivo(false);
+    setChatAtivo(false);
+  };
+
+  const abrirChat = (anuncio = null) => {
+    setAnuncioParaChat(anuncio);
+    setPerfilAtivo(false);
+    setChatAtivo(true);
+    setAnimalPerdidoAtivo(false);
+    setAnimalEncontradoAtivo(false);
+    setAnimalAdocaoAtivo(false);
   };
 
   const abrirAnuncioMapa = (animal) => {
@@ -286,17 +361,17 @@ export default function App() {
     setNome('');
     setDocumento('');
     setEmail('');
-    setTelefone('');
     setLocalizacao('');
     setTipoPerfil('');
     setFotoPerfil(null);
     setLoginEmail('');
     setLoginSenha('');
-    setTelaSelecionada(null);
+    setTelaSelecionada('entrar');
     setPerfilAtivo(false);
     setAnimalPerdidoAtivo(false);
     setAnimalEncontradoAtivo(false);
     setAnimalAdocaoAtivo(false);
+    setChatAtivo(false);
     setTelaAtual('login');
   };
 
@@ -360,7 +435,6 @@ export default function App() {
     try {
       const payload = {
         nome: nome || '',
-        telefone: telefone || '',
         localizacao: localizacao || 'Localização atual',
         latitude: coordenadas.latitude,
         longitude: coordenadas.longitude,
@@ -395,7 +469,6 @@ export default function App() {
   const salvarPerfil = async (
     novoNome,
     novoTipoPerfil,
-    novoTelefone,
     novaLocalizacao,
     novaFotoPerfil,
     novasCoordenadas
@@ -408,7 +481,6 @@ export default function App() {
         },
         body: JSON.stringify({
           nome: novoNome,
-          telefone: novoTelefone,
           localizacao: novaLocalizacao,
           latitude: novasCoordenadas?.latitude,
           longitude: novasCoordenadas?.longitude,
@@ -425,7 +497,6 @@ export default function App() {
 
       setNome(dados.nome);
       setTipoPerfil(dados.tipo_perfil);
-      setTelefone(dados.telefone || '');
       setLocalizacao(dados.localizacao || '');
       if (novasCoordenadas) {
         setCoordenadasUsuario(novasCoordenadas);
@@ -463,7 +534,6 @@ export default function App() {
       setNome('');
       setDocumento('');
       setEmail('');
-      setTelefone('');
       setLocalizacao('');
       setTipoPerfil('');
       setFotoPerfil(null);
@@ -473,7 +543,7 @@ export default function App() {
       setAnimalPerdidoAtivo(false);
       setAnimalEncontradoAtivo(false);
       setAnimalAdocaoAtivo(false);
-      setTelaSelecionada(null);
+      setTelaSelecionada('entrar');
       setTelaAtual('login');
       mostrarAlerta('Perfil excluído', 'Seu perfil foi excluído com sucesso.', 'success');
     } catch (erro) {
@@ -596,7 +666,6 @@ export default function App() {
       setEmail(dados.email || loginEmail.trim());
       setDocumento(dados.documento || '');
       setTipoPerfil(dados.tipo_perfil || '');
-      setTelefone(dados.telefone || '');
       setLocalizacao(dados.localizacao || '');
       setFotoPerfil(dados.foto || null);
       setTelaAtual('homepage');
@@ -617,7 +686,6 @@ export default function App() {
     setEmail(dados.email || '');
     setDocumento(dados.documento || '');
     setTipoPerfil(dados.tipo_perfil || '');
-    setTelefone(dados.telefone || '');
     setLocalizacao(dados.localizacao || '');
     setFotoPerfil(dados.foto || null);
     setGoogleIdToken('');
@@ -1250,7 +1318,7 @@ export default function App() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
     <View style={styles.container}>
-      {!perfilAtivo && !animalPerdidoAtivo && !animalEncontradoAtivo && !animalAdocaoAtivo && (
+      {!perfilAtivo && !animalPerdidoAtivo && !animalEncontradoAtivo && !animalAdocaoAtivo && !chatAtivo && (
         <Homepage
           setTelaAtual={abrirPerfil}
           telaAtual={telaAtual}
@@ -1259,10 +1327,31 @@ export default function App() {
           abrirAnimalPerdido={abrirAnimalPerdido}
           abrirAnimalEncontrado={abrirAnimalEncontrado}
           abrirAdocao={abrirAnimalAdocao}
+          abrirChat={abrirChat}
           usuarioId={usuarioId}
           token={token}
           onSalvarLocalizacao={salvarLocalizacaoUsuario}
           onOpenAnnouncement={abrirAnuncioMapa}
+          onIniciarChat={abrirChat}
+          mensagensNaoLidas={mensagensNaoLidas}
+        />
+      )}
+
+      {chatAtivo && !perfilAtivo && (
+        <Chat
+          usuarioId={usuarioId}
+          nomeUsuario={nome}
+          token={token}
+          onLost={abrirAnimalPerdido}
+          onFound={abrirAnimalEncontrado}
+          onAdoption={abrirAnimalAdocao}
+          onVoltar={() => {
+            setChatAtivo(false);
+            setAnuncioParaChat(null);
+          }}
+          anuncioParaChat={anuncioParaChat}
+          mensagensNaoLidas={mensagensNaoLidas}
+          onMensagensLidas={atualizarContadorMensagens}
         />
       )}
 
@@ -1278,9 +1367,11 @@ export default function App() {
               tipoPerfil={tipoPerfil}
               email={email}
               documento={documento}
-              telefone={telefone}
               localizacao={localizacao}
               fotoPerfil={fotoPerfil}
+              token={token}
+              abrirChat={abrirChat}
+              mensagensNaoLidas={mensagensNaoLidas}
             />
           )}
 
@@ -1289,7 +1380,6 @@ export default function App() {
               onVoltar={voltarParaPerfil}
               nome={nome}
               tipoPerfil={tipoPerfil}
-              telefone={telefone}
               localizacao={localizacao}
               fotoPerfil={fotoPerfil}
               token={token}
@@ -1312,6 +1402,8 @@ export default function App() {
             setTelaAtual={abrirPerfil}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
             abrirAdocao={abrirAnimalAdocao}
+            abrirChat={abrirChat}
+              mensagensNaoLidas={mensagensNaoLidas}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'perdido', atualizarLista)}
             animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Perdido' ? anuncioSelecionadoMapa.id : null}
             onAnuncioAlvoExibido={() => setAnuncioSelecionadoMapa(null)}
@@ -1330,6 +1422,8 @@ export default function App() {
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAdocao={abrirAnimalAdocao}
+            abrirChat={abrirChat}
+              mensagensNaoLidas={mensagensNaoLidas}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'encontrado', atualizarLista)}
             animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Encontrado' ? anuncioSelecionadoMapa.id : null}
             onAnuncioAlvoExibido={() => setAnuncioSelecionadoMapa(null)}
@@ -1348,6 +1442,7 @@ export default function App() {
             setTelaAtual={abrirPerfil}
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
+            abrirChat={abrirChat}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'adocao', atualizarLista)}
             animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Adocao' ? anuncioSelecionadoMapa.id : null}
             onAnuncioAlvoExibido={() => setAnuncioSelecionadoMapa(null)}

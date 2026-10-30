@@ -7,10 +7,9 @@ import * as ImagePicker from 'expo-image-picker';
 import Pressable from './ButtonPressable';
 import GooglePlacesInput from './GooglePlacesInput';
 
-export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil, token, onSalvar }) {
+export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, documento, localizacao, fotoPerfil, token, onSalvar }) {
     const [novoNome, setNovoNome] = useState(nome || '');
     const [novoTipoPerfil, setNovoTipoPerfil] = useState(tipoPerfil || '');
-    const [novoTelefone, setNovoTelefone] = useState(telefone || '');
     const [novaLocalizacao, setNovaLocalizacao] = useState(localizacao || '');
     const [coordenadasLocalizacao, setCoordenadasLocalizacao] = useState(null);
     const [novaFotoPerfil, setNovaFotoPerfil] = useState(fotoPerfil || null);
@@ -60,11 +59,6 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
             return;
         }
 
-        if (!novoTelefone.trim()) {
-            mostrarModal('Atenção', 'Digite um telefone para o perfil.');
-            return;
-        }
-
         if (!novaLocalizacao.trim()) {
             mostrarModal('Atenção', 'Digite uma localização para o perfil.');
             return;
@@ -78,7 +72,6 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
         onSalvar(
             novoNome.trim(),
             novoTipoPerfil,
-            novoTelefone.trim(),
             novaLocalizacao.trim(),
             novaFotoPerfil,
             coordenadasLocalizacao
@@ -163,22 +156,6 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
                         </View>
                         <FontAwesome name="lock" size={15} color="#9ab2c7" />
                     </Pressable>
-                    <View style={styles.info}>
-                        <View style={styles.infoIcon}>
-                            <FontAwesome name="phone" size={16} color="#6b9bc5" />
-                        </View>
-                        <View style={styles.infoTexto}>
-                            <Text style={styles.label}>Telefone</Text>
-                            <TextInput
-                                style={styles.valorInput}
-                                placeholder="Digite seu telefone"
-                                placeholderTextColor="#8ca8c0"
-                                keyboardType="phone-pad"
-                                value={novoTelefone}
-                                onChangeText={setNovoTelefone}
-                            />
-                        </View>
-                    </View>
                     <View style={[styles.info, styles.infoLast]}>
                         <View style={styles.infoIcon}>
                             <FontAwesome name="map-marker" size={16} color="#6b9bc5" />

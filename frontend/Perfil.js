@@ -4,8 +4,9 @@ import { Modal, Platform, StatusBar as NativeStatusBar, StyleSheet, Text, View, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
+import NotificationBell from './NotificationBell';
 
-export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar, nome, tipoPerfil, email, documento, telefone, localizacao, fotoPerfil }) {
+export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar, nome, tipoPerfil, email, documento, localizacao, fotoPerfil, token, abrirChat }) {
     const [confirmacaoExclusaoVisivel, setConfirmacaoExclusaoVisivel] = useState(false);
     const [confirmacaoEdicaoVisivel, setConfirmacaoEdicaoVisivel] = useState(false);
 
@@ -20,9 +21,7 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
 
                 <Text style={styles.headerTitle}>Meu perfil</Text>
                 <View style={styles.headerRight}>
-                    <Pressable style={styles.headerIconButton} accessibilityLabel="Notificações">
-                        <FontAwesome name="bell-o" size={16} color="#6887a4" />
-                    </Pressable>
+                    <NotificationBell token={token} onPress={abrirChat} />
                     <Pressable
                         style={styles.headerIconButton}
                         onPress={() => setConfirmacaoEdicaoVisivel(true)}
@@ -75,16 +74,6 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
                         <View style={styles.infoTexto}>
                             <Text style={styles.label}>E-mail</Text>
                             <Text style={styles.valor}>{email || 'seu.email@exemplo.com'}</Text>
-                        </View>
-                    </View>
-
-                    <View style={styles.cardInfo}>
-                        <View style={styles.infoIcon}>
-                            <FontAwesome name="phone" size={16} color="#6b9bc5" />
-                        </View>
-                        <View style={styles.infoTexto}>
-                            <Text style={styles.label}>Telefone</Text>
-                            <Text style={styles.valor}>{telefone || 'Seu telefone'}</Text>
                         </View>
                     </View>
 

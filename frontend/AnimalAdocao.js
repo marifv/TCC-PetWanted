@@ -9,6 +9,8 @@ import { formatarData, formatarDataParaApi } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
+import AnuncioAutor from './AnuncioAutor';
+import NotificationBell from './NotificationBell';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -23,7 +25,7 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', idade: '', unidadeIdade: 'Anos', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, descricao: '', responsavel: '', contato: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', idade: '', unidadeIdade: 'Anos', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, descricao: '', foto: null };
 }
 
 function formatarIdadeAnimal(idade, unidade) {
@@ -47,7 +49,7 @@ function formatarDataAtual() {
     return `${ano}-${mes}-${dia}`;
 }
 
-export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
+export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, mensagensNaoLidas, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
     const [animais, setAnimais] = useState([]);
     const listaRef = useRef(null);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
@@ -169,9 +171,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
             !formulario.faixaEtaria ||
             !formulario.local ||
             !formulario.descricao ||
-            !formulario.responsavel ||
-            !formulario.contato
-            || !formulario.foto
+            !formulario.foto
         ) {
             abrirMensagem(
                 'Atenção',
@@ -210,8 +210,6 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                     tipo_registro: 'Adocao',
                     idade: formatarIdadeAnimal(formulario.idade, formulario.unidadeIdade),
                     faixa_etaria: formulario.faixaEtaria,
-                    responsavel: formulario.responsavel,
-                    contato: formulario.contato,
                     descricao: formulario.descricao,
                     foto: formulario.foto || null,
                 }),
@@ -277,8 +275,6 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                     status: confirmacaoAlvo.novoStatus,
                     idade: animal.idade,
                     faixa_etaria: animal.faixaEtaria,
-                    responsavel: animal.responsavel,
-                    contato: animal.contato,
                     descricao: animal.descricao,
                 }),
             });
@@ -425,9 +421,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                 <Text style={styles.titulo}>Animais para Adoção</Text>
 
                 <View style={styles.acoesHeader}>
-                    <View style={styles.notificationButton}>
-                        <FontAwesome name="bell" size={17} color="#6e8ba3" />
-                    </View>
+                    <NotificationBell token={token} onPress={abrirChat} containerStyle={styles.notificationButton} />
 
                     <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>
@@ -620,6 +614,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                         </View>
 
                         <View style={styles.infoContainer}>
+                            <AnuncioAutor animal={animal} nomeUsuario={nome} fotoUsuario={fotoPerfil} onIniciarChat={abrirChat} />
                             <View style={styles.chipsContainer}>
                                 <Text style={styles.infoChip}>Cor <Text style={styles.infoChipValor}>{animal.cor || '-'}</Text></Text>
                                 <Text style={styles.infoChip}>Porte <Text style={styles.infoChipValor}>{animal.porte || '-'}</Text></Text>
@@ -637,30 +632,6 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
 
                                 <Text style={styles.textoComIcone} numberOfLines={2}>
                                     {animal.local}
-                                </Text>
-                            </View>
-
-                            <View style={styles.linhaComIcone}>
-                                <FontAwesome
-                                    name="user"
-                                    size={13}
-                                    color="#6e9fc8"
-                                />
-
-                                <Text style={styles.textoComIcone} numberOfLines={1}>
-                                    Responsável: {animal.responsavel}
-                                </Text>
-                            </View>
-
-                            <View style={styles.linhaComIcone}>
-                                <FontAwesome
-                                    name="phone"
-                                    size={13}
-                                    color="#6e9fc8"
-                                />
-
-                                <Text style={styles.textoComIcone} numberOfLines={1}>
-                                    Contato: {animal.contato}
                                 </Text>
                             </View>
 
@@ -745,6 +716,8 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                 onMap={onVoltar}
                 onLost={abrirAnimalPerdido}
                 onFound={abrirAnimalEncontrado}
+                onChat={abrirChat}
+                mensagensNaoLidas={mensagensNaoLidas}
                 containerStyle={styles.rodape}
             />
 
@@ -918,8 +891,6 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                                 onLocationSelected={(coordenadas) => setFormulario((atual) => ({ ...atual, local_latitude: coordenadas.latitude, local_longitude: coordenadas.longitude }))}
                                 token={token}
                             />
-                            {renderCampo('Responsável *', 'responsavel', 'Nome do responsável')}
-                            {renderCampo('Contato *', 'contato', 'Telefone ou WhatsApp', { keyboardType: 'phone-pad' })}
                             {renderCampo('Descrição *', 'descricao', 'Características, comportamento, cuidados, etc.', { multiline: true, numberOfLines: 4 })}
 
                             <Pressable

@@ -24,7 +24,6 @@ function dadosDaSessao(usuario) {
         nome: usuario.nome,
         email: usuario.email,
         documento: usuario.documento,
-        telefone: usuario.telefone,
         localizacao: usuario.localizacao,
         latitude: usuario.latitude,
         longitude: usuario.longitude,
@@ -88,7 +87,7 @@ async function loginGoogle(req, res) {
     try {
         const identidade = await verificarTokenGoogle(req.body?.idToken);
         const usuarioPorGoogle = await pool.query(
-            `SELECT id, nome, email, documento, telefone, localizacao,
+            `SELECT id, nome, email, documento, localizacao,
                     latitude, longitude, tipo_perfil, foto
              FROM usuarios WHERE google_sub = $1`,
             [identidade.sub]
@@ -284,7 +283,7 @@ async function cadastrarComGoogle(req, res) {
             `INSERT INTO usuarios
                 (id, nome, email, documento, senha, tipo_perfil, google_sub)
              VALUES ($1, $2, $3, $4, NULL, $5, $6)
-             RETURNING id, nome, email, documento, telefone, localizacao,
+             RETURNING id, nome, email, documento, localizacao,
                        latitude, longitude, tipo_perfil, foto`,
             [
                 proximoId.rows[0].id,

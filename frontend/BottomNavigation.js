@@ -16,6 +16,7 @@ export default function BottomNavigation({
   onFound,
   onChat,
   onAdoption,
+  mensagensNaoLidas = 0,
   containerStyle,
 }) {
   const handlers = { onMap, onLost, onFound, onChat, onAdoption };
@@ -44,6 +45,11 @@ export default function BottomNavigation({
                     size={item.id === 'encontrados' ? 34 : 30}
                     color={selected ? '#1677ed' : '#82a3c0'}
                   />
+                  {item.id === 'chat' && mensagensNaoLidas > 0 ? (
+                    <View style={styles.unreadBadge}>
+                      <Text style={styles.unreadBadgeText}>{mensagensNaoLidas > 99 ? '99+' : mensagensNaoLidas}</Text>
+                    </View>
+                  ) : null}
                   {item.id === 'encontrados' && (
                     <MaterialCommunityIcons
                       name="paw"
@@ -116,6 +122,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 12,
   },
+  unreadBadge: {
+    position: 'absolute',
+    top: 1,
+    right: 0,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9,
+    borderWidth: 1,
+    borderColor: '#ffffff',
+    backgroundColor: '#df524f',
+  },
+  unreadBadgeText: { color: '#ffffff', fontSize: 9, lineHeight: 12, fontWeight: '700' },
   label: {
     maxWidth: '100%',
     color: '#82a3c0',

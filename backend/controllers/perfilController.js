@@ -4,12 +4,12 @@ const { salvarImagem } = require('../services/imageStorage');
 async function modificarPerfil(req, res) {
     try {
         const { id } = req.params;
-        const { nome, telefone, localizacao, foto, latitude, longitude } = req.body;
+        const { nome, localizacao, foto, latitude, longitude } = req.body;
         const atualizacaoLocalizacao = latitude != null && longitude != null;
 
-        if ((!nome?.trim() || !telefone?.trim()) && !atualizacaoLocalizacao) {
+        if (!nome?.trim() && !atualizacaoLocalizacao && !foto) {
             return res.status(400).json({
-                mensagem: 'Preencha nome e telefone.'
+            mensagem: 'Informe o nome ou a localização do perfil.'
             });
         }
 
@@ -23,16 +23,14 @@ async function modificarPerfil(req, res) {
         const resultado = await pool.query(
             `UPDATE usuarios
              SET nome = COALESCE($1, nome),
-                 telefone = COALESCE($2, telefone),
-                 localizacao = COALESCE($3, localizacao),
-                 latitude = CASE WHEN $4::double precision IS NULL THEN latitude ELSE $4::double precision END,
-                 longitude = CASE WHEN $5::double precision IS NULL THEN longitude ELSE $5::double precision END,
-                 foto = COALESCE($6, foto)
-             WHERE id = $7
-             RETURNING id, nome, email, documento, telefone, localizacao, latitude, longitude, tipo_perfil, foto`,
+                 localizacao = COALESCE($2, localizacao),
+                 latitude = CASE WHEN $3::double precision IS NULL THEN latitude ELSE $3::double precision END,
+                 longitude = CASE WHEN $4::double precision IS NULL THEN longitude ELSE $4::double precision END,
+                 foto = COALESCE($5, foto)
+             WHERE id = $6
+             RETURNING id, nome, email, documento, localizacao, latitude, longitude, tipo_perfil, foto`,
             [
                 nome?.trim() || null,
-                telefone?.trim() || null,
                 localizacao?.trim() || null,
                 latitude ?? null,
                 longitude ?? null,

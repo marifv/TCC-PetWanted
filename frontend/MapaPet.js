@@ -6,6 +6,7 @@ import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { API_ANIMAIS } from './config/api';
 import Pressable from './ButtonPressable';
+import AnuncioAutor from './AnuncioAutor';
 
 const downloadsFotosMarcadores = new Map();
 
@@ -69,7 +70,7 @@ function baixarImagemMarcador(url, tipoRegistro, status) {
   return download;
 }
 
-export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenAnnouncement }) {
+export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenAnnouncement, onIniciarChat }) {
   const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erroLocalizacao, setErroLocalizacao] = useState('');
@@ -392,6 +393,10 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
             </View>
           )}
           <View style={styles.animalCardDetails}>
+            <AnuncioAutor
+              animal={{ ...animalSelecionado, meuAnimal: String(animalSelecionado.id_usuario) === String(usuarioId) }}
+              onIniciarChat={onIniciarChat}
+            />
             <Text style={[
               styles.animalCardStatus,
               animalSelecionado.status !== 'Dono encontrado' && styles.animalCardStatusProcurando,

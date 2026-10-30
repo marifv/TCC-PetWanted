@@ -28,8 +28,6 @@ function valorInicial(animal) {
         idade: idadeTexto.match(/\d+/)?.[0] || '',
         unidadeIdade,
         faixaEtaria: animal?.faixaEtaria || '',
-        responsavel: animal?.responsavel || '',
-        contato: animal?.contato || '',
         descricao: animal?.descricao || '',
         foto: animal?.foto || null,
     };
@@ -114,8 +112,8 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                 mostrarMensagem('A descrição é obrigatória para anúncios de adoção.');
                 return;
             }
-            if (!formulario.faixaEtaria || !formulario.responsavel.trim() || !formulario.contato.trim() || !formulario.foto) {
-                mostrarMensagem('Faixa etária, foto, responsável e contato são obrigatórios para adoção.');
+            if (!formulario.faixaEtaria || !formulario.foto) {
+                mostrarMensagem('Faixa etária e foto são obrigatórias para adoção.');
                 return;
             }
         }
@@ -139,8 +137,6 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                 ? formatarIdadeAnimal(formulario.idade, formulario.unidadeIdade)
                 : formulario.idade,
             faixa_etaria: formulario.faixaEtaria,
-            responsavel: formulario.responsavel,
-            contato: formulario.contato,
             descricao: formulario.descricao,
             foto: fotoParaEnviar,
         });
@@ -175,8 +171,8 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                 mostrarMensagem('A descrição é obrigatória para anúncios de adoção.');
                 return;
             }
-            if (!formulario.faixaEtaria || !formulario.responsavel.trim() || !formulario.contato.trim() || !formulario.foto) {
-                mostrarMensagem('Faixa etária, foto, responsável e contato são obrigatórios para adoção.');
+            if (!formulario.faixaEtaria || !formulario.foto) {
+                mostrarMensagem('Faixa etária e foto são obrigatórias para adoção.');
                 return;
             }
         }
@@ -325,10 +321,6 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                             keyboardType="numeric"
                             maxLength={formulario.unidadeIdade === 'Meses' ? 2 : 3}
                         />
-                        <Text style={styles.label}>Responsável *</Text>
-                        <TextInput style={styles.input} value={formulario.responsavel} onChangeText={(valor) => atualizarCampo('responsavel', valor)} />
-                        <Text style={styles.label}>Contato *</Text>
-                        <TextInput style={styles.input} value={formulario.contato} onChangeText={(valor) => atualizarCampo('contato', valor)} keyboardType="phone-pad" />
                     </>
                 )}
                 <Text style={styles.label}>{tipo === 'Adocao' ? 'Faixa etária *' : 'Faixa etária'}</Text>

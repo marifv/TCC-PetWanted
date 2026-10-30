@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-firebase/app": "^23.8.6",
+    "@react-native-firebase/messaging": "^23.8.6",
     "@react-native-google-signin/google-signin": "^16.1.5",
     "expo": "~57.0.27",
     "expo-file-system": "~57.0.7",
@@ -21,7 +23,8 @@
     "react-native": "0.86.3",
     "react-native-maps": "1.27.2",
     "react-native-safe-area-context": "~5.7.0",
-    "react-native-web": "^0.21.0"
+    "react-native-web": "^0.21.0",
+    "socket.io-client": "^4.8.1"
   },
   "private": true,
   "devDependencies": {

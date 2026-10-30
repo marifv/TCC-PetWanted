@@ -5,8 +5,9 @@ import { FontAwesome } from '@expo/vector-icons';
 import MapaPet from './MapaPet';
 import BottomNavigation from './BottomNavigation';
 import Pressable from './ButtonPressable';
+import NotificationBell from './NotificationBell';
 
-export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, onOpenAnnouncement, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome }) {
+export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, onOpenAnnouncement, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome, mensagensNaoLidas }) {
 	const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
 
 	return (
@@ -20,9 +21,7 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 					<Text style={styles.appName}>PetWanted</Text>
 				</View>
 				<View style={styles.headerActions}>
-					<Pressable style={styles.headerIconButton} accessibilityLabel="Notificações">
-						<FontAwesome name="bell-o" size={16} color="#6887a4" />
-					</Pressable>
+					<NotificationBell token={token} onPress={abrirChat} />
 					<Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
 						<View style={styles.avatar}>
 							{fotoPerfil ? (
@@ -41,6 +40,7 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 					token={token}
 					onSalvarLocalizacao={onSalvarLocalizacao}
 					onOpenAnnouncement={onOpenAnnouncement}
+					onIniciarChat={abrirChat}
 				/>
 			</View>
 
@@ -50,6 +50,7 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 				onFound={abrirAnimalEncontrado}
 				onChat={abrirChat}
 				onAdoption={abrirAdocao}
+				mensagensNaoLidas={mensagensNaoLidas}
 			/>
 		</SafeAreaView>
 	);

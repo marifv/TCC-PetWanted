@@ -23,9 +23,15 @@ For a new PostgreSQL database, run the complete schema script once:
 backend/database/schema.sql
 ```
 
-You can run it in the SQL editor of your PostgreSQL provider (for example, Render or pgAdmin). It creates the `usuarios`, `animais`, and `password_reset_requests` tables, including Google sign-in, photo URLs, and password recovery fields. Run it only for a new, empty database; it does not migrate an existing schema.
+You can run it in the SQL editor of your PostgreSQL provider (for example, Render or pgAdmin). It creates the `usuarios`, `animais`, `password_reset_requests`, and chat tables, including Google sign-in, photo URLs, and password recovery fields. Run it only for a new, empty database; it does not migrate an existing schema.
 
 For an existing database that does not yet have the password recovery table, run `backend/database/migration_password_reset_requests.sql` once in the provider's SQL editor.
+
+For an existing database, run `backend/database/migration_chat.sql` once before deploying the chat backend. It creates private conversations, message history, and registered mobile device tokens.
+
+Run `backend/database/migration_chat_notifications.sql` to add unread-message tracking. Run `backend/database/migration_remove_contact_fields.sql` to permanently remove previously stored phone and contact fields from an existing database.
+
+Run `backend/database/migration_chat_actions.sql` to enable per-user conversation mute/delete preferences and persist reports. Muting suppresses FCM pushes for that recipient; deleting removes the conversation only from the current user's list. Reports are stored for review.
 
 Animal and profile photos are uploaded by the backend to Cloudinary when the following credentials are set in `backend/.env`:
 
@@ -54,6 +60,22 @@ After installing frontend dependencies, rebuild the Android development app so t
 cd frontend
 npx expo run:android
 ```
+
+## Chat and notifications
+
+The chat authenticates REST and Socket.IO with the existing JWT. PostgreSQL stores conversations and message history; a Socket.IO message is persisted before the server broadcasts `mensagem:nova` to both participants. The Chat tab searches users and opens a private conversation. Firebase push delivery requires a native development/production build; Expo Go does not include the native Firebase Messaging module.
+
+For Android, download `google-services.json` from the Firebase project configured for package `com.petwanted.app` and place it in `frontend/`. The file is ignored by Git. Add a Firebase Admin service account to the backend environment as `FIREBASE_SERVICE_ACCOUNT` (JSON) or `FIREBASE_SERVICE_ACCOUNT_BASE64`; keep this private credential on the server only. Without it, chat works over Socket.IO but push delivery remains disabled. Run `npm install` in both `backend/` and `frontend/` to install the new dependencies and update their lockfiles, then rebuild the Android app after adding the Firebase file.
+
+Authenticated chat endpoints:
+
+- `GET /api/chat/usuarios?q=nome` searches people to start a conversation.
+- `GET /api/chat/conversas` lists conversations.
+- `POST /api/chat/conversas` accepts `{ "destinatarioId": 12 }`.
+- `GET /api/chat/conversas/:id/mensagens` loads history.
+- `POST /api/chat/dispositivos` registers the device FCM token.
+
+Socket.IO authenticates with `{ auth: { token } }` and receives `mensagem:enviar` with `{ conversaId, conteudo }`. The callback confirms persistence; `mensagem:nova` is emitted after the message is stored.
 
 After logging in, authenticated users can load all lost animals through:
 
