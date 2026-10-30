@@ -1,7 +1,11 @@
 const expoConfig = require('./app.json').expo;
 const fs = require('fs');
-const googleServicesFile = './google-services.json';
-const firebaseConfigurado = fs.existsSync(`${__dirname}/${googleServicesFile}`);
+const path = require('path');
+const googleServicesFile = process.env.GOOGLE_SERVICES_JSON || './google-services.json';
+const caminhoGoogleServices = path.isAbsolute(googleServicesFile)
+  ? googleServicesFile
+  : path.resolve(__dirname, googleServicesFile);
+const firebaseConfigurado = fs.existsSync(caminhoGoogleServices);
 
 module.exports = {
   ...expoConfig,
