@@ -10,6 +10,7 @@ const firebaseConfigurado = fs.existsSync(caminhoGoogleServices);
 module.exports = {
   ...expoConfig,
   plugins: [
+    "expo-secure-store",
     ...expoConfig.plugins,
     'expo-notifications',
     ...(firebaseConfigurado
