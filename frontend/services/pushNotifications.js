@@ -65,6 +65,7 @@ export async function registrarPushNotifications(token) {
           title: titulo,
           body: corpo,
           data: mensagem.data || {},
+          channelId: 'chat-messages',
           sound: 'default',
         },
         trigger: null,

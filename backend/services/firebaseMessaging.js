@@ -42,17 +42,14 @@ async function enviarNotificacaoChat({ usuarioId, conversaId, mensagem, remetent
 
         const resposta = await admin.messaging().sendEachForMulticast({
             tokens,
-            notification: {
+            data: {
                 title: remetenteNome || 'Nova mensagem',
                 body: mensagem.conteudo.slice(0, 120),
-            },
-            data: {
                 conversaId: String(mensagem.conversa_id),
                 mensagemId: String(mensagem.id),
             },
             android: {
                 priority: 'high',
-                notification: { channelId: 'chat-messages' },
             },
         });
 

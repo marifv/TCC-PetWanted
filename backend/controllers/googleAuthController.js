@@ -13,7 +13,7 @@ function criarTokenPetWanted(usuario) {
     return jwt.sign(
         { id: usuario.id, email: usuario.email },
         process.env.JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '30d' }
     );
 }
 

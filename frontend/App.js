@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import { GoogleSignin, isCancelledResponse } from './utils/googleSignIn';
@@ -36,6 +37,7 @@ export default function App() {
   const [telaAnterior, setTelaAnterior] = useState('homepage');
   const [usuarioId, setUsuarioId] = useState(null);
   const [token, setToken] = useState(null);
+  const [restaurandoSessao, setRestaurandoSessao] = useState(true);
   const [perfilAtivo, setPerfilAtivo] = useState(false);
   const [animalPerdidoAtivo, setAnimalPerdidoAtivo] = useState(false);
   const [animalEncontradoAtivo, setAnimalEncontradoAtivo] = useState(false);
@@ -82,6 +84,67 @@ export default function App() {
 
   const deslocamentoBotao = useRef(new Animated.Value(0)).current;
   const perfilOffset = useRef(new Animated.Value(400)).current;
+
+  const salvarSessaoPersistida = async (dados) => {
+    if (Platform.OS === 'web' || !dados?.token || dados?.id == null) return;
+    await SecureStore.setItemAsync('petwanted.session', JSON.stringify({
+      id: dados.id,
+      token: dados.token,
+      nome: dados.nome || '',
+      email: dados.email || '',
+      documento: dados.documento || '',
+      tipo_perfil: dados.tipo_perfil || '',
+      localizacao: dados.localizacao || '',
+      latitude: dados.latitude ?? null,
+      longitude: dados.longitude ?? null,
+      foto: dados.foto || null,
+    }));
+  };
+
+  const limparSessaoPersistida = async () => {
+    if (Platform.OS !== 'web') await SecureStore.deleteItemAsync('petwanted.session');
+  };
+
+  useEffect(() => {
+    let ativo = true;
+
+    const restaurarSessao = async () => {
+      try {
+        if (Platform.OS !== 'web') {
+          const salva = await SecureStore.getItemAsync('petwanted.session');
+          if (salva) {
+            const dados = JSON.parse(salva);
+            if (dados.token && dados.id != null) {
+              setUsuarioId(dados.id);
+              setToken(dados.token);
+              setNome(dados.nome || '');
+              setEmail(dados.email || '');
+              setDocumento(dados.documento || '');
+              setTipoPerfil(dados.tipo_perfil || 'Tutor');
+              setLocalizacao(dados.localizacao || '');
+              setFotoPerfil(dados.foto || null);
+              if (dados.latitude != null && dados.longitude != null) {
+                setCoordenadasUsuario({ latitude: Number(dados.latitude), longitude: Number(dados.longitude) });
+              }
+              setTelaAtual('homepage');
+            } else {
+              await limparSessaoPersistida();
+            }
+          }
+        }
+      } catch (erro) {
+        console.warn('Não foi possível restaurar a sessão:', erro.message);
+        await limparSessaoPersistida();
+      } finally {
+        if (ativo) setRestaurandoSessao(false);
+      }
+    };
+
+    restaurarSessao();
+    return () => {
+      ativo = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!token) return undefined;
@@ -367,7 +430,8 @@ export default function App() {
     setAnimalAdocaoAtivo(false);
   };
 
-  const deslogar = () => {
+  const deslogar = async () => {
+    await limparSessaoPersistida();
     setUsuarioId(null);
     setToken(null);
     setNome('');
@@ -473,6 +537,18 @@ export default function App() {
         longitude: Number(coordenadas.longitude),
       });
       setLocalizacao(dados.localizacao || 'Localização atual');
+      await salvarSessaoPersistida({
+        id: usuarioId,
+        token,
+        nome,
+        email,
+        documento,
+        tipo_perfil: tipoPerfil,
+        localizacao: dados.localizacao || 'Localização atual',
+        latitude: coordenadas.latitude,
+        longitude: coordenadas.longitude,
+        foto: fotoPerfil,
+      });
     } catch (erro) {
       console.error('Erro ao salvar localização:', erro);
     }
@@ -514,6 +590,11 @@ export default function App() {
         setCoordenadasUsuario(novasCoordenadas);
       }
       setFotoPerfil(dados.foto || novaFotoPerfil || null);
+      await salvarSessaoPersistida({
+        ...dados,
+        token,
+        foto: dados.foto || novaFotoPerfil || null,
+      });
       setTelaAtual('perfil');
     } catch (erro) {
       console.error('Erro ao atualizar perfil:', erro);
@@ -543,6 +624,7 @@ export default function App() {
       }
 
       setUsuarioId(null);
+      await limparSessaoPersistida();
       setNome('');
       setDocumento('');
       setEmail('');
@@ -672,6 +754,7 @@ export default function App() {
         return;
       }
 
+      await salvarSessaoPersistida(dados);
       setNome(dados.nome || '');
       setUsuarioId(dados.id);
       setToken(dados.token);
@@ -691,7 +774,8 @@ export default function App() {
     }
   };
 
-  const iniciarSessao = (dados) => {
+  const iniciarSessao = async (dados) => {
+    await salvarSessaoPersistida(dados);
     setNome(dados.nome || '');
     setUsuarioId(dados.id);
     setToken(dados.token);
@@ -737,7 +821,7 @@ export default function App() {
       }
 
       if (dados.acao === 'login') {
-        iniciarSessao(dados);
+        await iniciarSessao(dados);
       } else if (dados.acao === 'vincular_conta') {
         setGoogleIdToken(idToken);
         setGoogleCadastroToken('');
@@ -781,7 +865,7 @@ export default function App() {
         return;
       }
 
-      iniciarSessao(dados);
+      await iniciarSessao(dados);
     } catch (erro) {
       console.error('Erro ao vincular conta Google:', erro);
       mostrarAlerta('Erro de conexão', 'Não foi possível conectar ao servidor.');
@@ -824,7 +908,7 @@ export default function App() {
         return;
       }
 
-      iniciarSessao(dados);
+      await iniciarSessao(dados);
     } catch (erro) {
       console.error('Erro ao cadastrar com Google:', erro);
       mostrarAlerta('Erro de conexão', 'Não foi possível conectar ao servidor.');
@@ -844,6 +928,14 @@ export default function App() {
       useNativeDriver: true,
     }).start();
   }, [deslocamentoBotao, telaSelecionada, larguraContainer]);
+
+  if (restaurandoSessao) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#eaf3fb' }}>
+        <ActivityIndicator color="#5791ca" />
+      </View>
+    );
+  }
 
   if (telaAtual === 'login') {
     return (
