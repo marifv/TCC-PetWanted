@@ -799,6 +799,7 @@ export default function App() {
     setGoogleLoading(true);
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.signOut();
       const resultado = await GoogleSignin.signIn();
 
       if (isCancelledResponse(resultado)) return;

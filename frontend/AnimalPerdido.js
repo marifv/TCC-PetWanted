@@ -4,13 +4,14 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
-import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarDataParaApi, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
 import { API_ANIMAIS } from './config/api';
 import GooglePlacesInput from './GooglePlacesInput';
 import BottomNavigation from './BottomNavigation';
 import AnuncioAutor from './AnuncioAutor';
 import NotificationBell from './NotificationBell';
+import FotoAmpliavel from './FotoAmpliavel';
+import SeletorFotos from './SeletorFotos';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -25,7 +26,7 @@ const OPCOES_VISUALIZACAO = [
 ];
 
 function novoFormulario() {
-    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
+    return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null, fotos: [] };
 }
 
 export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalEncontrado, abrirAdocao, abrirChat, abrirNotificacao, mensagensNaoLidas, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
@@ -174,26 +175,8 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
         setModalVisivel(false);
     };
 
-    const escolherFoto = async () => {
-        const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (!permissao.granted) {
-            Alert.alert('Permissão necessária', 'Permita o acesso às fotos para escolher uma imagem.');
-            return;
-        }
-
-        const resultado = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            quality: 0.7,
-            base64: true,
-        });
-
-        if (!resultado.canceled) {
-            const arquivo = resultado.assets[0];
-            const dataUri = `data:image/${arquivo.mimeType?.split('/')?.[1] || 'jpeg'};base64,${arquivo.base64}`;
-            atualizarCampo('foto', dataUri);
-        }
+    const atualizarFotos = (fotos) => {
+        setFormulario((atual) => ({ ...atual, fotos, foto: fotos[0] || null }));
     };
 
     const salvarAnimal = async () => {
@@ -237,6 +220,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                     tipo_registro: 'Perdido',
                     descricao: formulario.descricao,
                     foto: formulario.foto || null,
+                    fotos: formulario.fotos,
                 })
             });
             const dados = await resposta.json();
@@ -374,7 +358,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                         </View>
                         <View style={styles.fotoContainer}>
                             {animal.foto ? (
-                                <Image source={{ uri: animal.foto }} style={styles.foto} resizeMode="cover" />
+                                <FotoAmpliavel uri={animal.foto} uris={animal.fotos} style={styles.foto} resizeMode="cover" />
                             ) : (
                                 <View style={[styles.foto, styles.fotoPlaceholder]}>
                                     <FontAwesome name="paw" size={32} color="#cfcfcf" />
@@ -456,16 +440,7 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
                         </View>
 
                         <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                            <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
-                                {formulario.foto ? (
-                                    <Image source={{ uri: formulario.foto }} style={styles.uploadFotoPreview} />
-                                ) : (
-                                    <View style={styles.uploadFotoVazio}>
-                                        <FontAwesome name="camera" size={22} color="#9b9b9b" />
-                                        <Text style={styles.uploadFotoTexto}>Adicionar foto</Text>
-                                    </View>
-                                )}
-                            </Pressable>
+                            <SeletorFotos fotos={formulario.fotos} onChange={atualizarFotos} />
 
                             <Text style={styles.campoLabel}>Nome *</Text>
                             <TextInput style={styles.campoInput} placeholder="Nome do animal" placeholderTextColor="gray" value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />

@@ -9,7 +9,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '12mb' }));
+app.use(express.json({ limit: '32mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/api/health', (req, res) => {

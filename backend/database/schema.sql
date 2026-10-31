@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS animais (
     faixa_etaria VARCHAR(100),
     local_latitude DOUBLE PRECISION,
     local_longitude DOUBLE PRECISION,
-    foto TEXT
+    foto TEXT,
+    fotos JSONB NOT NULL DEFAULT '[]'::jsonb
 );
 
 CREATE INDEX IF NOT EXISTS animais_id_usuario_idx

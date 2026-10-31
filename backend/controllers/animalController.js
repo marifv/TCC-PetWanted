@@ -31,7 +31,8 @@ const CAMPOS_RETORNO = `
     idade,
     faixa_etaria AS "faixaEtaria",
     descricao,
-    foto
+    foto,
+    fotos
 `;
 
 const CAMPOS_RETORNO_LISTAGEM = `
@@ -85,6 +86,15 @@ function validarDataEvento(dataEvento) {
 
 function obterDadosRegistro(body, usuarioId) {
     const tipoRegistro = String(body.tipo_registro || '').trim();
+    const fotosRecebidas = Array.isArray(body.fotos)
+        ? body.fotos
+        : body.foto
+            ? [body.foto]
+            : [];
+    const fotos = fotosRecebidas
+        .filter((foto) => typeof foto === 'string')
+        .map((foto) => foto.trim())
+        .filter(Boolean);
     const localDesaparecimento = String(body.local_desaparecimento || '').trim();
     const localEncontrado = String(body.local_encontrado || '').trim();
     const localObrigatorio = tipoRegistro === 'Perdido'
@@ -116,7 +126,9 @@ function obterDadosRegistro(body, usuarioId) {
         idade: tipoRegistro === 'Adocao' ? body.idade?.trim() : null,
         faixaEtaria: body.faixa_etaria?.trim() || null,
         descricao: body.descricao?.trim() || null,
-        foto: body.foto ? String(body.foto).trim() : null,
+        foto: fotos[0] || null,
+        fotos,
+        fotosForamEnviadas: Array.isArray(body.fotos) || typeof body.foto === 'string',
     };
 }
 
@@ -140,16 +152,35 @@ function fotoRegistrada(idAnimal, req) {
 }
 
 function anexarFotoAoRegistro(req, registro) {
-    if (!registro || registro.foto || !registro.id) {
-        return registro;
-    }
+    if (!registro) return registro;
 
-    const foto = fotoRegistrada(registro.id, req);
-    return foto ? { ...registro, foto } : registro;
+    const fotos = Array.isArray(registro.fotos)
+        ? registro.fotos.filter((foto) => typeof foto === 'string' && foto)
+        : [];
+    let foto = registro.foto || fotos[0] || null;
+    if (!foto && registro.id) foto = fotoRegistrada(registro.id, req);
+    if (foto && !fotos.includes(foto)) fotos.unshift(foto);
+
+    return { ...registro, foto, fotos };
+}
+
+async function salvarFotos(fotos, idAnimal, req) {
+    const fotosSalvas = [];
+    for (const [indice, foto] of fotos.entries()) {
+        const url = foto.startsWith('data:image/')
+            ? await salvarImagem(foto, 'animais', `${idAnimal}-${indice + 1}`, req)
+            : foto;
+        if (url) fotosSalvas.push(url);
+    }
+    return fotosSalvas;
 }
 
 function validarRegistro(dados) {
     const falhas = [];
+
+    if (dados.fotos.length > 3) {
+        falhas.push('o registro pode ter no máximo 3 fotos');
+    }
 
     if (!TIPOS_REGISTRO.includes(dados.tipoRegistro)) {
         falhas.push('tipo de registro inválido');
@@ -260,7 +291,7 @@ async function criarRegistro(req, res) {
     try {
         const dados = obterDadosRegistro(req.body, req.params.usuarioId);
         const falhas = validarRegistro(dados);
-        if (dados.tipoRegistro === 'Adocao' && !textoPreenchido(dados.foto)) {
+        if (dados.tipoRegistro === 'Adocao' && dados.fotos.length === 0) {
             falhas.push('foto obrigatória para anúncios de adoção');
         }
 
@@ -300,11 +331,12 @@ async function criarRegistro(req, res) {
         );
 
         const animalCriado = resultado.rows[0];
-        const foto = await salvarImagem(dados.foto, 'animais', String(animalCriado.id), req);
-        if (foto) {
-            await pool.query('UPDATE animais SET foto = $1 WHERE id_animal = $2', [foto, animalCriado.id]);
-            animalCriado.foto = foto;
-        }
+        const fotos = await salvarFotos(dados.fotos, String(animalCriado.id), req);
+        const resultadoFotos = await pool.query(
+            'UPDATE animais SET foto = $1, fotos = $2::jsonb WHERE id_animal = $3 RETURNING foto, fotos',
+            [fotos[0] || null, JSON.stringify(fotos), animalCriado.id]
+        );
+        Object.assign(animalCriado, resultadoFotos.rows[0]);
 
         return res.status(201).json(anexarFotoAoRegistro(req, animalCriado));
     } catch (error) {
@@ -365,14 +397,14 @@ async function atualizarRegistro(req, res) {
             return res.status(404).json({ mensagem: 'Registro não encontrado.' });
         }
 
-        const foto = await salvarImagem(dados.foto, 'animais', String(req.params.id), req);
         let atualizado = resultado.rows[0];
-        if (foto) {
-            const fotoAtualizada = await pool.query(
-                'UPDATE animais SET foto = $1 WHERE id_animal = $2 RETURNING foto',
-                [foto, req.params.id]
+        if (dados.fotosForamEnviadas) {
+            const fotos = await salvarFotos(dados.fotos, String(req.params.id), req);
+            const fotosAtualizadas = await pool.query(
+                'UPDATE animais SET foto = $1, fotos = $2::jsonb WHERE id_animal = $3 RETURNING foto, fotos',
+                [fotos[0] || null, JSON.stringify(fotos), req.params.id]
             );
-            atualizado = { ...atualizado, foto: fotoAtualizada.rows[0].foto };
+            atualizado = { ...atualizado, ...fotosAtualizadas.rows[0] };
         }
 
         return res.json(anexarFotoAoRegistro(req, atualizado));

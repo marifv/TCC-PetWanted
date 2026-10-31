@@ -33,6 +33,8 @@ Run `backend/database/migration_chat_notifications.sql` to add unread-message tr
 
 Run `backend/database/migration_chat_actions.sql` to enable per-user conversation mute/delete preferences and persist reports. Muting suppresses FCM pushes for that recipient; deleting removes the conversation only from the current user's list. Reports are stored for review.
 
+Run `backend/database/migration_animal_photos.sql` once in an existing database to support up to three photos per animal record. New databases already include this column in `backend/database/schema.sql`.
+
 Animal and profile photos are uploaded by the backend to Cloudinary when the following credentials are set in `backend/.env`:
 
 ```env

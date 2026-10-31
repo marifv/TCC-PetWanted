@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { API_ANIMAIS } from './config/api';
 import Pressable from './ButtonPressable';
 import AnuncioAutor from './AnuncioAutor';
+import FotoAmpliavel from './FotoAmpliavel';
 
 const downloadsFotosMarcadores = new Map();
 
@@ -19,9 +20,8 @@ function urlImagemMarcador(url, tipoRegistro, status) {
       : corStatusEncontrado;
   const partesCloudinary = url.match(/^(https:\/\/res\.cloudinary\.com\/[^/]+\/image\/upload\/)(.*)$/);
   if (!partesCloudinary) {
-    throw new Error('A foto do marcador não está hospedada no Cloudinary.');
+    return url;
   }
-
   return `${partesCloudinary[1]}c_fill,w_112,h_112,r_max/bo_8px_solid_rgb:${corAro},r_max/c_pad,w_160,h_160,b_transparent,r_max/f_png/${partesCloudinary[2]}`;
 }
 
@@ -386,7 +386,13 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
             </Pressable>
           </View>
           {animalSelecionado.foto ? (
-            <Image source={{ uri: animalSelecionado.foto }} style={styles.animalCardPhoto} resizeMode="cover" />
+            <FotoAmpliavel
+              uri={animalSelecionado.foto}
+              uris={animalSelecionado.fotos}
+              style={styles.animalCardPhoto}
+              resizeMode="cover"
+              accessibilityLabel={`Ampliar foto de ${animalSelecionado.nome || 'animal'}`}
+            />
           ) : (
             <View style={[styles.animalCardPhoto, styles.animalCardPhotoPlaceholder]}>
               <FontAwesome name="paw" size={32} color="#cfcfcf" />

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, ScrollView, StatusBar as NativeStatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { FontAwesome } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { formatarData, formatarEntradaData, validarDataNaoFutura } from './utils/formatarData';
 import Pressable from './ButtonPressable';
 import GooglePlacesInput from './GooglePlacesInput';
+import SeletorFotos from './SeletorFotos';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -16,6 +16,11 @@ const FAIXAS_ETARIAS = ['Filhote', 'Jovem', 'Adulto', 'Idoso'];
 function valorInicial(animal) {
     const idadeTexto = String(animal?.idade || '');
     const unidadeIdade = /m[eê]s/i.test(idadeTexto) ? 'Meses' : 'Anos';
+    const fotos = Array.isArray(animal?.fotos)
+        ? animal.fotos
+        : animal?.foto
+            ? [animal.foto]
+            : [];
     return {
         nome: animal?.nome || '',
         especie: animal?.especie || '',
@@ -29,7 +34,8 @@ function valorInicial(animal) {
         unidadeIdade,
         faixaEtaria: animal?.faixaEtaria || '',
         descricao: animal?.descricao || '',
-        foto: animal?.foto || null,
+        foto: fotos[0] || animal?.foto || null,
+        fotos,
     };
 }
 
@@ -56,38 +62,8 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
         setFormulario((atual) => ({ ...atual, [campo]: valor }));
     };
 
-    const escolherFoto = async () => {
-        const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-        if (!permissao.granted) {
-            mostrarMensagem('Precisamos de acesso à galeria para trocar a foto do animal.');
-            return;
-        }
-
-        const resultado = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 0.8,
-            base64: true,
-        });
-
-        if (resultado.canceled) {
-            return;
-        }
-
-        const arquivo = resultado.assets?.[0];
-        const mimeType = arquivo?.mimeType || 'image/jpeg';
-        const base64 = arquivo?.base64;
-        const extensao = mimeType.split('/')?.[1] || 'jpeg';
-
-        if (!base64) {
-            mostrarMensagem('Não foi possível ler a imagem escolhida. Tente outra foto.');
-            return;
-        }
-
-        const dataUri = `data:image/${extensao};base64,${base64}`;
-        atualizarCampo('foto', dataUri);
+    const atualizarFotos = (fotos) => {
+        setFormulario((atual) => ({ ...atual, fotos, foto: fotos[0] || null }));
     };
 
     const salvar = async () => {
@@ -118,10 +94,6 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
             }
         }
 
-        const fotoParaEnviar = formulario.foto?.startsWith('data:image/')
-            ? formulario.foto
-            : null;
-
         const atualizado = await onSalvar({
             nome: formulario.nome,
             especie: formulario.especie,
@@ -138,7 +110,8 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                 : formulario.idade,
             faixa_etaria: formulario.faixaEtaria,
             descricao: formulario.descricao,
-            foto: fotoParaEnviar,
+            foto: formulario.fotos[0] || null,
+            fotos: formulario.fotos,
         });
 
         if (!atualizado?.id) {
@@ -216,17 +189,8 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
 
             <KeyboardAvoidingView style={styles.keyboardAvoiding} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="always">
-                {tipo === 'Adocao' && <Text style={styles.label}>Foto *</Text>}
-                <Pressable style={styles.uploadFoto} onPress={escolherFoto}>
-                    {formulario.foto ? (
-                        <Image source={{ uri: formulario.foto }} style={styles.uploadFotoPreview} />
-                    ) : (
-                        <View style={styles.uploadFotoVazio}>
-                            <FontAwesome name="camera" size={22} color="#9b9b9b" />
-                            <Text style={styles.uploadFotoTexto}>Trocar foto</Text>
-                        </View>
-                    )}
-                </Pressable>
+                <Text style={styles.label}>{tipo === 'Adocao' ? 'Fotos *' : 'Fotos'}</Text>
+                <SeletorFotos fotos={formulario.fotos} onChange={atualizarFotos} />
 
                 <Text style={styles.label}>Nome *</Text>
                 <TextInput style={styles.input} placeholder="Nome do animal" placeholderTextColor="gray" value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />
