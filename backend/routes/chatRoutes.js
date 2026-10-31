@@ -4,6 +4,7 @@ const {
     buscarUsuarios,
     listarConversas,
     contarNotificacoes,
+    listarNotificacoes,
     criarConversa,
     listarMensagens,
     registrarDispositivo,
@@ -18,6 +19,7 @@ router.use(autenticarToken);
 router.get('/usuarios', buscarUsuarios);
 router.get('/conversas', listarConversas);
 router.get('/notificacoes', contarNotificacoes);
+router.get('/notificacoes/lista', listarNotificacoes);
 router.post('/conversas', criarConversa);
 router.get('/conversas/:id/mensagens', listarMensagens);
 router.patch('/conversas/:id/silenciamento', alterarSilenciamento);

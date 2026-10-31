@@ -50,7 +50,10 @@ async function enviarNotificacaoChat({ usuarioId, conversaId, mensagem, remetent
                 conversaId: String(mensagem.conversa_id),
                 mensagemId: String(mensagem.id),
             },
-            android: { priority: 'high' },
+            android: {
+                priority: 'high',
+                notification: { channelId: 'chat-messages' },
+            },
         });
 
         const invalidos = resposta.responses

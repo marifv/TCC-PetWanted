@@ -43,6 +43,7 @@ export default function App() {
   const [chatAtivo, setChatAtivo] = useState(false);
   const [mensagensNaoLidas, setMensagensNaoLidas] = useState(0);
   const [anuncioParaChat, setAnuncioParaChat] = useState(null);
+  const [notificacaoParaChat, setNotificacaoParaChat] = useState(null);
   const [animalEditando, setAnimalEditando] = useState(null);
   const [origemEdicaoAnimal, setOrigemEdicaoAnimal] = useState(null);
   const [anuncioSelecionadoMapa, setAnuncioSelecionadoMapa] = useState(null);
@@ -338,6 +339,17 @@ export default function App() {
     setAnimalPerdidoAtivo(false);
     setAnimalEncontradoAtivo(false);
     setAnimalAdocaoAtivo(false);
+  };
+
+  const abrirNotificacao = (notificacao) => {
+    setNotificacaoParaChat({
+      id: notificacao.conversa_id,
+      nome: notificacao.remetente_nome,
+      foto: notificacao.remetente_foto,
+      animal_nome: notificacao.animal_nome,
+      tipo_registro: notificacao.tipo_registro,
+    });
+    abrirChat();
   };
 
   const abrirAnuncioMapa = (animal) => {
@@ -1328,6 +1340,7 @@ export default function App() {
           abrirAnimalEncontrado={abrirAnimalEncontrado}
           abrirAdocao={abrirAnimalAdocao}
           abrirChat={abrirChat}
+          abrirNotificacao={abrirNotificacao}
           usuarioId={usuarioId}
           token={token}
           onSalvarLocalizacao={salvarLocalizacaoUsuario}
@@ -1348,8 +1361,10 @@ export default function App() {
           onVoltar={() => {
             setChatAtivo(false);
             setAnuncioParaChat(null);
+            setNotificacaoParaChat(null);
           }}
           anuncioParaChat={anuncioParaChat}
+          notificacaoParaChat={notificacaoParaChat}
           mensagensNaoLidas={mensagensNaoLidas}
           onMensagensLidas={atualizarContadorMensagens}
         />
@@ -1370,7 +1385,7 @@ export default function App() {
               localizacao={localizacao}
               fotoPerfil={fotoPerfil}
               token={token}
-              abrirChat={abrirChat}
+              abrirNotificacao={abrirNotificacao}
               mensagensNaoLidas={mensagensNaoLidas}
             />
           )}
@@ -1403,6 +1418,7 @@ export default function App() {
             abrirAnimalEncontrado={abrirAnimalEncontrado}
             abrirAdocao={abrirAnimalAdocao}
             abrirChat={abrirChat}
+            abrirNotificacao={abrirNotificacao}
               mensagensNaoLidas={mensagensNaoLidas}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'perdido', atualizarLista)}
             animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Perdido' ? anuncioSelecionadoMapa.id : null}
@@ -1423,6 +1439,7 @@ export default function App() {
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAdocao={abrirAnimalAdocao}
             abrirChat={abrirChat}
+            abrirNotificacao={abrirNotificacao}
               mensagensNaoLidas={mensagensNaoLidas}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'encontrado', atualizarLista)}
             animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Encontrado' ? anuncioSelecionadoMapa.id : null}
@@ -1443,6 +1460,7 @@ export default function App() {
             abrirAnimalPerdido={abrirAnimalPerdido}
             abrirAnimalEncontrado={abrirAnimalEncontrado}
             abrirChat={abrirChat}
+            abrirNotificacao={abrirNotificacao}
             abrirEdicaoAnimal={(animal, atualizarLista) => abrirEdicaoAnimal(animal, 'adocao', atualizarLista)}
             animalAlvoId={anuncioSelecionadoMapa?.tipo_registro === 'Adocao' ? anuncioSelecionadoMapa.id : null}
             onAnuncioAlvoExibido={() => setAnuncioSelecionadoMapa(null)}

@@ -95,6 +95,39 @@ async function contarNotificacoes(req, res) {
     }
 }
 
+async function listarNotificacoes(req, res) {
+        try {
+                const resultado = await pool.query(
+                        `SELECT m.id,
+                                        m.conversa_id,
+                                        m.remetente_id,
+                                        remetente.nome AS remetente_nome,
+                                        remetente.foto AS remetente_foto,
+                                        m.conteudo,
+                                        m.criado_em,
+                                        m.lida_em,
+                                        animal.nome AS animal_nome,
+                                        animal.tipo_registro
+                         FROM mensagens_chat m
+                         JOIN conversas c ON c.id = m.conversa_id
+                         JOIN usuarios remetente ON remetente.id = m.remetente_id
+                         LEFT JOIN animais animal ON animal.id_animal = c.animal_id
+                         LEFT JOIN preferencias_conversa preferencia
+                             ON preferencia.usuario_id = $1 AND preferencia.conversa_id = c.id
+                         WHERE (c.usuario_1_id = $1 OR c.usuario_2_id = $1)
+                             AND m.remetente_id <> $1
+                             AND preferencia.excluida_em IS NULL
+                         ORDER BY m.criado_em DESC, m.id DESC
+                         LIMIT 50`,
+                        [req.usuario.id]
+                );
+                return res.json(resultado.rows);
+        } catch (erro) {
+                console.error('Erro ao carregar notificações:', erro);
+                return res.status(500).json({ mensagem: 'Erro ao carregar notificações.' });
+        }
+}
+
 async function criarConversa(req, res) {
     const destinatarioId = Number(req.body.destinatarioId);
     const animalId = req.body.animalId == null ? null : Number(req.body.animalId);
@@ -171,7 +204,7 @@ async function listarMensagens(req, res) {
         );
 
         const resultado = await pool.query(
-            `SELECT m.id, m.conversa_id, m.remetente_id, m.conteudo, m.criado_em
+            `SELECT m.id, m.conversa_id, m.remetente_id, m.conteudo, m.criado_em, m.lida_em
              FROM mensagens_chat m
              JOIN conversas c ON c.id = m.conversa_id
              WHERE c.id = $1 AND (c.usuario_1_id = $2 OR c.usuario_2_id = $2)
@@ -307,6 +340,7 @@ module.exports = {
     buscarUsuarios,
     listarConversas,
     contarNotificacoes,
+    listarNotificacoes,
     criarConversa,
     listarMensagens,
     registrarDispositivo,

@@ -7,7 +7,7 @@ import BottomNavigation from './BottomNavigation';
 import Pressable from './ButtonPressable';
 import NotificationBell from './NotificationBell';
 
-export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirAdocao, onOpenAnnouncement, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome, mensagensNaoLidas }) {
+export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirNotificacao, abrirAdocao, onOpenAnnouncement, usuarioId, token, onSalvarLocalizacao, fotoPerfil, nome, mensagensNaoLidas }) {
 	const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
 
 	return (
@@ -21,7 +21,7 @@ export default function Homepage({ setTelaAtual, abrirAnimalPerdido, abrirAnimal
 					<Text style={styles.appName}>PetWanted</Text>
 				</View>
 				<View style={styles.headerActions}>
-					<NotificationBell token={token} onPress={abrirChat} />
+					<NotificationBell token={token} onOpenNotification={abrirNotificacao} />
 					<Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
 						<View style={styles.avatar}>
 							{fotoPerfil ? (

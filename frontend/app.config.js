@@ -9,9 +9,13 @@ const firebaseConfigurado = fs.existsSync(caminhoGoogleServices);
 
 module.exports = {
   ...expoConfig,
-  plugins: firebaseConfigurado
-    ? [...expoConfig.plugins, '@react-native-firebase/app', '@react-native-firebase/messaging']
-    : expoConfig.plugins,
+  plugins: [
+    ...expoConfig.plugins,
+    'expo-notifications',
+    ...(firebaseConfigurado
+      ? ['@react-native-firebase/app', '@react-native-firebase/messaging']
+      : []),
+  ],
   android: {
     ...expoConfig.android,
     ...(firebaseConfigurado ? { googleServicesFile } : {}),

@@ -39,6 +39,40 @@ function inicializarSocketChat(servidor) {
             if (resultado.rows.length) socket.join(`conversa:${id}`);
         });
 
+        socket.on('conversa:ler', async ({ conversaId } = {}) => {
+            const id = Number(conversaId);
+            if (!Number.isInteger(id) || id <= 0) return;
+
+            try {
+                const conversa = await pool.query(
+                    `SELECT usuario_1_id, usuario_2_id FROM conversas
+                     WHERE id = $1 AND (usuario_1_id = $2 OR usuario_2_id = $2)`,
+                    [id, usuarioId]
+                );
+                if (!conversa.rows.length) return;
+
+                const membros = conversa.rows[0];
+                const outroUsuarioId = Number(membros.usuario_1_id) === usuarioId
+                    ? membros.usuario_2_id
+                    : membros.usuario_1_id;
+                const recibos = await pool.query(
+                    `SELECT id, lida_em FROM mensagens_chat
+                     WHERE conversa_id = $1 AND remetente_id = $2 AND lida_em IS NOT NULL`,
+                    [id, outroUsuarioId]
+                );
+
+                if (recibos.rows.length) {
+                    io.to(`usuario:${outroUsuarioId}`).emit('mensagens:lidas', {
+                        conversaId: id,
+                        leitorId: usuarioId,
+                        mensagens: recibos.rows,
+                    });
+                }
+            } catch (erro) {
+                console.error('Erro ao emitir recibos de leitura:', erro);
+            }
+        });
+
         socket.on('mensagem:enviar', async (dados = {}, confirmar = () => {}) => {
             const conversaId = Number(dados.conversaId);
             const conteudo = typeof dados.conteudo === 'string' ? dados.conteudo.trim() : '';

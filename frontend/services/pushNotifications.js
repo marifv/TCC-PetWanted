@@ -1,10 +1,30 @@
-import { Alert, PermissionsAndroid, Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 import { API_BASE_URL } from '../config/api';
+
+const Notifications = require('expo-notifications');
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: false,
+    shouldShowBanner: false,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export async function registrarPushNotifications(token) {
   if (!token || Platform.OS === 'web') return () => {};
 
   try {
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('chat-messages', {
+        name: 'Mensagens',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        sound: 'default',
+      });
+    }
+
     if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
       const resultadoPermissao = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
@@ -40,7 +60,15 @@ export async function registrarPushNotifications(token) {
     return onMessage(messaging, (mensagem) => {
       const titulo = mensagem.notification?.title || 'PetWanted';
       const corpo = mensagem.notification?.body || 'Você recebeu uma nova mensagem.';
-      Alert.alert(titulo, corpo);
+      return Notifications.scheduleNotificationAsync({
+        content: {
+          title: titulo,
+          body: corpo,
+          data: mensagem.data || {},
+          sound: 'default',
+        },
+        trigger: null,
+      });
     });
   } catch (erro) {
     console.warn('Notificações push não configuradas neste dispositivo:', erro.message);

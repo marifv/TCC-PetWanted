@@ -6,7 +6,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import Pressable from './ButtonPressable';
 import NotificationBell from './NotificationBell';
 
-export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar, nome, tipoPerfil, email, documento, localizacao, fotoPerfil, token, abrirChat }) {
+export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar, nome, tipoPerfil, email, documento, localizacao, fotoPerfil, token, abrirNotificacao }) {
     const [confirmacaoExclusaoVisivel, setConfirmacaoExclusaoVisivel] = useState(false);
     const [confirmacaoEdicaoVisivel, setConfirmacaoEdicaoVisivel] = useState(false);
 
@@ -21,7 +21,7 @@ export default function Perfil({ onVoltar, setTelaEdicao, onExcluir, onDeslogar,
 
                 <Text style={styles.headerTitle}>Meu perfil</Text>
                 <View style={styles.headerRight}>
-                    <NotificationBell token={token} onPress={abrirChat} />
+                    <NotificationBell token={token} onOpenNotification={abrirNotificacao} />
                     <Pressable
                         style={styles.headerIconButton}
                         onPress={() => setConfirmacaoEdicaoVisivel(true)}

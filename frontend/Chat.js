@@ -30,7 +30,7 @@ function iniciais(nome = '') {
   return nome.split(' ').filter(Boolean).slice(0, 2).map((parte) => parte[0]).join('').toUpperCase() || '?';
 }
 
-export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, onAdoption, onVoltar, anuncioParaChat, mensagensNaoLidas, onMensagensLidas }) {
+export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, onAdoption, onVoltar, anuncioParaChat, notificacaoParaChat, mensagensNaoLidas, onMensagensLidas }) {
   const [conversas, setConversas] = useState([]);
   const [conversaAtiva, setConversaAtiva] = useState(null);
   const [mensagens, setMensagens] = useState([]);
@@ -84,7 +84,10 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
         requisicao(`/conversas/${conversaAtiva.id}/mensagens`)
           .then((resposta) => resposta.json().then((dados) => ({ resposta, dados })))
           .then(({ resposta, dados }) => {
-            if (resposta.ok) setMensagens(dados);
+            if (resposta.ok) {
+              setMensagens(dados);
+              socket.emit('conversa:ler', { conversaId: conversaAtiva.id });
+            }
             onMensagensLidas?.();
           })
           .catch((falha) => setErro(falha.message));
@@ -92,6 +95,15 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
         onMensagensLidas?.();
       }
       carregarConversas();
+    });
+    socket.on('mensagens:lidas', ({ conversaId, mensagens: recibos = [] }) => {
+      if (Number(conversaId) !== Number(conversaAtiva?.id)) return;
+      const recibosPorId = new Map(recibos.map((recibo) => [String(recibo.id), recibo.lida_em]));
+      setMensagens((atuais) => atuais.map((mensagem) => (
+        recibosPorId.has(String(mensagem.id))
+          ? { ...mensagem, lida_em: recibosPorId.get(String(mensagem.id)) }
+          : mensagem
+      )));
     });
     socket.on('connect_error', () => setErro('Conexão em tempo real indisponível. Tentando novamente...'));
 
@@ -129,6 +141,7 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
       .then(({ resposta, dados }) => {
         if (!resposta.ok) throw new Error(dados.mensagem || 'Não foi possível carregar as mensagens.');
         setMensagens(dados);
+        socket?.emit('conversa:ler', { conversaId: conversaAtiva.id });
         onMensagensLidas?.();
       })
       .catch((falha) => setErro(falha.message));
@@ -177,6 +190,16 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
       ativo = false;
     };
   }, [anuncioParaChat?.id, anuncioParaChat?.id_usuario]);
+
+  useEffect(() => {
+    if (!notificacaoParaChat?.id) return;
+    const conversa = {
+      ...notificacaoParaChat,
+      id: notificacaoParaChat.id,
+    };
+    setConversas((atuais) => [conversa, ...atuais.filter((item) => Number(item.id) !== Number(conversa.id))]);
+    abrirConversa(conversa);
+  }, [notificacaoParaChat?.id]);
 
   const iniciarConversa = async (usuario) => {
     try {
@@ -298,13 +321,14 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
   const conversasFiltradas = conversas.filter((conversa) => {
     if (filtro === 'Perdidos') return conversa.tipo_registro === 'Perdido';
     if (filtro === 'Encontrados') return conversa.tipo_registro === 'Encontrado';
+    if (filtro === 'Adoção') return conversa.tipo_registro === 'Adocao';
     return true;
   });
 
   if (conversaAtiva) {
     return (
-      <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
+        <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <View style={styles.chatHeader}>
             <Pressable style={styles.backButton} onPress={() => setConversaAtiva(null)} accessibilityLabel="Voltar para conversas">
               <MaterialCommunityIcons name="arrow-left" size={23} color="#4f83b7" />
@@ -348,7 +372,19 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
                   <View style={[styles.bubble, propria ? styles.bubbleOwn : styles.bubbleOther]}>
                     <Text style={[styles.messageText, propria && styles.messageTextOwn]}>{mensagem.conteudo}</Text>
                   </View>
-                  <Text style={[styles.messageTime, propria && styles.messageTimeOwn]}>{horario(mensagem.criado_em)}</Text>
+                  <View style={[styles.messageMeta, propria && styles.messageTimeOwn]}>
+                    <Text style={styles.messageTime}>{horario(mensagem.criado_em)}</Text>
+                    {propria ? (
+                      <>
+                        <MaterialCommunityIcons
+                          name={mensagem.lida_em ? 'check-all' : 'check'}
+                          size={14}
+                          color={mensagem.lida_em ? '#397fc0' : '#8298aa'}
+                        />
+                        {mensagem.lida_em ? <Text style={styles.readTime}>Lida às {horario(mensagem.lida_em)}</Text> : null}
+                      </>
+                    ) : null}
+                  </View>
                 </View>
               );
             })}
@@ -435,7 +471,7 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right', 'bottom']}>
       <View style={styles.listHeader}>
         <Pressable style={styles.backButton} onPress={onVoltar} accessibilityLabel="Voltar para o mapa">
           <MaterialCommunityIcons name="arrow-left" size={23} color="#4f83b7" />
@@ -478,7 +514,7 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
 
         {!modalNovaConversa ? (
           <View style={styles.filters}>
-            {['Todas', 'Perdidos', 'Encontrados'].map((item) => (
+            {['Todas', 'Perdidos', 'Encontrados', 'Adoção'].map((item) => (
               <Pressable key={item} onPress={() => setFiltro(item)} style={[styles.filter, filtro === item && styles.filterSelected]}>
                 <Text style={[styles.filterText, filtro === item && styles.filterTextSelected]}>{item}</Text>
               </Pressable>
@@ -635,8 +671,10 @@ const styles = StyleSheet.create({
   bubbleOwn: { borderBottomRightRadius: 5, backgroundColor: '#6fa6d8' },
   messageText: { color: '#38566f', fontSize: 14, lineHeight: 20 },
   messageTextOwn: { color: '#ffffff' },
-  messageTime: { marginTop: 3, paddingHorizontal: 3, color: '#8ba0b2', fontSize: 10 },
+  messageMeta: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
+  messageTime: { paddingHorizontal: 3, color: '#8ba0b2', fontSize: 10 },
   messageTimeOwn: { alignSelf: 'flex-end' },
+  readTime: { color: '#6f8da7', fontSize: 9 },
   composer: { minHeight: 66, paddingHorizontal: 13, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: '#ffffff', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e5edf4' },
   messageInput: { flex: 1, maxHeight: 100, minHeight: 44, paddingHorizontal: 15, paddingVertical: 11, borderRadius: 24, backgroundColor: '#eff6fc', color: '#365a78', fontSize: 14 },
   sendButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: '#5791ca' },

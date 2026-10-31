@@ -49,7 +49,7 @@ function formatarDataAtual() {
     return `${ano}-${mes}-${dia}`;
 }
 
-export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, mensagensNaoLidas, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
+export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAnimalEncontrado, abrirChat, abrirNotificacao, mensagensNaoLidas, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
     const [animais, setAnimais] = useState([]);
     const listaRef = useRef(null);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
@@ -421,7 +421,7 @@ export default function AnimalAdocao({ usuarioId, token, nome, fotoPerfil, onVol
                 <Text style={styles.titulo}>Animais para Adoção</Text>
 
                 <View style={styles.acoesHeader}>
-                    <NotificationBell token={token} onPress={abrirChat} containerStyle={styles.notificationButton} />
+                    <NotificationBell token={token} onOpenNotification={abrirNotificacao} containerStyle={styles.notificationButton} />
 
                     <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>

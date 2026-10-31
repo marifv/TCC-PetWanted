@@ -28,7 +28,7 @@ function novoFormulario() {
     return { nome: '', especie: '', raca: '', cor: '', porte: '', sexo: '', faixaEtaria: '', local: '', local_latitude: null, local_longitude: null, data: '', descricao: '', foto: null };
 }
 
-export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirChat, mensagensNaoLidas, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
+export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, onVoltar, setTelaAtual, abrirAnimalPerdido, abrirAdocao, abrirChat, abrirNotificacao, mensagensNaoLidas, abrirEdicaoAnimal, animalAlvoId, onAnuncioAlvoExibido }) {
     const [animais, setAnimais] = useState([]);
     const listaRef = useRef(null);
     const letraPerfil = nome ? nome.charAt(0).toUpperCase() : 'U';
@@ -272,7 +272,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                 <Text style={styles.titulo}>Animais Encontrados</Text>
 
                 <View style={styles.acoesHeader}>
-                    <NotificationBell token={token} onPress={abrirChat} containerStyle={styles.notificationButton} />
+                    <NotificationBell token={token} onOpenNotification={abrirNotificacao} containerStyle={styles.notificationButton} />
 
                     <Pressable style={styles.profileButton} onPress={setTelaAtual} accessibilityLabel="Abrir perfil">
                         <View style={styles.avatar}>
