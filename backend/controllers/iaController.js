@@ -340,6 +340,9 @@ async function atualizarStatusMatch(req, res) {
             return res.status(403).json({ mensagem: 'Somente o tutor do animal perdido pode confirmar o encontro.' });
         }
 
+        let conversaId;
+        let mensagem = null;
+        let destinatarioId;
         const transacao = await pool.connect();
         try {
             await transacao.query('BEGIN');
@@ -357,6 +360,50 @@ async function atualizarStatusMatch(req, res) {
                 `DELETE FROM animais WHERE id_animal = $1 AND id_usuario = $2`,
                 [dados.perdido_id, dados.dono_perdido]
             );
+
+            const usuario1 = Math.min(Number(dados.dono_perdido), Number(dados.dono_encontrado));
+            const usuario2 = Math.max(Number(dados.dono_perdido), Number(dados.dono_encontrado));
+            const animalId = dados.encontrado_id;
+
+            const conversa = await transacao.query(
+                `INSERT INTO conversas (usuario_1_id, usuario_2_id, animal_id)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (usuario_1_id, usuario_2_id)
+                 DO UPDATE SET animal_id = COALESCE(EXCLUDED.animal_id, conversas.animal_id)
+                 RETURNING id`,
+                [usuario1, usuario2, animalId]
+            );
+            conversaId = conversa.rows[0].id;
+
+            await transacao.query(
+                `INSERT INTO preferencias_conversa (usuario_id, conversa_id, excluida_em)
+                 VALUES ($1, $2, NULL), ($3, $2, NULL)
+                 ON CONFLICT (usuario_id, conversa_id)
+                 DO UPDATE SET excluida_em = NULL`,
+                [dados.dono_perdido, conversaId, dados.dono_encontrado]
+            );
+
+            const mensagemAutomatica =
+                'Olá! Acredito que podemos estar falando do mesmo animal. O PetWanted encontrou uma possível correspondência entre os nossos anúncios.';
+            const mensagemExiste = await transacao.query(
+                `SELECT id FROM mensagens_chat
+                 WHERE conversa_id = $1 AND remetente_id = $2 AND conteudo = $3
+                 LIMIT 1`,
+                [conversaId, req.usuario.id, mensagemAutomatica]
+            );
+            if (!mensagemExiste.rows.length) {
+                const inserida = await transacao.query(
+                    `INSERT INTO mensagens_chat
+                     (conversa_id, remetente_id, conteudo, animal_id, lida_em)
+                     VALUES ($1, $2, $3, $4, NULL)
+                     RETURNING id, conversa_id, remetente_id, conteudo, animal_id, criado_em`,
+                    [conversaId, req.usuario.id, mensagemAutomatica, animalId]
+                );
+                mensagem = inserida.rows[0];
+                destinatarioId = Number(req.usuario.id) === Number(dados.dono_perdido)
+                    ? Number(dados.dono_encontrado)
+                    : Number(dados.dono_perdido);
+            }
             await transacao.query('COMMIT');
         } catch (erro) {
             await transacao.query('ROLLBACK');
@@ -365,51 +412,7 @@ async function atualizarStatusMatch(req, res) {
             transacao.release();
         }
 
-        const usuario1 = Math.min(Number(dados.dono_perdido), Number(dados.dono_encontrado));
-        const usuario2 = Math.max(Number(dados.dono_perdido), Number(dados.dono_encontrado));
-        const animalId = Number(req.usuario.id) === Number(dados.dono_perdido)
-            ? dados.encontrado_id
-            : dados.perdido_id;
-
-        const conversa = await pool.query(
-            `INSERT INTO conversas (usuario_1_id, usuario_2_id, animal_id)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (usuario_1_id, usuario_2_id)
-             DO UPDATE SET animal_id = COALESCE(EXCLUDED.animal_id, conversas.animal_id)
-             RETURNING id`,
-            [usuario1, usuario2, animalId]
-        );
-        const conversaId = conversa.rows[0].id;
-
-        await pool.query(
-            `INSERT INTO preferencias_conversa (usuario_id, conversa_id, excluida_em)
-             VALUES ($1, $2, NULL), ($3, $2, NULL)
-             ON CONFLICT (usuario_id, conversa_id)
-             DO UPDATE SET excluida_em = NULL`,
-            [dados.dono_perdido, conversaId, dados.dono_encontrado]
-        );
-
-        const mensagemAutomatica =
-            'Olá! Acredito que podemos estar falando do mesmo animal. O PetWanted encontrou uma possível correspondência entre os nossos anúncios.';
-        const mensagemExiste = await pool.query(
-            `SELECT id FROM mensagens_chat
-             WHERE conversa_id = $1 AND remetente_id = $2 AND conteudo = $3
-             LIMIT 1`,
-            [conversaId, req.usuario.id, mensagemAutomatica]
-        );
-        let mensagem = null;
-        if (!mensagemExiste.rows.length) {
-            const inserida = await pool.query(
-                `INSERT INTO mensagens_chat
-                 (conversa_id, remetente_id, conteudo, animal_id, lida_em)
-                 VALUES ($1, $2, $3, $4, NULL)
-                 RETURNING id, conversa_id, remetente_id, conteudo, animal_id, criado_em`,
-                [conversaId, req.usuario.id, mensagemAutomatica, animalId]
-            );
-            mensagem = inserida.rows[0];
-            const destinatarioId = Number(req.usuario.id) === Number(dados.dono_perdido)
-                ? Number(dados.dono_encontrado)
-                : Number(dados.dono_perdido);
+        if (mensagem && destinatarioId) {
             enviarNotificacaoChat({
                 usuarioId: destinatarioId,
                 conversaId,
@@ -424,8 +427,12 @@ async function atualizarStatusMatch(req, res) {
             mensagemAutomatica: mensagem,
         });
     } catch (erro) {
-        console.error('Erro ao atualizar match de IA:', erro.message);
-        return res.status(500).json({ mensagem: 'Nao foi possivel atualizar o match.' });
+        const detalhe = erro?.detail || erro?.message || 'erro desconhecido';
+        console.error('Erro ao atualizar match de IA:', detalhe, erro?.code || '');
+        return res.status(500).json({
+            mensagem: 'Nao foi possivel atualizar o match.',
+            detalhe,
+        });
     }
 }
 

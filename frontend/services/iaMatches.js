@@ -25,6 +25,11 @@ export async function decidirMatch(matchId, decisao, token) {
         headers: { Authorization: `Bearer ${token}` },
     });
     const dados = await resposta.json().catch(() => ({}));
-    if (!resposta.ok) throw new Error(dados.mensagem || 'Não foi possível registrar sua decisão.');
+    if (!resposta.ok) {
+        const mensagem = dados.detalhe
+            ? `${dados.mensagem || 'Não foi possível registrar sua decisão.'} ${dados.detalhe}`
+            : dados.mensagem || 'Não foi possível registrar sua decisão.';
+        throw new Error(mensagem);
+    }
     return dados;
 }
