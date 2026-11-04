@@ -1,5 +1,7 @@
 const { GoogleGenAI } = require('@google/genai');
 
+let indisponivelAte = 0;
+
 const PROMPT_ANALISE = `
 Analise a foto do animal e a descricao informada.
 Retorne apenas JSON valido, sem markdown.
@@ -21,6 +23,10 @@ function criarCliente() {
 async function analisarAnimal({ imagemUrl, descricao = '', dadosAnuncio = {} }) {
     if (!imagemUrl) {
         throw new Error('Anuncio sem foto para analise.');
+    }
+
+    if (Date.now() < indisponivelAte) {
+        throw new Error('Gemini em modo de espera temporario; usando matching local.');
     }
 
     const respostaImagem = await fetch(imagemUrl);
@@ -68,8 +74,11 @@ async function analisarAnimal({ imagemUrl, descricao = '', dadosAnuncio = {} }) 
             } catch (erro) {
                 ultimoErro = erro;
                 const sobrecarregado = /503|429|UNAVAILABLE|RESOURCE_EXHAUSTED/i.test(erro.message || '');
+                if (/503|UNAVAILABLE/i.test(erro.message || '')) {
+                    indisponivelAte = Date.now() + 60000;
+                }
                 if (!sobrecarregado || tentativa === 2) break;
-                await new Promise((resolver) => setTimeout(resolver, tentativa * 2000));
+                await new Promise((resolver) => setTimeout(resolver, 500));
             }
         }
     }

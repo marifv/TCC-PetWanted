@@ -180,7 +180,17 @@ async function analisarAnuncioPorId(req, res) {
             `SELECT id_animal, especie, raca, cor, porte, sexo, descricao, tipo_registro,
                     data_evento, local_latitude, local_longitude
              FROM animais
-             WHERE tipo_registro = $1 AND id_animal <> $2`,
+             WHERE tipo_registro = $1
+               AND id_animal <> $2
+               AND NOT EXISTS (
+                   SELECT 1
+                   FROM matches_animais m
+                   WHERE (
+                       ($1 = 'Encontrado' AND m.anuncio_perdido_id = $2 AND m.anuncio_encontrado_id = animais.id_animal)
+                       OR ($1 = 'Perdido' AND m.anuncio_perdido_id = animais.id_animal AND m.anuncio_encontrado_id = $2)
+                   )
+                   AND m.status IN ('descartado_usuario', 'aceito_usuario', 'confirmado')
+               )`,
             [tipoCandidato, anuncio.id_animal]
         );
 
