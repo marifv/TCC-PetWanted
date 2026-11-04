@@ -347,7 +347,7 @@ async function atualizarStatusMatch(req, res) {
         try {
             await transacao.query('BEGIN');
             await transacao.query(
-                `UPDATE animais SET status = 'Dono encontrado', atualizado_em = NOW()
+                `UPDATE animais SET status = 'Dono encontrado'
                  WHERE id_animal = $1 AND id_usuario = $2`,
                 [dados.encontrado_id, dados.dono_encontrado]
             );
