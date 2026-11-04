@@ -130,17 +130,34 @@ async function analisarAnuncioPorId(req, res) {
             return res.status(400).json({ mensagem: 'O anuncio nao possui foto para analise.' });
         }
 
-        const analise = await analisarAnimal({
-            imagemUrl,
-            descricao: anuncio.descricao,
-            dadosAnuncio: {
+        let analise;
+        let modeloUsado;
+        try {
+            analise = await analisarAnimal({
+                imagemUrl,
+                descricao: anuncio.descricao,
+                dadosAnuncio: {
+                    especie: anuncio.especie,
+                    raca: anuncio.raca,
+                    cor: anuncio.cor,
+                    porte: anuncio.porte,
+                    sexo: anuncio.sexo,
+                },
+            });
+            modeloUsado = analise.modelo || process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+        } catch (erro) {
+            console.warn(`Gemini indisponivel para o anuncio ${anuncio.id_animal}: ${erro.message}`);
+            analise = {
                 especie: anuncio.especie,
-                raca: anuncio.raca,
-                cor: anuncio.cor,
                 porte: anuncio.porte,
-                sexo: anuncio.sexo,
-            },
-        });
+                pelagem: '',
+                cores: anuncio.cor ? String(anuncio.cor).split(',').map((item) => item.trim()).filter(Boolean) : [],
+                marcasDistintivas: [],
+                caracteristicas: anuncio.descricao || '',
+                confianca: 0.75,
+            };
+            modeloUsado = 'fallback-local';
+        }
 
         await pool.query(
             `INSERT INTO analises_ia_animais (anuncio_id, modelo, resultado_json, confianca)
@@ -152,7 +169,7 @@ async function analisarAnuncioPorId(req, res) {
                 atualizado_em = NOW()`,
             [
                 anuncio.id_animal,
-                process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+                modeloUsado,
                 JSON.stringify(analise),
                 Math.max(0, Math.min(1, Number(analise.confianca) || 0)),
             ]
@@ -250,7 +267,7 @@ async function listarMatchesDoUsuario(req, res) {
              JOIN animais p ON p.id_animal = m.anuncio_perdido_id
              JOIN animais e ON e.id_animal = m.anuncio_encontrado_id
              WHERE (p.id_usuario = $1 OR e.id_usuario = $1)
-               AND m.status IN ('pendente', 'notificado', 'aceito_usuario')
+               AND m.status IN ('pendente', 'notificado')
              ORDER BY m.score_total DESC, m.criado_em DESC
              LIMIT 50`,
             [req.usuario.id]
@@ -271,14 +288,13 @@ async function atualizarStatusMatch(req, res) {
         }
 
         const resultado = await pool.query(
-            `UPDATE matches_animais m SET status = $1, atualizado_em = NOW()
-             FROM animais p, animais e
-             WHERE m.id = $2
-               AND p.id_animal = m.anuncio_perdido_id
-               AND e.id_animal = m.anuncio_encontrado_id
-               AND (p.id_usuario = $3 OR e.id_usuario = $3)
-             RETURNING m.*`,
-            [status, req.params.id, req.usuario.id]
+            `SELECT m.*
+             FROM matches_animais m
+             JOIN animais p ON p.id_animal = m.anuncio_perdido_id
+             JOIN animais e ON e.id_animal = m.anuncio_encontrado_id
+             WHERE m.id = $1
+               AND (p.id_usuario = $2 OR e.id_usuario = $2)`,
+            [req.params.id, req.usuario.id]
         );
 
         if (resultado.rows.length === 0) {
@@ -286,7 +302,12 @@ async function atualizarStatusMatch(req, res) {
         }
 
         if (status !== 'aceito_usuario') {
-            return res.json({ match: resultado.rows[0] });
+            const descartado = await pool.query(
+                `UPDATE matches_animais SET status = 'descartado_usuario', atualizado_em = NOW()
+                 WHERE id = $1 RETURNING *`,
+                [req.params.id]
+            );
+            return res.json({ match: descartado.rows[0] });
         }
 
         const dadosMatch = await pool.query(
@@ -305,6 +326,35 @@ async function atualizarStatusMatch(req, res) {
         }
 
         const dados = dadosMatch.rows[0];
+        if (Number(req.usuario.id) !== Number(dados.dono_perdido)) {
+            return res.status(403).json({ mensagem: 'Somente o tutor do animal perdido pode confirmar o encontro.' });
+        }
+
+        const transacao = await pool.connect();
+        try {
+            await transacao.query('BEGIN');
+            await transacao.query(
+                `UPDATE animais SET status = 'Dono encontrado', atualizado_em = NOW()
+                 WHERE id_animal = $1 AND id_usuario = $2`,
+                [dados.encontrado_id, dados.dono_encontrado]
+            );
+            await transacao.query(
+                `UPDATE matches_animais SET status = 'confirmado', atualizado_em = NOW()
+                 WHERE id = $1`,
+                [req.params.id]
+            );
+            await transacao.query(
+                `DELETE FROM animais WHERE id_animal = $1 AND id_usuario = $2`,
+                [dados.perdido_id, dados.dono_perdido]
+            );
+            await transacao.query('COMMIT');
+        } catch (erro) {
+            await transacao.query('ROLLBACK');
+            throw erro;
+        } finally {
+            transacao.release();
+        }
+
         const usuario1 = Math.min(Number(dados.dono_perdido), Number(dados.dono_encontrado));
         const usuario2 = Math.max(Number(dados.dono_perdido), Number(dados.dono_encontrado));
         const animalId = Number(req.usuario.id) === Number(dados.dono_perdido)
@@ -359,7 +409,7 @@ async function atualizarStatusMatch(req, res) {
         }
 
         return res.json({
-            match: resultado.rows[0],
+            match: { ...resultado.rows[0], status: 'confirmado' },
             conversaId,
             mensagemAutomatica: mensagem,
         });

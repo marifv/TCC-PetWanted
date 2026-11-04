@@ -51,10 +51,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
 
             if (resposta.ok) {
                 setAnimais(dados
-                    .filter((animal) => (
-                        animal.tipo_registro === 'Encontrado'
-                        && String(animal.status || '').trim().toLowerCase() !== STATUS_DONO_ENCONTRADO.toLowerCase()
-                    ))
+                    .filter((animal) => animal.tipo_registro === 'Encontrado')
                     .map((animal) => ({
                         ...animal,
                         status: animal.status || STATUS_PROCURANDO,
@@ -211,7 +208,7 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    nome: formulario.nome,
+                    nome: formulario.nome.trim() || null,
                     especie: formulario.especie,
                     raca: formulario.raca,
                     cor: formulario.cor,
@@ -454,8 +451,8 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
                         <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                             <SeletorFotos fotos={formulario.fotos} onChange={atualizarFotos} />
 
-                            <Text style={styles.campoLabel}>Nome (se souber)</Text>
-                            <TextInput style={styles.campoInput} placeholder="Nome do animal, se ele tiver uma coleira/plaquinha" placeholderTextColor="gray" value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />
+                            <Text style={styles.campoLabel}>Nome (opcional)</Text>
+                            <TextInput style={styles.campoInput} placeholder="Deixe em branco se você não sabe o nome" placeholderTextColor="gray" value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />
 
                             <Text style={styles.campoLabel}>Espécie *</Text>
                             <View style={styles.opcoesContainer}>

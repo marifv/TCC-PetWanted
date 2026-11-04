@@ -67,8 +67,11 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
     };
 
     const salvar = async () => {
-        if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
-            mostrarMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
+        const nomeObrigatorio = animal?.tipo_registro !== 'Encontrado';
+        if ((nomeObrigatorio && !formulario.nome.trim()) || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
+            mostrarMensagem(nomeObrigatorio
+                ? 'Preencha nome, espécie, raça, cor, porte, sexo, local e data.'
+                : 'Preencha espécie, raça, cor, porte, sexo, local e data.');
             return;
         }
         const erroData = validarDataNaoFutura(formulario.data);
@@ -95,7 +98,7 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
         }
 
         const atualizado = await onSalvar({
-            nome: formulario.nome,
+            nome: animal?.tipo_registro === 'Adocao' ? formulario.nome.trim() : formulario.nome.trim() || null,
             especie: formulario.especie,
             raca: formulario.raca,
             cor: formulario.cor,
@@ -123,8 +126,11 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
     };
 
     const solicitarSalvar = () => {
-        if (!formulario.nome || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
-            mostrarMensagem('Preencha nome, espécie, raça, cor, porte, sexo, local e data.');
+        const nomeObrigatorio = animal?.tipo_registro !== 'Encontrado';
+        if ((nomeObrigatorio && !formulario.nome.trim()) || !formulario.especie || !formulario.raca || !formulario.cor || !formulario.porte || !formulario.sexo || !formulario.local || !formulario.data) {
+            mostrarMensagem(nomeObrigatorio
+                ? 'Preencha nome, espécie, raça, cor, porte, sexo, local e data.'
+                : 'Preencha espécie, raça, cor, porte, sexo, local e data.');
             return;
         }
         const erroData = validarDataNaoFutura(formulario.data);
@@ -192,8 +198,8 @@ export default function EdicaoAnimal({ animal, token, onVoltar, onSalvar }) {
                 <Text style={styles.label}>{tipo === 'Adocao' ? 'Fotos *' : 'Fotos'}</Text>
                 <SeletorFotos fotos={formulario.fotos} onChange={atualizarFotos} />
 
-                <Text style={styles.label}>Nome *</Text>
-                <TextInput style={styles.input} placeholder="Nome do animal" placeholderTextColor="gray" value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />
+                <Text style={styles.label}>{tipo === 'Encontrado' ? 'Nome (opcional)' : 'Nome *'}</Text>
+                <TextInput style={styles.input} placeholder={tipo === 'Encontrado' ? 'Deixe em branco se não souber o nome' : 'Nome do animal'} placeholderTextColor="gray" value={formulario.nome} onChangeText={(valor) => atualizarCampo('nome', valor)} />
 
                 <Text style={styles.label}>Espécie *</Text>
                 <View style={styles.options}>

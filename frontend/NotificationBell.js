@@ -120,8 +120,12 @@ export default function NotificationBell({ token, onOpenNotification, containerS
   const decidir = async (match, decisao) => {
     try {
       const resultado = await decidirMatch(match.id, decisao, token);
-      setMatches((atuais) => atuais.filter((item) => item.id !== match.id));
-      setMatchesNaoLidas((quantidade) => Math.max(0, quantidade - 1));
+      const atualizarDepoisDaDecisao = async () => {
+        const matchesAtualizados = await listarMatches(token).catch(() => []);
+        setMatches(matchesAtualizados);
+        setMatchesNaoLidas(matchesAtualizados.length);
+      };
+      await atualizarDepoisDaDecisao();
       if (decisao === 'aceitar' && resultado.conversaId) {
         setCentralVisivel(false);
         onOpenNotification?.({

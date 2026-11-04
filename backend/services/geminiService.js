@@ -35,28 +35,46 @@ async function analisarAnimal({ imagemUrl, descricao = '', dadosAnuncio = {} }) 
 
     const bytes = Buffer.from(await respostaImagem.arrayBuffer());
     const ai = criarCliente();
-    const resposta = await ai.models.generateContent({
-        model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-        contents: [{
-            role: 'user',
-            parts: [
-                { text: `${PROMPT_ANALISE}\nDescricao: ${descricao || 'Nao informada'}\nDados: ${JSON.stringify(dadosAnuncio)}` },
-                { inlineData: { mimeType: contentType.split(';')[0], data: bytes.toString('base64') } },
-            ],
-        }],
-        config: { responseMimeType: 'application/json' },
-    });
+    const modelosConfigurados = [
+        process.env.GEMINI_MODEL,
+        process.env.GEMINI_FALLBACK_MODELS,
+    ].filter(Boolean).join(',').split(',').map((modelo) => modelo.trim()).filter(Boolean);
+    const modelos = [...new Set(modelosConfigurados.length ? modelosConfigurados : ['gemini-3.8-flash'])];
+    let ultimoErro = null;
 
-    const texto = resposta.text?.trim();
-    if (!texto) {
-        throw new Error('Gemini nao retornou uma resposta.');
+    for (const modelo of modelos) {
+        for (let tentativa = 1; tentativa <= 2; tentativa += 1) {
+            try {
+                const resposta = await ai.models.generateContent({
+                    model: modelo,
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { text: `${PROMPT_ANALISE}\nDescricao: ${descricao || 'Nao informada'}\nDados: ${JSON.stringify(dadosAnuncio)}` },
+                            { inlineData: { mimeType: contentType.split(';')[0], data: bytes.toString('base64') } },
+                        ],
+                    }],
+                    config: { responseMimeType: 'application/json' },
+                });
+
+                const texto = resposta.text?.trim();
+                if (!texto) throw new Error('Gemini nao retornou uma resposta.');
+
+                try {
+                    return { ...JSON.parse(texto), modelo };
+                } catch (erro) {
+                    throw new Error('Gemini retornou JSON invalido.');
+                }
+            } catch (erro) {
+                ultimoErro = erro;
+                const sobrecarregado = /503|429|UNAVAILABLE|RESOURCE_EXHAUSTED/i.test(erro.message || '');
+                if (!sobrecarregado || tentativa === 2) break;
+                await new Promise((resolver) => setTimeout(resolver, tentativa * 2000));
+            }
+        }
     }
 
-    try {
-        return JSON.parse(texto);
-    } catch (erro) {
-        throw new Error('Gemini retornou JSON invalido.');
-    }
+    throw new Error(`Gemini indisponivel: ${ultimoErro?.message || 'modelo sem resposta'}`);
 }
 
 module.exports = { analisarAnimal };
