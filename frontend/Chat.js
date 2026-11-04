@@ -11,15 +11,24 @@ import {
   Text,
   TextInput,
   View,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { io } from 'socket.io-client';
 import BottomNavigation from './BottomNavigation';
 import Pressable from './ButtonPressable';
+import FotoAmpliavel from './FotoAmpliavel';
 import { API_BASE_URL } from './config/api';
 
 const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+
+function urlAnexo(url) {
+  if (!url) return null;
+  if (/^https?:\/\//i.test(url) || /^data:/i.test(url)) return url;
+  return `${SOCKET_URL}${url.startsWith('/') ? url : `/${url}`}`;
+}
 
 function horario(data) {
   if (!data) return '';
@@ -46,8 +55,11 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
   const [denunciaVisivel, setDenunciaVisivel] = useState(false);
   const [motivoDenuncia, setMotivoDenuncia] = useState('');
   const [processandoAcao, setProcessandoAcao] = useState(false);
+  const [anexo, setAnexo] = useState(null);
+  const [mostrarDescer, setMostrarDescer] = useState(false);
   const socketRef = useRef(null);
   const scrollRef = useRef(null);
+  const enviosPendentesRef = useRef(0);
 
   const requisicao = async (caminho, opcoes = {}) => fetch(`${API_BASE_URL}/chat${caminho}`, {
     ...opcoes,
@@ -148,12 +160,15 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
   }, [conversaAtiva?.id]);
 
   useEffect(() => {
-    scrollRef.current?.scrollToEnd({ animated: true });
+    scrollRef.current?.scrollToEnd?.({ animated: false });
   }, [mensagens.length]);
 
   const abrirConversa = async (conversa) => {
     setConversaAtiva(conversa);
     setMensagens([]);
+    setTexto('');
+    setAnexo(null);
+    setMostrarDescer(false);
     setConversas((atuais) => atuais.map((item) => (
       Number(item.id) === Number(conversa.id)
         ? { ...item, mensagens_nao_lidas: 0 }
@@ -201,6 +216,43 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
     abrirConversa(conversa);
   }, [notificacaoParaChat?.id]);
 
+  const selecionarAnexo = async () => {
+    if (enviando) return;
+    const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissao.granted) {
+      setErro('Ative o acesso às fotos para anexar arquivos.');
+      return;
+    }
+    try {
+      const resultado = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images', 'videos'],
+        allowsMultipleSelection: false,
+        quality: 0.65,
+        base64: true,
+        videoMaxDuration: 60,
+      });
+      if (resultado.canceled || !resultado.assets?.length) return;
+      const arquivo = resultado.assets[0];
+      const tipo = arquivo.type === 'video' ? 'video' : 'image';
+      if (!arquivo.base64 || !arquivo.mimeType) {
+        setErro('Não foi possível preparar o anexo.');
+        return;
+      }
+      if ((arquivo.fileSize || 0) > 15 * 1024 * 1024) {
+        setErro('O anexo deve ter no máximo 15 MB.');
+        return;
+      }
+      setAnexo({
+        tipo,
+        nome: arquivo.fileName || (tipo === 'video' ? 'Vídeo' : 'Foto'),
+        dataUri: `data:${arquivo.mimeType};base64,${arquivo.base64}`,
+      });
+      setErro('');
+    } catch (falha) {
+      setErro(falha.message || 'Não foi possível selecionar o anexo.');
+    }
+  };
+
   const iniciarConversa = async (usuario) => {
     try {
       const resposta = await requisicao('/conversas', {
@@ -225,18 +277,37 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
 
   const enviarMensagem = () => {
     const conteudo = texto.trim();
-    if (!conteudo || !conversaAtiva || enviando) return;
+    if ((!conteudo && !anexo) || !conversaAtiva) return;
+
+    const anexoAtual = anexo;
     setEnviando(true);
+    enviosPendentesRef.current += 1;
+    setTexto('');
+    setAnexo(null);
+    setErro('');
+
     socketRef.current?.timeout(10000).emit(
       'mensagem:enviar',
-      { conversaId: conversaAtiva.id, conteudo },
+      {
+        conversaId: conversaAtiva.id,
+        conteudo,
+        animalId: conversaAtiva.animal_id || null,
+        anexoData: anexoAtual?.dataUri || null,
+        anexoTipo: anexoAtual?.tipo || null,
+      },
       (falha, resposta) => {
-        setEnviando(false);
+        enviosPendentesRef.current = Math.max(0, enviosPendentesRef.current - 1);
+        setEnviando(enviosPendentesRef.current > 0);
         if (falha || !resposta?.ok) {
           setErro(resposta?.mensagem || 'A mensagem não foi enviada. Tente novamente.');
+          if (conteudo) {
+            setTexto((textoAtual) => textoAtual ? `${textoAtual}\n${conteudo}` : conteudo);
+          }
+          if (anexoAtual) {
+            setAnexo((anexoAtualNoEstado) => anexoAtualNoEstado || anexoAtual);
+          }
           return;
         }
-        setTexto('');
         setErro('');
       }
     );
@@ -361,16 +432,49 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
 
           <ScrollView
             ref={scrollRef}
+            testID="lista-mensagens-chat"
             style={styles.messages}
             contentContainerStyle={styles.messageList}
             keyboardShouldPersistTaps="handled"
+            onScroll={(evento) => {
+              const { layoutMeasurement, contentOffset, contentSize } = evento.nativeEvent;
+              const distanciaFinal = contentSize.height - (layoutMeasurement.height + contentOffset.y);
+              setMostrarDescer(distanciaFinal > 160);
+            }}
+            scrollEventThrottle={16}
           >
             {mensagens.map((mensagem) => {
               const propria = Number(mensagem.remetente_id) === Number(usuarioId);
+              const anexourl = urlAnexo(mensagem.anexo_url);
               return (
                 <View key={mensagem.id} style={[styles.messageGroup, propria && styles.messageGroupOwn]}>
                   <View style={[styles.bubble, propria ? styles.bubbleOwn : styles.bubbleOther]}>
-                    <Text style={[styles.messageText, propria && styles.messageTextOwn]}>{mensagem.conteudo}</Text>
+                    {mensagem.animal_nome ? (
+                      <Text style={[styles.messageAnimalContext, propria && styles.messageAnimalContextOwn]}>
+                        {mensagem.tipo_registro || 'Anúncio'} · {mensagem.animal_nome}
+                      </Text>
+                    ) : null}
+                    {anexourl && mensagem.anexo_tipo === 'image' ? (
+                      <FotoAmpliavel
+                        uri={anexourl}
+                        style={styles.messageImage}
+                        resizeMode="cover"
+                        accessibilityLabel="Ampliar foto do chat"
+                      />
+                    ) : null}
+                    {anexourl && mensagem.anexo_tipo === 'video' ? (
+                      <Pressable
+                        style={styles.videoAttachment}
+                        onPress={() => Linking.openURL(anexourl)}
+                        accessibilityLabel="Abrir vídeo"
+                      >
+                        <MaterialCommunityIcons name="play-circle-outline" size={34} color={propria ? '#ffffff' : '#5791ca'} />
+                        <Text style={[styles.videoAttachmentText, propria && styles.messageTextOwn]}>Vídeo</Text>
+                      </Pressable>
+                    ) : null}
+                    {!mensagem.anexo_url || !['Foto enviada', 'Vídeo enviado'].includes(mensagem.conteudo) ? (
+                      <Text style={[styles.messageText, propria && styles.messageTextOwn]}>{mensagem.conteudo}</Text>
+                    ) : null}
                   </View>
                   <View style={[styles.messageMeta, propria && styles.messageTimeOwn]}>
                     <Text style={styles.messageTime}>{horario(mensagem.criado_em)}</Text>
@@ -390,8 +494,35 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
             })}
           </ScrollView>
 
+          {mostrarDescer ? (
+            <Pressable
+              style={styles.scrollToBottomButton}
+              onPress={() => scrollRef.current?.scrollToEnd?.({ animated: true })}
+              accessibilityLabel="Descer para a mensagem mais recente"
+            >
+              <MaterialCommunityIcons name="chevron-down" size={24} color="#ffffff" />
+            </Pressable>
+          ) : null}
+
           {erro ? <Text style={styles.inlineError}>{erro}</Text> : null}
           <View style={styles.composer}>
+            <Pressable
+              style={styles.attachButton}
+              onPress={selecionarAnexo}
+              disabled={enviando}
+              accessibilityLabel="Anexar foto ou vídeo"
+            >
+              <MaterialCommunityIcons name="paperclip" size={21} color="#5791ca" />
+            </Pressable>
+            {anexo ? (
+              <View style={styles.attachmentPreview}>
+                <MaterialCommunityIcons name={anexo.tipo === 'video' ? 'video-outline' : 'image-outline'} size={18} color="#5791ca" />
+                <Text style={styles.attachmentPreviewText} numberOfLines={1}>{anexo.nome}</Text>
+                <Pressable onPress={() => setAnexo(null)} accessibilityLabel="Remover anexo">
+                  <MaterialCommunityIcons name="close-circle" size={18} color="#8ba0b2" />
+                </Pressable>
+              </View>
+            ) : null}
             <TextInput
               value={texto}
               onChangeText={setTexto}
@@ -402,7 +533,7 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
               maxLength={2000}
               onSubmitEditing={enviarMensagem}
             />
-            <Pressable style={styles.sendButton} onPress={enviarMensagem} disabled={!texto.trim() || enviando} accessibilityLabel="Enviar mensagem">
+            <Pressable style={styles.sendButton} onPress={enviarMensagem} disabled={(!texto.trim() && !anexo)} accessibilityLabel="Enviar mensagem">
               {enviando ? <ActivityIndicator color="#ffffff" size="small" /> : <MaterialCommunityIcons name="send" size={20} color="#ffffff" />}
             </Pressable>
           </View>
@@ -671,11 +802,20 @@ const styles = StyleSheet.create({
   bubbleOwn: { borderBottomRightRadius: 5, backgroundColor: '#6fa6d8' },
   messageText: { color: '#38566f', fontSize: 14, lineHeight: 20 },
   messageTextOwn: { color: '#ffffff' },
+  messageAnimalContext: { marginBottom: 6, color: '#6488a8', fontSize: 10, fontWeight: '700' },
+  messageAnimalContextOwn: { color: '#dfeeff' },
+  messageImage: { width: 220, height: 220, marginBottom: 4, borderRadius: 12, backgroundColor: '#d9e6f2' },
+  videoAttachment: { minWidth: 150, minHeight: 70, marginBottom: 5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 12, backgroundColor: '#dcecf9' },
+  videoAttachmentText: { color: '#5791ca', fontSize: 13, fontWeight: '700' },
+  scrollToBottomButton: { position: 'absolute', right: 16, bottom: 78, width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 21, backgroundColor: '#5791ca', elevation: 5, shadowColor: '#20384d', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4 },
   messageMeta: { flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 3 },
   messageTime: { paddingHorizontal: 3, color: '#8ba0b2', fontSize: 10 },
   messageTimeOwn: { alignSelf: 'flex-end' },
   readTime: { color: '#6f8da7', fontSize: 9 },
   composer: { minHeight: 66, paddingHorizontal: 13, paddingVertical: 9, flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: '#ffffff', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e5edf4' },
+  attachButton: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 19, backgroundColor: '#eff6fc' },
+  attachmentPreview: { maxWidth: 125, height: 38, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 19, backgroundColor: '#eff6fc' },
+  attachmentPreviewText: { flex: 1, color: '#668098', fontSize: 11 },
   messageInput: { flex: 1, maxHeight: 100, minHeight: 44, paddingHorizontal: 15, paddingVertical: 11, borderRadius: 24, backgroundColor: '#eff6fc', color: '#365a78', fontSize: 14 },
   sendButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: '#5791ca' },
 });

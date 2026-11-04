@@ -157,8 +157,8 @@ async function criarConversa(req, res) {
         const resultado = await pool.query(
             `INSERT INTO conversas (usuario_1_id, usuario_2_id, animal_id)
              VALUES ($1, $2, $3)
-             ON CONFLICT (usuario_1_id, usuario_2_id, (COALESCE(animal_id, 0)))
-             DO UPDATE SET criado_em = conversas.criado_em
+             ON CONFLICT (usuario_1_id, usuario_2_id)
+             DO UPDATE SET animal_id = COALESCE(EXCLUDED.animal_id, conversas.animal_id)
              RETURNING id`,
             [primeiroUsuario, segundoUsuario, animalId]
         );
@@ -204,9 +204,12 @@ async function listarMensagens(req, res) {
         );
 
         const resultado = await pool.query(
-            `SELECT m.id, m.conversa_id, m.remetente_id, m.conteudo, m.criado_em, m.lida_em
+            `SELECT m.id, m.conversa_id, m.remetente_id, m.conteudo, m.criado_em, m.lida_em,
+                    m.animal_id, m.anexo_url, m.anexo_tipo,
+                    animal.nome AS animal_nome, animal.tipo_registro
              FROM mensagens_chat m
              JOIN conversas c ON c.id = m.conversa_id
+             LEFT JOIN animais animal ON animal.id_animal = m.animal_id
              WHERE c.id = $1 AND (c.usuario_1_id = $2 OR c.usuario_2_id = $2)
              ORDER BY m.criado_em ASC, m.id ASC`,
             [conversaId, req.usuario.id]

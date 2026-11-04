@@ -1,1 +1,0 @@
-ALTER TABLE mensagens_chat ADD COLUMN IF NOT EXISTS lida_em TIMESTAMPTZ;

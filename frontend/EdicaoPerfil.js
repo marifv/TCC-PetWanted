@@ -6,6 +6,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Pressable from './ButtonPressable';
 import GooglePlacesInput from './GooglePlacesInput';
+import { registrarPermissaoNegada } from './services/permissionNotifications';
 
 export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, documento, localizacao, fotoPerfil, token, onSalvar }) {
     const [novoNome, setNovoNome] = useState(nome || '');
@@ -26,10 +27,7 @@ export default function EdicaoPerfil({ onVoltar, nome, tipoPerfil, email, docume
         const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
         if (!permissao.granted) {
-            mostrarModal(
-                'Permissão necessária',
-                'Precisamos de acesso à sua galeria para escolher uma foto.'
-            );
+            await registrarPermissaoNegada('photos');
             return;
         }
 

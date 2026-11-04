@@ -1,10 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+require('dotenv').config();
 const usuarioRoutes = require('./routes/usuarioRoutes');
 const animalRoutes = require('./routes/animalRoutes');
 const localRoutes = require('./routes/localRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const iaRoutes = require('./routes/iaRoutes');
 
 const app = express();
 
@@ -20,5 +22,6 @@ app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/animais', animalRoutes);
 app.use('/api/locais', localRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/ia', iaRoutes);
 
 module.exports = app;

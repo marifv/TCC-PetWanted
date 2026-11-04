@@ -6,7 +6,9 @@
     "start": "node scripts/configure-api-env.js && expo start",
     "android": "node scripts/configure-api-env.js && expo start --android",
     "ios": "node scripts/configure-api-env.js && expo start --ios",
-    "web": "node scripts/configure-api-env.js && expo start --web"
+    "web": "node scripts/configure-api-env.js && expo start --web",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
@@ -29,8 +31,18 @@
     "socket.io-client": "^4.8.1"
   },
   "private": true,
+  "jest": {
+    "preset": "jest-expo",
+    "testMatch": [
+      "**/*.test.js",
+      "**/*.test.jsx"
+    ]
+  },
   "devDependencies": {
+    "@testing-library/react-native": "^14.1.0",
     "@types/react": "~19.2.10",
+    "jest": "~29.7.0",
+    "jest-expo": "~57.0.6",
     "typescript": "~6.0.3"
   }
 }

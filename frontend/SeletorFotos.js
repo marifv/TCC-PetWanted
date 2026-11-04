@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, Image, StyleSheet, Text, View } from 'react-n
 import { FontAwesome } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import Pressable from './ButtonPressable';
+import { registrarPermissaoNegada } from './services/permissionNotifications';
 
 const MAX_FOTOS = 3;
 
@@ -15,7 +16,7 @@ export default function SeletorFotos({ fotos = [], onChange }) {
 
     const permissao = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissao.granted) {
-      Alert.alert('Permissão necessária', 'Permita o acesso às fotos para selecionar imagens.');
+      await registrarPermissaoNegada('photos');
       return;
     }
 

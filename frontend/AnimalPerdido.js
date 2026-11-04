@@ -12,6 +12,7 @@ import AnuncioAutor from './AnuncioAutor';
 import NotificationBell from './NotificationBell';
 import FotoAmpliavel from './FotoAmpliavel';
 import SeletorFotos from './SeletorFotos';
+import { analisarAnuncio } from './services/iaMatches';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -231,6 +232,11 @@ export default function AnimalPerdido({ usuarioId, token, nome, fotoPerfil, onVo
             }
 
             setModalVisivel(false);
+            if (dados.id && token) {
+                analisarAnuncio(dados.id, token).catch((erro) => {
+                    console.warn('Não foi possível iniciar a análise do anúncio:', erro.message);
+                });
+            }
         } catch (error) {
             abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
         } finally {

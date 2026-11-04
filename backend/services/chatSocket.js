@@ -2,6 +2,39 @@ const { Server } = require('socket.io');
 const jwt = require('jsonwebtoken');
 const pool = require('../database/connection');
 const { enviarNotificacaoChat } = require('./firebaseMessaging');
+const { salvarAnexo } = require('./imageStorage');
+
+const LIMITE_ANEXO_BYTES = 15 * 1024 * 1024;
+
+function validarMensagemChat(dados = {}, usuarioId) {
+    const conversaId = Number(dados.conversaId);
+    const conteudo = typeof dados.conteudo === 'string' ? dados.conteudo.trim() : '';
+    const animalId = dados.animalId == null ? null : Number(dados.animalId);
+    const anexoData = typeof dados.anexoData === 'string' ? dados.anexoData : '';
+    const anexoTipo = typeof dados.anexoTipo === 'string' ? dados.anexoTipo : '';
+
+    if (!Number.isInteger(usuarioId) || usuarioId <= 0) {
+        return { ok: false, mensagem: 'Usuário inválido.' };
+    }
+    if (!Number.isInteger(conversaId) || conversaId <= 0 || (!conteudo && !anexoData) || conteudo.length > 2000) {
+        return { ok: false, mensagem: 'Mensagem inválida.' };
+    }
+    if (animalId !== null && (!Number.isInteger(animalId) || animalId <= 0)) {
+        return { ok: false, mensagem: 'Anúncio inválido.' };
+    }
+    if (anexoData && !['image', 'video'].includes(anexoTipo)) {
+        return { ok: false, mensagem: 'Tipo de anexo inválido.' };
+    }
+    if (anexoData) {
+        const base64 = anexoData.includes(',') ? anexoData.split(',', 2)[1] : anexoData;
+        const tamanhoBytes = Buffer.from(base64, 'base64').length;
+        if (!tamanhoBytes || tamanhoBytes > LIMITE_ANEXO_BYTES) {
+            return { ok: false, mensagem: 'O anexo excede o limite de 15 MB.' };
+        }
+    }
+
+    return { ok: true, conversaId, conteudo, animalId, anexoData, anexoTipo };
+}
 
 function inicializarSocketChat(servidor) {
     const io = new Server(servidor, {
@@ -74,11 +107,9 @@ function inicializarSocketChat(servidor) {
         });
 
         socket.on('mensagem:enviar', async (dados = {}, confirmar = () => {}) => {
-            const conversaId = Number(dados.conversaId);
-            const conteudo = typeof dados.conteudo === 'string' ? dados.conteudo.trim() : '';
-            if (!Number.isInteger(conversaId) || conversaId <= 0 || !conteudo || conteudo.length > 2000) {
-                return confirmar({ ok: false, mensagem: 'Mensagem inválida.' });
-            }
+            const validacao = validarMensagemChat(dados, usuarioId);
+            if (!validacao.ok) return confirmar(validacao);
+            const { conversaId, conteudo, animalId, anexoData, anexoTipo } = validacao;
 
             try {
                 const conversa = await pool.query(
@@ -91,11 +122,20 @@ function inicializarSocketChat(servidor) {
                     return confirmar({ ok: false, mensagem: 'Conversa não encontrada.' });
                 }
 
+                let anexoUrl = null;
+                if (anexoData) {
+                    anexoUrl = await salvarAnexo(
+                        anexoData,
+                        `conversa-${conversaId}-${usuarioId}-${Date.now()}`,
+                        null
+                    );
+                }
+
                 const resultado = await pool.query(
-                    `INSERT INTO mensagens_chat (conversa_id, remetente_id, conteudo)
-                     VALUES ($1, $2, $3)
-                     RETURNING id, conversa_id, remetente_id, conteudo, criado_em`,
-                    [conversaId, usuarioId, conteudo]
+                    `INSERT INTO mensagens_chat (conversa_id, remetente_id, conteudo, animal_id, anexo_url, anexo_tipo)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     RETURNING id, conversa_id, remetente_id, conteudo, animal_id, anexo_url, anexo_tipo, criado_em`,
+                    [conversaId, usuarioId, conteudo || (anexoTipo === 'image' ? 'Foto enviada' : 'Vídeo enviado'), animalId, anexoUrl, anexoTipo || null]
                 );
                 const mensagem = resultado.rows[0];
                 const membros = conversa.rows[0];
@@ -129,4 +169,4 @@ function inicializarSocketChat(servidor) {
     return io;
 }
 
-module.exports = { inicializarSocketChat };
+module.exports = { inicializarSocketChat, validarMensagemChat };

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Linking, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Directory, File, Paths } from 'expo-file-system';
 import MapView, { Marker } from 'react-native-maps';
@@ -8,6 +8,7 @@ import { API_ANIMAIS } from './config/api';
 import Pressable from './ButtonPressable';
 import AnuncioAutor from './AnuncioAutor';
 import FotoAmpliavel from './FotoAmpliavel';
+import { registrarPermissaoNegada } from './services/permissionNotifications';
 
 const downloadsFotosMarcadores = new Map();
 
@@ -74,8 +75,6 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
   const [localizacaoUsuario, setLocalizacaoUsuario] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [erroLocalizacao, setErroLocalizacao] = useState('');
-  const [permissaoNegada, setPermissaoNegada] = useState(false);
-  const [podePerguntarNovamente, setPodePerguntarNovamente] = useState(true);
   const [animaisComLocalizacao, setAnimaisComLocalizacao] = useState([]);
   const [estadoFotosMarcadores, setEstadoFotosMarcadores] = useState({});
   const [animalSelecionado, setAnimalSelecionado] = useState(null);
@@ -101,9 +100,10 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
         permissao = await Location.requestForegroundPermissionsAsync();
       }
 
-      setPermissaoNegada(!permissao.granted);
-      setPodePerguntarNovamente(permissao.canAskAgain);
-      if (!permissao.granted) return;
+      if (!permissao.granted) {
+        await registrarPermissaoNegada('location');
+        return;
+      }
 
       const posicao = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.High,
@@ -223,42 +223,12 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
     };
   }, [usuarioId, token]);
 
-  const abrirConfiguracoes = async () => {
-    try {
-      await Linking.openSettings();
-    } catch (error) {
-      setErroLocalizacao('Não foi possível abrir as configurações do aplicativo.');
-    }
-  };
-
   const alternarFiltro = (tipo) => {
     setFiltrosAtivos((atual) => ({ ...atual, [tipo]: !atual[tipo] }));
   };
 
   return (
     <View style={styles.container}>
-      {carregando && (
-        <View style={styles.loadingBox}>
-          <Text style={styles.loadingTexto}>Buscando sua localização...</Text>
-        </View>
-      )}
-
-      {permissaoNegada && !carregando && (
-        <View style={styles.loadingBox}>
-          <Text style={styles.loadingTexto}>
-            Permita o acesso à localização para mostrar sua posição atual.
-          </Text>
-          <Pressable
-            style={styles.permissionButton}
-            onPress={podePerguntarNovamente ? carregarLocalizacao : abrirConfiguracoes}
-          >
-            <Text style={styles.permissionButtonText}>
-              {podePerguntarNovamente ? 'Permitir localização' : 'Abrir configurações'}
-            </Text>
-          </Pressable>
-        </View>
-      )}
-
       {!!erroLocalizacao && (
         <View style={styles.loadingBox}>
           <Text style={styles.loadingTexto}>{erroLocalizacao}</Text>
@@ -277,13 +247,6 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
-        {localizacaoUsuario && (
-          <Marker
-            coordinate={localizacaoUsuario}
-            title="Você está aqui"
-            description="Local atual"
-          />
-        )}
         {animaisComLocalizacao
           .filter((animal) => filtrosAtivos[animal.tipo_registro])
           .map((animal) => {
@@ -452,19 +415,6 @@ const styles = StyleSheet.create({
   },
   loadingTexto: {
     color: '#444',
-    fontWeight: '600',
-  },
-  permissionButton: {
-    marginTop: 10,
-    paddingHorizontal: 14,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#5791ca',
-  },
-  permissionButtonText: {
-    color: '#fff',
     fontWeight: '600',
   },
   map: {

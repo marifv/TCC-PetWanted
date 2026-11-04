@@ -12,6 +12,7 @@ import AnuncioAutor from './AnuncioAutor';
 import NotificationBell from './NotificationBell';
 import SeletorFotos from './SeletorFotos';
 import FotoAmpliavel from './FotoAmpliavel';
+import { analisarAnuncio } from './services/iaMatches';
 
 const ESPECIES = ['Cachorro', 'Gato', 'Outro'];
 const PORTES = ['Pequeno', 'Médio', 'Grande'];
@@ -237,6 +238,11 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
 
             setAnimais((atual) => [{ ...dados, status: STATUS_PROCURANDO, meuAnimal: true }, ...atual]);
             setModalVisivel(false);
+            if (dados.id && token) {
+                analisarAnuncio(dados.id, token).catch((erro) => {
+                    console.warn('Não foi possível iniciar a análise do anúncio:', erro.message);
+                });
+            }
         } catch (error) {
             abrirMensagem('Erro', 'Não foi possível conectar ao servidor.');
         } finally {

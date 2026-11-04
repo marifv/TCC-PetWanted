@@ -1,5 +1,6 @@
-import { PermissionsAndroid, Platform } from 'react-native';
+import { AppState, PermissionsAndroid, Platform } from 'react-native';
 import { API_BASE_URL } from '../config/api';
+import { registrarPermissaoNegada } from './permissionNotifications';
 
 const Notifications = require('expo-notifications');
 
@@ -29,7 +30,10 @@ export async function registrarPushNotifications(token) {
       const resultadoPermissao = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
       );
-      if (resultadoPermissao !== PermissionsAndroid.RESULTS.GRANTED) return () => {};
+      if (resultadoPermissao !== PermissionsAndroid.RESULTS.GRANTED) {
+        await registrarPermissaoNegada('notifications');
+        return () => {};
+      }
     }
 
     const { getApp } = require('@react-native-firebase/app');
@@ -43,6 +47,7 @@ export async function registrarPushNotifications(token) {
     const messaging = getMessaging(getApp());
     const permissao = await requestPermission(messaging);
     if (![AuthorizationStatus.AUTHORIZED, AuthorizationStatus.PROVISIONAL].includes(permissao)) {
+      await registrarPermissaoNegada('notifications');
       return () => {};
     }
 
@@ -58,18 +63,7 @@ export async function registrarPushNotifications(token) {
     if (!resposta.ok) throw new Error('O servidor não registrou o dispositivo.');
 
     return onMessage(messaging, (mensagem) => {
-      const titulo = mensagem.notification?.title || 'PetWanted';
-      const corpo = mensagem.notification?.body || 'Você recebeu uma nova mensagem.';
-      return Notifications.scheduleNotificationAsync({
-        content: {
-          title: titulo,
-          body: corpo,
-          data: mensagem.data || {},
-          channelId: 'chat-messages',
-          sound: 'default',
-        },
-        trigger: null,
-      });
+      if (AppState.currentState !== 'active') return;
     });
   } catch (erro) {
     console.warn('Notificações push não configuradas neste dispositivo:', erro.message);

@@ -31,6 +31,36 @@ function extensaoDaImagem(dataUri) {
     return extensoes[tipo] || null;
 }
 
+function salvarAnexo(dataUri, publicId, req) {
+    const tipo = dataUri.match(/^data:(image\/|video\/)([^;]+);base64,/i)?.[1]?.toLowerCase();
+    if (!tipo) return Promise.reject(new Error('Envie uma foto ou vídeo válido.'));
+
+    const isVideo = tipo === 'video/';
+    const mimetype = dataUri.match(/^data:([^;]+);base64,/i)?.[1]?.toLowerCase();
+    const extensoesImagem = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+    const extensoesVideo = { 'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm', 'video/3gpp': '3gp' };
+    const extensao = isVideo ? extensoesVideo[mimetype] : extensoesImagem[mimetype];
+    if (!extensao) {
+        return Promise.reject(new Error(isVideo ? 'Formato de vídeo inválido.' : 'Formato de imagem inválido.'));
+    }
+
+    if (!cloudinaryConfigurado()) {
+        fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+        const arquivo = `${publicId}-${Date.now()}.${extensao}`;
+        const base64 = dataUri.replace(/^data:[^;]+;base64,/i, '');
+        fs.writeFileSync(path.join(UPLOAD_DIR, arquivo), Buffer.from(base64, 'base64'));
+        return Promise.resolve(`/uploads/${arquivo}`);
+    }
+
+    return cloudinary.uploader.upload(dataUri, {
+        folder: 'chat-anexos',
+        public_id: publicId,
+        overwrite: true,
+        invalidate: true,
+        resource_type: isVideo ? 'video' : 'image',
+    }).then((resultado) => resultado.secure_url);
+}
+
 function salvarImagemLocal(dataUri, publicId, req) {
     const extensao = extensaoDaImagem(dataUri);
     if (!extensao) {
@@ -74,4 +104,4 @@ async function salvarImagem(dataUri, pasta, publicId, req) {
     return resultado.secure_url;
 }
 
-module.exports = { salvarImagem };
+module.exports = { salvarImagem, salvarAnexo };
