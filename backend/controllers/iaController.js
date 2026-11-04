@@ -1,5 +1,6 @@
 const pool = require('../database/connection');
 const { analisarAnimal } = require('../services/geminiService');
+const { enviarNotificacaoChat, enviarNotificacaoMatch } = require('../services/firebaseMessaging');
 
 const LIMITE_MATCH_PADRAO = 70;
 
@@ -180,7 +181,7 @@ async function analisarAnuncioPorId(req, res) {
         for (const match of matches) {
             const perdidoId = anuncio.tipo_registro === 'Perdido' ? anuncio.id_animal : match.candidato.id_animal;
             const encontradoId = anuncio.tipo_registro === 'Encontrado' ? anuncio.id_animal : match.candidato.id_animal;
-            await pool.query(
+            const matchInserido = await pool.query(
                 `INSERT INTO matches_animais (
                     anuncio_perdido_id, anuncio_encontrado_id, score_total,
                     score_visual, score_descricao, score_localizacao, score_tempo, motivo_json
@@ -193,7 +194,8 @@ async function analisarAnuncioPorId(req, res) {
                     score_tempo = EXCLUDED.score_tempo,
                     motivo_json = EXCLUDED.motivo_json,
                     atualizado_em = NOW()
-                 WHERE matches_animais.status IN ('pendente', 'notificado', 'descartado_sistema')`,
+                 WHERE matches_animais.status IN ('pendente', 'notificado', 'descartado_sistema')
+                 RETURNING id`,
                 [
                     perdidoId,
                     encontradoId,
@@ -205,6 +207,25 @@ async function analisarAnuncioPorId(req, res) {
                     JSON.stringify(match.motivo),
                 ]
             );
+            if (matchInserido.rows.length) {
+                const participantes = await pool.query(
+                    `SELECT p.id_usuario AS perdido_usuario, p.nome AS perdido_nome,
+                            e.id_usuario AS encontrado_usuario, e.nome AS encontrado_nome
+                     FROM animais p, animais e
+                     WHERE p.id_animal = $1 AND e.id_animal = $2`,
+                    [perdidoId, encontradoId]
+                );
+                if (participantes.rows.length) {
+                    const participante = participantes.rows[0];
+                    await enviarNotificacaoMatch({
+                        usuarioIds: [participante.perdido_usuario, participante.encontrado_usuario],
+                        matchId: matchInserido.rows[0].id,
+                        scoreTotal: match.scoreTotal,
+                        perdidoNome: participante.perdido_nome,
+                        encontradoNome: participante.encontrado_nome,
+                    });
+                }
+            }
         }
 
         return res.json({ analise, matches: matches.map((match) => ({
@@ -264,7 +285,84 @@ async function atualizarStatusMatch(req, res) {
             return res.status(404).json({ mensagem: 'Match nao encontrado.' });
         }
 
-        return res.json({ match: resultado.rows[0] });
+        if (status !== 'aceito_usuario') {
+            return res.json({ match: resultado.rows[0] });
+        }
+
+        const dadosMatch = await pool.query(
+            `SELECT m.id, p.id_usuario AS dono_perdido, p.nome AS perdido_nome,
+                    p.id_animal AS perdido_id,
+                    e.id_usuario AS dono_encontrado, e.nome AS encontrado_nome,
+                    e.id_animal AS encontrado_id
+             FROM matches_animais m
+             JOIN animais p ON p.id_animal = m.anuncio_perdido_id
+             JOIN animais e ON e.id_animal = m.anuncio_encontrado_id
+             WHERE m.id = $1`,
+            [req.params.id]
+        );
+        if (!dadosMatch.rows.length) {
+            return res.json({ match: resultado.rows[0] });
+        }
+
+        const dados = dadosMatch.rows[0];
+        const usuario1 = Math.min(Number(dados.dono_perdido), Number(dados.dono_encontrado));
+        const usuario2 = Math.max(Number(dados.dono_perdido), Number(dados.dono_encontrado));
+        const animalId = Number(req.usuario.id) === Number(dados.dono_perdido)
+            ? dados.encontrado_id
+            : dados.perdido_id;
+
+        const conversa = await pool.query(
+            `INSERT INTO conversas (usuario_1_id, usuario_2_id, animal_id)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (usuario_1_id, usuario_2_id)
+             DO UPDATE SET animal_id = COALESCE(EXCLUDED.animal_id, conversas.animal_id)
+             RETURNING id`,
+            [usuario1, usuario2, animalId]
+        );
+        const conversaId = conversa.rows[0].id;
+
+        await pool.query(
+            `INSERT INTO preferencias_conversa (usuario_id, conversa_id, excluida_em)
+             VALUES ($1, $2, NULL), ($3, $2, NULL)
+             ON CONFLICT (usuario_id, conversa_id)
+             DO UPDATE SET excluida_em = NULL`,
+            [dados.dono_perdido, conversaId, dados.dono_encontrado]
+        );
+
+        const mensagemAutomatica =
+            'Olá! Acredito que podemos estar falando do mesmo animal. O PetWanted encontrou uma possível correspondência entre os nossos anúncios.';
+        const mensagemExiste = await pool.query(
+            `SELECT id FROM mensagens_chat
+             WHERE conversa_id = $1 AND remetente_id = $2 AND conteudo = $3
+             LIMIT 1`,
+            [conversaId, req.usuario.id, mensagemAutomatica]
+        );
+        let mensagem = null;
+        if (!mensagemExiste.rows.length) {
+            const inserida = await pool.query(
+                `INSERT INTO mensagens_chat
+                 (conversa_id, remetente_id, conteudo, animal_id, lida_em)
+                 VALUES ($1, $2, $3, $4, NULL)
+                 RETURNING id, conversa_id, remetente_id, conteudo, animal_id, criado_em`,
+                [conversaId, req.usuario.id, mensagemAutomatica, animalId]
+            );
+            mensagem = inserida.rows[0];
+            const destinatarioId = Number(req.usuario.id) === Number(dados.dono_perdido)
+                ? Number(dados.dono_encontrado)
+                : Number(dados.dono_perdido);
+            enviarNotificacaoChat({
+                usuarioId: destinatarioId,
+                conversaId,
+                mensagem,
+                remetenteNome: req.usuario?.nome || 'PetWanted',
+            });
+        }
+
+        return res.json({
+            match: resultado.rows[0],
+            conversaId,
+            mensagemAutomatica: mensagem,
+        });
     } catch (erro) {
         console.error('Erro ao atualizar match de IA:', erro.message);
         return res.status(500).json({ mensagem: 'Nao foi possivel atualizar o match.' });

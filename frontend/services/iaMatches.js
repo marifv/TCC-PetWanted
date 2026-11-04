@@ -26,5 +26,5 @@ export async function decidirMatch(matchId, decisao, token) {
     });
     const dados = await resposta.json().catch(() => ({}));
     if (!resposta.ok) throw new Error(dados.mensagem || 'Não foi possível registrar sua decisão.');
-    return dados.match;
+    return dados;
 }

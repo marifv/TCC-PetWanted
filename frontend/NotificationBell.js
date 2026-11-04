@@ -27,6 +27,13 @@ export default function NotificationBell({ token, onOpenNotification, containerS
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState('');
   const [matches, setMatches] = useState([]);
+  const [matchesNaoLidas, setMatchesNaoLidas] = useState(0);
+  const [mensagensNaoLidas, setMensagensNaoLidas] = useState(0);
+  const [permissoesNaoLidas, setPermissoesNaoLidas] = useState(0);
+
+  useEffect(() => {
+    setNaoLidas(mensagensNaoLidas + permissoesNaoLidas + matchesNaoLidas);
+  }, [mensagensNaoLidas, permissoesNaoLidas, matchesNaoLidas]);
 
   useEffect(() => {
     if (!token) {
@@ -43,8 +50,14 @@ export default function NotificationBell({ token, onOpenNotification, containerS
         if (!resposta.ok) return;
         const dados = await resposta.json();
         const permissoes = await listarPermissoesNegadas();
+        const matchesDaIa = await listarMatches(token).catch(() => []);
         const naoLidasPermissao = permissoes.filter((item) => !item.lida_em).length;
-        if (ativo) setNaoLidas((Number(dados.naoLidas) || 0) + naoLidasPermissao);
+        if (ativo) {
+          const quantidadeMensagens = Number(dados.naoLidas) || 0;
+          setMatchesNaoLidas(matchesDaIa.length);
+          setMensagensNaoLidas(quantidadeMensagens);
+          setPermissoesNaoLidas(naoLidasPermissao);
+        }
       } catch (erro) {
         if (ativo) console.warn('Não foi possível atualizar as notificações:', erro.message);
       }
@@ -95,6 +108,7 @@ export default function NotificationBell({ token, onOpenNotification, containerS
     setCentralVisivel(false);
     if (notificacao.tipo === 'permission') {
       marcarPermissaoComoLida(notificacao.permission);
+      setPermissoesNaoLidas((quantidade) => Math.max(0, quantidade - 1));
       abrirConfiguracoesPermissao().catch((erro) => {
         console.warn('Não foi possível abrir as configurações:', erro.message);
       });
@@ -105,8 +119,17 @@ export default function NotificationBell({ token, onOpenNotification, containerS
 
   const decidir = async (match, decisao) => {
     try {
-      await decidirMatch(match.id, decisao, token);
+      const resultado = await decidirMatch(match.id, decisao, token);
       setMatches((atuais) => atuais.filter((item) => item.id !== match.id));
+      setMatchesNaoLidas((quantidade) => Math.max(0, quantidade - 1));
+      if (decisao === 'aceitar' && resultado.conversaId) {
+        setCentralVisivel(false);
+        onOpenNotification?.({
+          conversa_id: resultado.conversaId,
+          remetente_nome: 'Correspondência encontrada',
+          animal_nome: match.perdido_nome || match.encontrado_nome,
+        });
+      }
     } catch (erro) {
       setErro(erro.message || 'Não foi possível registrar sua decisão.');
     }
@@ -145,7 +168,7 @@ export default function NotificationBell({ token, onOpenNotification, containerS
             <View style={styles.sheetHeader}>
               <View>
                 <Text style={styles.title}>Notificações</Text>
-                <Text style={styles.subtitle}>Mensagens e permissões</Text>
+                <Text style={styles.subtitle}>Mensagens, matches e permissões</Text>
               </View>
               <Pressable style={styles.closeButton} onPress={() => setCentralVisivel(false)} accessibilityLabel="Fechar">
                 <MaterialCommunityIcons name="close" size={21} color="#557b9b" />

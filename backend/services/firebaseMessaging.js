@@ -69,4 +69,44 @@ async function enviarNotificacaoChat({ usuarioId, conversaId, mensagem, remetent
     }
 }
 
-module.exports = { enviarNotificacaoChat };
+async function enviarNotificacaoMatch({ usuarioIds, matchId, scoreTotal, perdidoNome, encontradoNome }) {
+    if (!firebaseDisponivel || !Array.isArray(usuarioIds) || usuarioIds.length === 0) return;
+
+    try {
+        for (const usuarioId of new Set(usuarioIds.map(Number).filter((id) => Number.isInteger(id) && id > 0))) {
+            const resultado = await pool.query(
+                `SELECT token FROM chat_dispositivos WHERE usuario_id = $1`,
+                [usuarioId]
+            );
+            const tokens = resultado.rows.map((linha) => linha.token);
+            if (!tokens.length) continue;
+
+            const resposta = await admin.messaging().sendEachForMulticast({
+                tokens,
+                data: {
+                    type: 'match',
+                    title: 'Novo potencial match',
+                    body: `${perdidoNome || 'Um animal perdido'} e ${encontradoNome || 'um encontrado'} podem ser a mesma correspondência.`,
+                    matchId: String(matchId),
+                    score: String(scoreTotal),
+                },
+                android: { priority: 'high' },
+            });
+
+            const invalidos = resposta.responses
+                .map((item, indice) => ({ item, token: tokens[indice] }))
+                .filter(({ item }) => !item.success && [
+                    'messaging/invalid-registration-token',
+                    'messaging/registration-token-not-registered',
+                ].includes(item.error?.code))
+                .map(({ token }) => token);
+            if (invalidos.length) {
+                await pool.query('DELETE FROM chat_dispositivos WHERE token = ANY($1)', [invalidos]);
+            }
+        }
+    } catch (erro) {
+        console.error('Erro ao enviar notificação de match:', erro.message);
+    }
+}
+
+module.exports = { enviarNotificacaoChat, enviarNotificacaoMatch };

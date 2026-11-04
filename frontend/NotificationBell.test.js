@@ -5,6 +5,11 @@ jest.mock('./services/permissionNotifications', () => ({
     observarPermissoesNegadas: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
+jest.mock('./services/iaMatches', () => ({
+    listarMatches: jest.fn(() => Promise.resolve([])),
+    decidirMatch: jest.fn(() => Promise.resolve({ match: {} })),
+}));
+
 jest.mock('@expo/vector-icons', () => {
     const React = require('react');
     const { Text } = require('react-native');
