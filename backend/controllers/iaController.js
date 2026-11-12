@@ -102,11 +102,16 @@ function calcularMatch(anuncio, candidato, analise) {
     };
 }
 
+function anuncioAtivo(anuncio) {
+    return (anuncio.tipo_registro === 'Perdido' && anuncio.status === 'Perdido')
+        || (anuncio.tipo_registro === 'Encontrado' && anuncio.status === 'Procurando Dono');
+}
+
 async function analisarAnuncioPorId(req, res) {
     try {
         const resultado = await pool.query(
             `SELECT id_animal, especie, raca, cor, porte, sexo, descricao, foto, fotos,
-                    tipo_registro, data_evento, local_latitude, local_longitude
+                    tipo_registro, status, data_evento, local_latitude, local_longitude
              FROM animais
              WHERE id_animal = $1 AND id_usuario = $2`,
             [req.params.id, req.usuario?.id]
@@ -117,6 +122,10 @@ async function analisarAnuncioPorId(req, res) {
         }
 
         const anuncio = resultado.rows[0];
+        if (!anuncioAtivo(anuncio)) {
+            return res.status(409).json({ mensagem: 'Somente anuncios ativos podem ser analisados.' });
+        }
+
         let fotos = Array.isArray(anuncio.fotos) ? anuncio.fotos : [];
         if (typeof anuncio.fotos === 'string') {
             try {
@@ -182,6 +191,10 @@ async function analisarAnuncioPorId(req, res) {
              FROM animais
              WHERE tipo_registro = $1
                AND id_animal <> $2
+               AND (
+                   (tipo_registro = 'Perdido' AND status = 'Perdido')
+                   OR (tipo_registro = 'Encontrado' AND status = 'Procurando Dono')
+               )
                AND NOT EXISTS (
                    SELECT 1
                    FROM matches_animais m
@@ -277,6 +290,8 @@ async function listarMatchesDoUsuario(req, res) {
              JOIN animais p ON p.id_animal = m.anuncio_perdido_id
              JOIN animais e ON e.id_animal = m.anuncio_encontrado_id
              WHERE (p.id_usuario = $1 OR e.id_usuario = $1)
+               AND p.tipo_registro = 'Perdido' AND p.status = 'Perdido'
+               AND e.tipo_registro = 'Encontrado' AND e.status = 'Procurando Dono'
                AND m.status IN ('pendente', 'notificado')
              ORDER BY m.score_total DESC, m.criado_em DESC
              LIMIT 50`,
