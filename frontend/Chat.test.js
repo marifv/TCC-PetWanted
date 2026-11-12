@@ -79,7 +79,15 @@ describe('Chat', () => {
                         lida_em: null,
                     }];
                 }
-                if (String(url).includes('/conversas')) return [];
+                if (String(url).includes('/conversas')) return [{
+                    id: 12,
+                    nome: 'Maria',
+                    foto: null,
+                    animal_id: 30,
+                    animal_nome: 'Mingau',
+                    animal_foto: null,
+                    tipo_registro: 'Encontrado',
+                }];
                 return {};
             },
         }));
@@ -184,6 +192,44 @@ describe('Chat', () => {
         expect(screen.getByText('Maria')).toBeTruthy();
     });
 
+    it('abre a conversa com os dados reais da pessoa e mostra a foto do animal encontrado', async () => {
+        global.fetch = jest.fn(async (url) => ({
+            ok: true,
+            json: async () => String(url).includes('/conversas/12/mensagens')
+                ? []
+                : [{
+                    id: 12,
+                    nome: 'Ana Encontrou',
+                    foto: 'https://exemplo.com/ana.jpg',
+                    animal_id: 30,
+                    animal_nome: 'Mingau',
+                    animal_foto: 'https://exemplo.com/mingau.jpg',
+                    tipo_registro: 'Encontrado',
+                }],
+        }));
+
+        await render(
+            <Chat
+                usuarioId={7}
+                nomeUsuario="Usuário Teste"
+                token="token-teste"
+                notificacaoParaChat={{
+                    id: 12,
+                    nome: 'Correspondência encontrada',
+                    animal_nome: 'Animal perdido',
+                }}
+            />
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Ana Encontrou')).toBeTruthy();
+            expect(screen.getByText('Mingau')).toBeTruthy();
+            expect(screen.getByTestId('animal-context-photo').props.source.uri).toBe(
+                'https://exemplo.com/mingau.jpg'
+            );
+        });
+    });
+
     it('anexa uma foto e envia os dados do anexo pelo Socket.IO', async () => {
         ImagePicker.launchImageLibraryAsync.mockResolvedValue({
             canceled: false,
@@ -279,7 +325,11 @@ describe('Chat', () => {
                     anexo_tipo: 'video',
                     criado_em: '2026-11-03T16:01:00.000Z',
                 },
-            ] : [],
+            ] : [{
+                id: 12,
+                nome: 'Maria',
+                animal_id: 30,
+            }],
         }));
 
         await abrirChat();
@@ -392,7 +442,7 @@ describe('Chat', () => {
             json: async () => {
                 if (String(url).endsWith('/silenciamento')) return { silenciada: true };
                 if (String(url).includes('/conversas/12/mensagens')) return [];
-                if (String(url).endsWith('/conversas')) return [];
+                if (String(url).endsWith('/conversas')) return [{ id: 12, nome: 'Maria' }];
                 return {};
             },
         }));
@@ -424,9 +474,14 @@ describe('Chat', () => {
     it('denuncia uma conversa com um motivo válido', async () => {
         global.fetch = jest.fn(async (url, opcoes = {}) => ({
             ok: true,
-            json: async () => String(url).endsWith('/denuncias') ? {
-                mensagem: 'A equipe analisará esta conversa.',
-            } : [],
+            json: async () => {
+                if (String(url).endsWith('/denuncias')) {
+                    return { mensagem: 'A equipe analisará esta conversa.' };
+                }
+                if (String(url).includes('/conversas/12/mensagens')) return [];
+                if (String(url).endsWith('/conversas')) return [{ id: 12, nome: 'Maria' }];
+                return [];
+            },
         }));
 
         await abrirChat();
@@ -464,6 +519,7 @@ describe('Chat', () => {
             ok: true,
             json: async () => {
                 if (String(url).includes('/conversas/12/mensagens')) return [];
+                if (String(url).endsWith('/conversas')) return [{ id: 12, nome: 'Maria' }];
                 return [];
             },
         }));

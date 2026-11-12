@@ -130,8 +130,6 @@ export default function NotificationBell({ token, onOpenNotification, containerS
         setCentralVisivel(false);
         onOpenNotification?.({
           conversa_id: resultado.conversaId,
-          remetente_nome: 'Correspondência encontrada',
-          animal_nome: match.perdido_nome || match.encontrado_nome,
         });
       }
     } catch (erro) {

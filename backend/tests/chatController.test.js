@@ -3,7 +3,11 @@ jest.mock('../database/connection', () => ({
 }));
 
 const pool = require('../database/connection');
-const { alterarSilenciamento, criarConversa } = require('../controllers/chatController');
+const {
+    alterarSilenciamento,
+    criarConversa,
+    listarConversas,
+} = require('../controllers/chatController');
 
 function criarResposta() {
     return {
@@ -11,6 +15,31 @@ function criarResposta() {
         json: jest.fn().mockReturnThis(),
     };
 }
+
+describe('listarConversas', () => {
+    beforeEach(() => {
+        pool.query.mockReset();
+    });
+
+    it('inclui a foto do animal associado à conversa', async () => {
+        const conversas = [{
+            id: 12,
+            nome: 'Pessoa que encontrou',
+            animal_nome: 'Mingau',
+            animal_foto: 'https://exemplo.com/mingau.jpg',
+        }];
+        pool.query.mockResolvedValueOnce({ rows: conversas });
+        const req = { usuario: { id: 7 } };
+        const res = criarResposta();
+
+        await listarConversas(req, res);
+
+        expect(pool.query.mock.calls[0][0]).toContain(
+            'COALESCE(animal.foto, animal.fotos->>0) AS animal_foto'
+        );
+        expect(res.json).toHaveBeenCalledWith(conversas);
+    });
+});
 
 describe('alterarSilenciamento', () => {
     beforeEach(() => {

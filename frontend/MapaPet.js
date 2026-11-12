@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Directory, File, Paths } from 'expo-file-system';
 import MapView, { Marker } from 'react-native-maps';
@@ -9,8 +9,10 @@ import Pressable from './ButtonPressable';
 import AnuncioAutor from './AnuncioAutor';
 import FotoAmpliavel from './FotoAmpliavel';
 import { registrarPermissaoNegada } from './services/permissionNotifications';
+import { agruparMarcadores } from './utils/agruparMarcadores';
 
 const downloadsFotosMarcadores = new Map();
+const ZOOM_MINIMO_GRUPO = 0.001;
 
 function urlImagemMarcador(url, tipoRegistro, status) {
   const corStatusEncontrado = status === 'Dono encontrado' ? '2d6a4f' : 'f2c14e';
@@ -78,6 +80,14 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
   const [animaisComLocalizacao, setAnimaisComLocalizacao] = useState([]);
   const [estadoFotosMarcadores, setEstadoFotosMarcadores] = useState({});
   const [animalSelecionado, setAnimalSelecionado] = useState(null);
+  const [grupoSelecionado, setGrupoSelecionado] = useState(null);
+  const [regiaoMapa, setRegiaoMapa] = useState({
+    latitude: -23.5505,
+    longitude: -46.6333,
+    latitudeDelta: 0.02,
+    longitudeDelta: 0.02,
+  });
+  const [dimensoesMapa, setDimensoesMapa] = useState({ width: 0, height: 0 });
   const [filtrosAtivos, setFiltrosAtivos] = useState({
     Perdido: true,
     Encontrado: true,
@@ -227,6 +237,51 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
     setFiltrosAtivos((atual) => ({ ...atual, [tipo]: !atual[tipo] }));
   };
 
+  const abrirGrupoMarcadores = (grupo) => {
+    const primeiraLocalizacao = grupo.animais[0];
+    const mesmaLocalizacao = grupo.animais.every((animal) => (
+      Math.abs(Number(animal.local_latitude) - Number(primeiraLocalizacao.local_latitude)) < 0.00001
+      && Math.abs(Number(animal.local_longitude) - Number(primeiraLocalizacao.local_longitude)) < 0.00001
+    ));
+    if (
+      mesmaLocalizacao
+      || regiaoMapa.latitudeDelta <= ZOOM_MINIMO_GRUPO
+      || regiaoMapa.longitudeDelta <= ZOOM_MINIMO_GRUPO
+    ) {
+      setGrupoSelecionado(grupo.animais);
+      return;
+    }
+
+    const latitudeDelta = Math.max(regiaoMapa.latitudeDelta / 2.5, ZOOM_MINIMO_GRUPO);
+    const longitudeDelta = Math.max(regiaoMapa.longitudeDelta / 2.5, ZOOM_MINIMO_GRUPO);
+    if (latitudeDelta === regiaoMapa.latitudeDelta && longitudeDelta === regiaoMapa.longitudeDelta) {
+      setGrupoSelecionado(grupo.animais);
+      return;
+    }
+
+    mapaRef.current?.animateToRegion({
+      latitude: grupo.latitude,
+      longitude: grupo.longitude,
+      latitudeDelta,
+      longitudeDelta,
+    }, 350);
+  };
+
+  const selecionarAnimalDoGrupo = (animal) => {
+    setGrupoSelecionado(null);
+    setAnimalSelecionado(animal);
+    mapaRef.current?.animateToRegion({
+      latitude: Number(animal.local_latitude),
+      longitude: Number(animal.local_longitude),
+      latitudeDelta: Math.min(regiaoMapa.latitudeDelta, 0.008),
+      longitudeDelta: Math.min(regiaoMapa.longitudeDelta, 0.008),
+    }, 350);
+  };
+
+  const animaisVisiveis = animaisComLocalizacao
+    .filter((animal) => filtrosAtivos[animal.tipo_registro]);
+  const gruposMarcadores = agruparMarcadores(animaisVisiveis, regiaoMapa, dimensoesMapa);
+
   return (
     <View style={styles.container}>
       {!!erroLocalizacao && (
@@ -238,6 +293,13 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
       <MapView
         ref={mapaRef}
         style={styles.map}
+        onLayout={({ nativeEvent }) => {
+          setDimensoesMapa({
+            width: nativeEvent.layout.width,
+            height: nativeEvent.layout.height,
+          });
+        }}
+        onRegionChangeComplete={setRegiaoMapa}
         initialRegion={{
           latitude: -23.5505,
           longitude: -46.6333,
@@ -247,57 +309,74 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
         showsUserLocation={true}
         showsMyLocationButton={true}
       >
-        {animaisComLocalizacao
-          .filter((animal) => filtrosAtivos[animal.tipo_registro])
-          .map((animal) => {
-            const markerId = `${animal.tipo_registro}-${animal.id}`;
-            const fotoUrl = animal.foto;
-            const estadoFoto = estadoFotosMarcadores[markerId];
-            const estadoAtual = estadoFoto?.url === fotoUrl && estadoFoto.statusAnimal === animal.status
-              ? estadoFoto.status
-              : null;
-            const fotoDisponivel = fotoUrl && estadoAtual === 'carregada' && estadoFoto.uri;
-
+        {gruposMarcadores.map((grupo) => {
+          if (grupo.animais.length > 1) {
             return (
               <Marker
-                key={markerId}
-                identifier={markerId}
-                coordinate={{
-                  latitude: Number(animal.local_latitude),
-                  longitude: Number(animal.local_longitude),
-                }}
+                key={grupo.id}
+                identifier={grupo.id}
+                coordinate={{ latitude: grupo.latitude, longitude: grupo.longitude }}
                 anchor={{ x: 0.5, y: 0.5 }}
-                zIndex={2}
-                image={fotoDisponivel ? { uri: estadoFoto.uri } : undefined}
-                onPress={() => {
-                  setAnimalSelecionado(animal);
-                  mapaRef.current?.animateToRegion({
-                    latitude: Number(animal.local_latitude),
-                    longitude: Number(animal.local_longitude),
-                    latitudeDelta: 0.008,
-                    longitudeDelta: 0.008,
-                  }, 400);
-                }}
+                zIndex={4}
+                onPress={() => abrirGrupoMarcadores(grupo)}
               >
-                {!fotoDisponivel && (
-                  <View style={[
-                    styles.animalMarker,
-                    animal.tipo_registro === 'Perdido' ? styles.animalMarkerPerdido : styles.animalMarkerEncontrado,
-                    animal.tipo_registro === 'Adocao' && styles.animalMarkerAdocao,
-                    animal.tipo_registro === 'Encontrado' && animal.status !== 'Dono encontrado' && styles.animalMarkerProcurando,
-                  ]}>
-                    <FontAwesome
-                      name="paw"
-                      size={20}
-                      color={animal.tipo_registro === 'Adocao' ? '#1877f2' : '#6e8ba3'}
-                    />
-                  </View>
-                )}
+                <View style={styles.clusterMarker} accessibilityLabel={`${grupo.animais.length} animais próximos`}>
+                  <Text style={styles.clusterMarkerText}>{grupo.animais.length}</Text>
+                </View>
               </Marker>
             );
-          })}
+          }
+
+          const animal = grupo.animais[0];
+          const markerId = `${animal.tipo_registro}-${animal.id}`;
+          const fotoUrl = animal.foto;
+          const estadoFoto = estadoFotosMarcadores[markerId];
+          const estadoAtual = estadoFoto?.url === fotoUrl && estadoFoto.statusAnimal === animal.status
+            ? estadoFoto.status
+            : null;
+          const fotoDisponivel = fotoUrl && estadoAtual === 'carregada' && estadoFoto.uri;
+
+          return (
+            <Marker
+              key={markerId}
+              identifier={markerId}
+              coordinate={{
+                latitude: Number(animal.local_latitude),
+                longitude: Number(animal.local_longitude),
+              }}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={2}
+              image={fotoDisponivel ? { uri: estadoFoto.uri } : undefined}
+              onPress={() => {
+                setGrupoSelecionado(null);
+                setAnimalSelecionado(animal);
+                mapaRef.current?.animateToRegion({
+                  latitude: Number(animal.local_latitude),
+                  longitude: Number(animal.local_longitude),
+                  latitudeDelta: 0.008,
+                  longitudeDelta: 0.008,
+                }, 400);
+              }}
+            >
+              {!fotoDisponivel && (
+                <View style={[
+                  styles.animalMarker,
+                  animal.tipo_registro === 'Perdido' ? styles.animalMarkerPerdido : styles.animalMarkerEncontrado,
+                  animal.tipo_registro === 'Adocao' && styles.animalMarkerAdocao,
+                  animal.tipo_registro === 'Encontrado' && animal.status !== 'Dono encontrado' && styles.animalMarkerProcurando,
+                ]}>
+                  <FontAwesome
+                    name="paw"
+                    size={20}
+                    color={animal.tipo_registro === 'Adocao' ? '#1877f2' : '#6e8ba3'}
+                  />
+                </View>
+              )}
+            </Marker>
+          );
+        })}
       </MapView>
-      {!animalSelecionado && <View style={styles.mapFilters}>
+      {!animalSelecionado && !grupoSelecionado && <View style={styles.mapFilters}>
         {['Perdido', 'Encontrado', 'Adocao'].map((tipo) => {
           const ativo = filtrosAtivos[tipo];
           const rotulo = tipo === 'Perdido'
@@ -321,6 +400,47 @@ export default function MapaPet({ usuarioId, token, onSalvarLocalizacao, onOpenA
           );
         })}
       </View>}
+      {grupoSelecionado && (
+        <View style={styles.clusterCard}>
+          <View style={styles.clusterCardHeader}>
+            <Text style={styles.clusterCardTitle}>{grupoSelecionado.length} animais próximos</Text>
+            <Pressable
+              style={styles.closeAnimalCard}
+              onPress={() => setGrupoSelecionado(null)}
+              accessibilityRole="button"
+              accessibilityLabel="Fechar lista de animais próximos"
+            >
+              <FontAwesome name="times" size={16} color="#49647a" />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.clusterList}>
+            {grupoSelecionado.map((animal) => (
+              <Pressable
+                key={`${animal.tipo_registro}-${animal.id}`}
+                style={styles.clusterAnimal}
+                onPress={() => selecionarAnimalDoGrupo(animal)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ver ${animal.nome || 'animal sem nome'}, ${animal.tipo_registro}`}
+              >
+                <View style={styles.clusterAnimalPhoto}>
+                  {animal.foto
+                    ? <Image source={{ uri: animal.foto }} style={styles.clusterAnimalPhotoImage} />
+                    : <FontAwesome name="paw" size={16} color="#6e9fc8" />}
+                </View>
+                <View style={styles.clusterAnimalInfo}>
+                  <Text style={styles.clusterAnimalName} numberOfLines={1}>
+                    {animal.nome || 'Animal sem nome'}
+                  </Text>
+                  <Text style={styles.clusterAnimalType} numberOfLines={1}>
+                    {[animal.tipo_registro, animal.especie, animal.raca].filter(Boolean).join(' · ')}
+                  </Text>
+                </View>
+                <FontAwesome name="chevron-right" size={13} color="#8ca6bd" />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
       {animalSelecionado && (
         <View style={styles.animalCard}>
           <View style={styles.animalCardHeader}>
@@ -447,6 +567,27 @@ const styles = StyleSheet.create({
   animalMarkerAdocao: {
     borderColor: '#1877f2',
   },
+  clusterMarker: {
+    minWidth: 48,
+    height: 48,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
+    borderWidth: 3,
+    borderColor: '#ffffff',
+    backgroundColor: '#5791ca',
+    shadowColor: '#29465e',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  clusterMarkerText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
   mapFilters: {
     position: 'absolute',
     top: 14,
@@ -496,6 +637,75 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 7,
+  },
+  clusterCard: {
+    position: 'absolute',
+    right: 12,
+    bottom: 92,
+    left: 12,
+    maxHeight: '48%',
+    overflow: 'hidden',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#dce9f2',
+    backgroundColor: '#ffffff',
+    elevation: 8,
+    shadowColor: '#29465e',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 7,
+  },
+  clusterCardHeader: {
+    minHeight: 48,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#dce9f2',
+  },
+  clusterCardTitle: {
+    color: '#29465e',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  clusterList: {
+    flexGrow: 0,
+  },
+  clusterAnimal: {
+    minHeight: 62,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#edf2f6',
+  },
+  clusterAnimalPhoto: {
+    width: 42,
+    height: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 21,
+    overflow: 'hidden',
+    backgroundColor: '#e4f0f8',
+  },
+  clusterAnimalPhotoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  clusterAnimalInfo: {
+    flex: 1,
+  },
+  clusterAnimalName: {
+    color: '#29465e',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  clusterAnimalType: {
+    marginTop: 2,
+    color: '#718ba2',
+    fontSize: 11,
   },
   animalCardHeader: {
     minHeight: 48,

@@ -7,6 +7,7 @@ const consultaConversa = `
            outro.foto,
            c.animal_id,
            animal.nome AS animal_nome,
+           COALESCE(animal.foto, animal.fotos->>0) AS animal_foto,
            animal.tipo_registro,
            ultima.conteudo AS ultima_mensagem,
            ultima.criado_em AS ultima_mensagem_em,

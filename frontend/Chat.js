@@ -208,13 +208,27 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
 
   useEffect(() => {
     if (!notificacaoParaChat?.id) return;
-    const conversa = {
-      ...notificacaoParaChat,
-      id: notificacaoParaChat.id,
+
+    let ativo = true;
+    requisicao('/conversas')
+      .then(async (resposta) => {
+        const dados = await resposta.json();
+        if (!resposta.ok) throw new Error(dados.mensagem || 'Não foi possível carregar a conversa.');
+        const conversa = dados.find((item) => Number(item.id) === Number(notificacaoParaChat.id));
+        if (!conversa) throw new Error('A conversa não foi encontrada.');
+        if (ativo) {
+          setConversas((atuais) => [conversa, ...atuais.filter((item) => Number(item.id) !== Number(conversa.id))]);
+          abrirConversa(conversa);
+        }
+      })
+      .catch((falha) => {
+        if (ativo) setErro(falha.message || 'Não foi possível carregar a conversa.');
+      });
+
+    return () => {
+      ativo = false;
     };
-    setConversas((atuais) => [conversa, ...atuais.filter((item) => Number(item.id) !== Number(conversa.id))]);
-    abrirConversa(conversa);
-  }, [notificacaoParaChat?.id]);
+  }, [notificacaoParaChat]);
 
   const selecionarAnexo = async () => {
     if (enviando) return;
@@ -422,7 +436,18 @@ export default function Chat({ usuarioId, nomeUsuario, token, onLost, onFound, o
 
           {conversaAtiva.animal_nome ? (
             <View style={styles.animalContext}>
-              <MaterialCommunityIcons name="paw" size={20} color="#ffffff" />
+              {conversaAtiva.animal_foto ? (
+                <Image
+                  testID="animal-context-photo"
+                  source={{ uri: urlAnexo(conversaAtiva.animal_foto) }}
+                  style={styles.animalContextPhoto}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.animalContextPhotoPlaceholder}>
+                  <MaterialCommunityIcons name="paw" size={20} color="#ffffff" />
+                </View>
+              )}
               <View style={styles.animalContextInfo}>
                 <Text style={styles.animalName}>{conversaAtiva.animal_nome}</Text>
                 <Text style={styles.animalType}>{conversaAtiva.tipo_registro || 'Anúncio'}</Text>
@@ -790,6 +815,8 @@ const styles = StyleSheet.create({
   reportSendDisabled: { opacity: 0.5 },
   reportSendText: { color: '#ffffff', fontSize: 13, fontWeight: '700' },
   animalContext: { minHeight: 56, marginHorizontal: 12, marginTop: 10, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, backgroundColor: '#eff6fc' },
+  animalContextPhoto: { width: 42, height: 42, borderRadius: 10, backgroundColor: '#80add7' },
+  animalContextPhotoPlaceholder: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: '#80add7' },
   animalContextInfo: { flex: 1 },
   animalName: { color: '#365a78', fontSize: 13, fontWeight: '700' },
   animalType: { marginTop: 2, color: '#7d91a4', fontSize: 11 },

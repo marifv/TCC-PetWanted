@@ -407,10 +407,6 @@ export default function App() {
   const abrirNotificacao = (notificacao) => {
     setNotificacaoParaChat({
       id: notificacao.conversa_id,
-      nome: notificacao.remetente_nome,
-      foto: notificacao.remetente_foto,
-      animal_nome: notificacao.animal_nome,
-      tipo_registro: notificacao.tipo_registro,
     });
     abrirChat();
   };
