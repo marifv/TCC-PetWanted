@@ -260,6 +260,7 @@ async function listarAnimaisEncontrados(req, res) {
             `SELECT ${CAMPOS_RETORNO_LISTAGEM}
              FROM animais
              WHERE tipo_registro = 'Encontrado'
+               AND status IS DISTINCT FROM 'Dono encontrado'
              ORDER BY id_animal DESC`
         );
 
