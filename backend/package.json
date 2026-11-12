@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
+    "admin:bootstrap": "node scripts/bootstrap-admin.js",
     "test": "jest",
     "test:watch": "jest --watch"
   },

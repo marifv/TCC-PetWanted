@@ -17,6 +17,29 @@ BREVO_SENDER_NAME=PetWanted
 
 The backend sends password recovery email through the Brevo transactional email API over HTTPS. Create an API key with transactional email sending permission, verify the sender address in Brevo, and configure `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and optionally `BREVO_SENDER_NAME` in `backend/.env` and in the backend service's Render environment. Never put the API key in the mobile app or commit it.
 
+## Painel administrativo
+
+O painel web administrativo fica separado do app mobile e é servido pelo backend em `/admin`. As rotas do painel usam contas administrativas separadas das contas de tutores/ONGs, uma sessão em cookie `HttpOnly`, `SameSite=Strict`, HTTPS em produção e permissões `owner` ou `analyst`. O primeiro administrador é criado uma única vez por comando; depois, um `owner` pode convidar outras pessoas pela tela. Não existe cadastro público de administradores.
+
+Configure um segredo exclusivo para as sessões administrativas no ambiente do backend:
+
+```env
+ADMIN_JWT_SECRET=gere-um-segredo-aleatorio-com-pelo-menos-32-caracteres
+ADMIN_PANEL_URL=https://seu-dominio-do-backend/admin
+```
+
+Gere o segredo fora do código e mantenha-o apenas no `.env` local ou no gerenciador de variáveis do serviço, por exemplo no Render. `ADMIN_PANEL_URL` é o endereço usado nos convites por e-mail; em produção deve ser HTTPS. O envio de convites usa o Brevo, portanto `BREVO_API_KEY` e `BREVO_SENDER_EMAIL` também precisam estar configurados.
+
+Após implantar o backend (que aplica as tabelas administrativas pelo `schema.sql`), abra um terminal interativo na pasta `backend` com acesso ao mesmo banco e execute:
+
+```powershell
+npm run admin:bootstrap
+```
+
+O comando solicita e-mail e senha sem exibir a senha, exige pelo menos 12 caracteres (limite de 72 bytes por usar bcrypt) e só funciona enquanto ainda não existir nenhum administrador. A primeira conta recebe o perfil `owner`. Não passe a senha como argumento de linha de comando. Depois, acesse `https://seu-dominio-do-backend/admin`, entre e convide os demais pelo e-mail. `owner` pode ver estatísticas e gerenciar convites/perfis; `analyst` pode consultar somente estatísticas. Convites expiram em 48 horas e só podem ser usados uma vez. Mantenha pelo menos um `owner` ativo.
+
+O painel mostra usuários ativos nos últimos 30 dias com base em requisições autenticadas (o registro de atividade começa após a implantação), anúncios por estado, matches pendentes e resultados confirmados/rejeitados. A “precisão com feedback” é a proporção de confirmações entre as respostas dos tutores; não representa uma verificação independente do reencontro. Os totais refletem os registros ainda armazenados, e exclusões feitas antes da instalação do painel não podem ser reconstruídas.
+
 For a new PostgreSQL database, run the complete schema script once:
 
 ```text
