@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const { OAuth2Client } = require('google-auth-library');
 const jwt = require('jsonwebtoken');
+const { documentoValido } = require('../utils/documentValidation');
 const pool = require('../database/connection');
 
 const googleClient = new OAuth2Client();
@@ -253,6 +254,14 @@ async function cadastrarComGoogle(req, res) {
             mensagem: tipo_perfil === 'Tutor'
                 ? 'O CPF deve possuir 11 dígitos.'
                 : 'O CNPJ deve possuir 14 dígitos.'
+        });
+    }
+
+    if (!documentoValido(documentoNormalizado, tipo_perfil)) {
+        return res.status(400).json({
+            mensagem: tipo_perfil === 'Tutor'
+                ? 'Informe um CPF válido.'
+                : 'Informe um CNPJ válido.'
         });
     }
 

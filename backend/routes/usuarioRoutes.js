@@ -27,7 +27,7 @@ router.post('/google/cadastro', cadastrarComGoogle);
 router.post('/recuperar-senha/enviar-codigo', enviarCodigoRecuperacao);
 router.post('/recuperar-senha/verificar-codigo', verificarCodigoRecuperacao);
 router.post('/recuperar-senha/redefinir', redefinirSenha);
-router.put('/:id', modificarPerfil);
+router.put('/:id', autenticarToken, modificarPerfil);
 router.delete('/:id', autenticarToken, excluirPerfil);
 
 module.exports = router;

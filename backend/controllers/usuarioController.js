@@ -1,5 +1,7 @@
 const pool = require('../database/connection');
 const bcrypt = require('bcrypt');
+const { senhaAtendePolitica } = require('../utils/passwordPolicy');
+const { documentoValido } = require('../utils/documentValidation');
 
 async function criarUsuario(req, res) {
     try {
@@ -29,6 +31,12 @@ async function criarUsuario(req, res) {
             });
         }
 
+        if (!senhaAtendePolitica(senha)) {
+            return res.status(400).json({
+                mensagem: 'A senha deve ter 12 caracteres, maiúscula, minúscula, número e caractere especial.'
+            });
+        }
+
         if (tipo_perfil !== 'Tutor' && tipo_perfil !== 'ONG') {
             return res.status(400).json({
                 mensagem: 'O tipo de perfil deve ser Tutor ou ONG.'
@@ -44,6 +52,14 @@ async function criarUsuario(req, res) {
         if (tipo_perfil === 'ONG' && documentoNormalizado.length !== 14) {
             return res.status(400).json({
                 mensagem: 'O CNPJ deve possuir 14 dígitos.'
+            });
+        }
+
+        if (!documentoValido(documentoNormalizado, tipo_perfil)) {
+            return res.status(400).json({
+                mensagem: tipo_perfil === 'Tutor'
+                    ? 'Informe um CPF válido.'
+                    : 'Informe um CNPJ válido.'
             });
         }
 

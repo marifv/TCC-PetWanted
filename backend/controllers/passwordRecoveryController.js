@@ -2,9 +2,9 @@ const { createHmac, randomBytes, randomInt, timingSafeEqual } = require('crypto'
 const bcrypt = require('bcrypt');
 const pool = require('../database/connection');
 const { enviarEmail } = require('../services/emailService');
+const { senhaAtendePolitica } = require('../utils/passwordPolicy');
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const SENHA_FORTE_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
 const RESPOSTA_GENERICA = 'Se o e-mail estiver associado a uma conta, enviaremos um código de verificação.';
 const MAX_TENTATIVAS_CODIGO = 5;
 
@@ -215,9 +215,9 @@ async function redefinirSenha(req, res) {
     const tokenRedefinicao = typeof req.body?.tokenRedefinicao === 'string' ? req.body.tokenRedefinicao : '';
     const novaSenha = typeof req.body?.novaSenha === 'string' ? req.body.novaSenha : '';
 
-    if (!EMAIL_REGEX.test(email) || !tokenRedefinicao || !SENHA_FORTE_REGEX.test(novaSenha)) {
+    if (!EMAIL_REGEX.test(email) || !tokenRedefinicao || !senhaAtendePolitica(novaSenha)) {
         return res.status(400).json({
-            mensagem: 'Informe um token válido e uma senha com 8 caracteres, maiúscula, minúscula, número e caractere especial.'
+            mensagem: 'Informe um token válido e uma senha com 12 caracteres, maiúscula, minúscula, número e caractere especial.'
         });
     }
 

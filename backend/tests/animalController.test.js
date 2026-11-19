@@ -7,7 +7,10 @@ jest.mock('../services/imageStorage', () => ({
 }));
 
 const pool = require('../database/connection');
-const { listarAnimaisEncontrados } = require('../controllers/animalController');
+const {
+    criarRegistro,
+    listarAnimaisEncontrados,
+} = require('../controllers/animalController');
 
 describe('listarAnimaisEncontrados', () => {
     beforeEach(() => {
@@ -31,5 +34,31 @@ describe('listarAnimaisEncontrados', () => {
         expect(res.json).toHaveBeenCalledWith([
             expect.objectContaining(animais[0]),
         ]);
+    });
+});
+
+describe('criarRegistro', () => {
+    beforeEach(() => {
+        pool.query.mockReset();
+    });
+
+    it('impede criar um registro usando o id de outro usuário', async () => {
+        const req = {
+            params: { usuarioId: '99' },
+            usuario: { id: 7 },
+            body: {},
+        };
+        const res = {
+            json: jest.fn().mockReturnThis(),
+            status: jest.fn().mockReturnThis(),
+        };
+
+        await criarRegistro(req, res);
+
+        expect(res.status).toHaveBeenCalledWith(403);
+        expect(res.json).toHaveBeenCalledWith({
+            mensagem: 'Somente o usuário logado pode criar um registro para esta conta.',
+        });
+        expect(pool.query).not.toHaveBeenCalled();
     });
 });

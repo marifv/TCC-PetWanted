@@ -206,7 +206,10 @@ export default function AnimalEncontrado({ usuarioId, token, nome, fotoPerfil, o
         try {
             const resposta = await fetch(`${API_ANIMAIS}/${usuarioId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
                 body: JSON.stringify({
                     nome: formulario.nome.trim() || null,
                     especie: formulario.especie,

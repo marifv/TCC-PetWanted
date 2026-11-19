@@ -20,6 +20,41 @@ import { formatarDataParaApi } from './utils/formatarData';
 const API_URL = API_USUARIOS;
 
 const emailValido = (valor) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+const cpfValido = (valor) => {
+  const cpf = valor.replace(/\D/g, '');
+  if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) return false;
+  const validarDigito = (base, pesoInicial) => {
+    let soma = 0;
+    for (let indice = 0; indice < base.length; indice += 1) {
+      soma += Number(base[indice]) * (pesoInicial - indice);
+    }
+    const resto = (soma * 10) % 11;
+    return Number(cpf[base.length]) === (resto === 10 ? 0 : resto);
+  };
+  return validarDigito(cpf.slice(0, 9), 10) && validarDigito(cpf.slice(0, 10), 11);
+};
+const cnpjValido = (valor) => {
+  const cnpj = valor.replace(/\D/g, '');
+  if (!/^\d{14}$/.test(cnpj) || /^(\d)\1{13}$/.test(cnpj)) return false;
+  const pesos = [
+    [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+    [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+  ];
+  return pesos.every((pesosDigito, bloco) => {
+    const base = cnpj.slice(0, bloco === 0 ? 12 : 13);
+    const soma = base.split('').reduce((total, digito, indice) => total + Number(digito) * pesosDigito[indice], 0);
+    const resto = (soma * 10) % 11;
+    return Number(cnpj[base.length]) === (resto === 10 ? 0 : resto);
+  });
+};
+const documentoValido = (valor, tipo) => tipo === 'Tutor' ? cpfValido(valor) : cnpjValido(valor);
+const senhaValida = (valor) => (
+  valor.length >= 12
+  && /[A-Z]/.test(valor)
+  && /[a-z]/.test(valor)
+  && /\d/.test(valor)
+  && /[^A-Za-z0-9]/.test(valor)
+);
 
 async function carregarQuantidadeNaoLidas(token) {
   if (!token) return 0;
@@ -293,7 +328,7 @@ export default function App() {
 
   const salvarNovaSenha = async () => {
     const criteriosSenha = [
-      novaSenha.length >= 8,
+      novaSenha.length >= 12,
       /[A-Z]/.test(novaSenha),
       /[a-z]/.test(novaSenha),
       /\d/.test(novaSenha),
@@ -562,6 +597,7 @@ export default function App() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           nome: novoNome,
@@ -673,11 +709,25 @@ export default function App() {
       return;
     }
 
+    if (!senhaValida(senha)) {
+      mostrarAlerta(
+        'Senha fraca',
+        'Use pelo menos 12 caracteres, incluindo maiúscula, minúscula, número e símbolo.',
+        'warning'
+      );
+      return;
+    }
+
     const documentoLimpo = documento.replace(/\D/g, '');
     const tamanhoDocumento = tipoPerfil === 'Tutor' ? 11 : 14;
 
     if (documentoLimpo.length !== tamanhoDocumento) {
       mostrarAlerta('Atenção', tipoPerfil === 'Tutor' ? 'O CPF deve possuir 11 dígitos.' : 'O CNPJ deve possuir 14 dígitos.', 'warning');
+      return;
+    }
+
+    if (!documentoValido(documentoLimpo, tipoPerfil)) {
+      mostrarAlerta('Documento inválido', tipoPerfil === 'Tutor' ? 'Informe um CPF válido.' : 'Informe um CNPJ válido.', 'warning');
       return;
     }
 
@@ -881,6 +931,15 @@ export default function App() {
         tipoPerfil === 'Tutor'
           ? 'Informe seu nome e um CPF com 11 dígitos.'
           : 'Informe o nome da ONG e um CNPJ com 14 dígitos.'
+      );
+      return;
+    }
+
+    if (!documentoValido(documentoLimpo, tipoPerfil)) {
+      mostrarAlerta(
+        'Documento inválido',
+        tipoPerfil === 'Tutor' ? 'Informe um CPF válido.' : 'Informe um CNPJ válido.',
+        'warning'
       );
       return;
     }
@@ -1116,7 +1175,7 @@ export default function App() {
                     </View>
                     <Text style={styles.passwordCriteriaTitle}>Critérios da senha</Text>
                     {[
-                      [novaSenha.length >= 8, 'Mínimo de 8 caracteres'],
+                      [novaSenha.length >= 12, 'Mínimo de 12 caracteres'],
                       [/[A-Z]/.test(novaSenha), 'Uma letra maiúscula'],
                       [/[a-z]/.test(novaSenha), 'Uma letra minúscula'],
                       [/\d/.test(novaSenha), 'Um número'],
@@ -1386,6 +1445,23 @@ export default function App() {
                     <FontAwesome name={mostrarConfirmarSenha ? 'eye' : 'eye-slash'} size={17} color="#80a9ce" />
                   </Pressable>
                 </View>
+                <Text style={styles.passwordCriteriaTitle}>Critérios da senha</Text>
+                {[
+                  [senha.length >= 12, 'Mínimo de 12 caracteres'],
+                  [/[A-Z]/.test(senha), 'Uma letra maiúscula'],
+                  [/[a-z]/.test(senha), 'Uma letra minúscula'],
+                  [/\d/.test(senha), 'Um número'],
+                  [/[^A-Za-z0-9]/.test(senha), 'Um caractere especial (ex.: ! @ # $)'],
+                ].map(([atendido, texto]) => (
+                  <View style={styles.passwordCriterion} key={texto}>
+                    <FontAwesome
+                      name={atendido ? 'check-circle' : 'circle-o'}
+                      size={16}
+                      color={atendido ? '#5791ca' : '#a9c3db'}
+                    />
+                    <Text style={styles.passwordCriterionText}>{texto}</Text>
+                  </View>
+                ))}
                 <Pressable style={styles.formButton} onPress={cadastrarUsuario}>
                   <Text style={styles.textFormButton}>CRIAR CONTA</Text>
                 </Pressable>

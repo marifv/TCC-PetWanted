@@ -229,9 +229,9 @@ describe('Autenticação no App', () => {
         });
         await act(async () => {
             fireEvent.changeText(screen.getByPlaceholderText('Nome completo'), 'Maria Silva');
-            fireEvent.changeText(screen.getByPlaceholderText('CPF'), '12345678901');
+            fireEvent.changeText(screen.getByPlaceholderText('CPF'), '52998224725');
             fireEvent.changeText(screen.getByPlaceholderText('exemplo@gmail.com'), 'maria@email.com');
-            fireEvent.changeText(screen.getAllByPlaceholderText('Senha')[0], 'Senha1!');
+            fireEvent.changeText(screen.getAllByPlaceholderText('Senha')[0], 'SenhaForte1!');
             fireEvent.changeText(screen.getByPlaceholderText('Confirmar senha'), 'Senha2!');
             await Promise.resolve();
         });
@@ -260,10 +260,10 @@ describe('Autenticação no App', () => {
         });
         await act(async () => {
             fireEvent.changeText(screen.getByPlaceholderText('Nome completo'), 'Maria Silva');
-            fireEvent.changeText(screen.getByPlaceholderText('CPF'), '123.456.789-01');
+            fireEvent.changeText(screen.getByPlaceholderText('CPF'), '529.982.247-25');
             fireEvent.changeText(screen.getByPlaceholderText('exemplo@gmail.com'), 'Maria@Email.com');
-            fireEvent.changeText(screen.getAllByPlaceholderText('Senha')[0], 'Senha1!');
-            fireEvent.changeText(screen.getByPlaceholderText('Confirmar senha'), 'Senha1!');
+            fireEvent.changeText(screen.getAllByPlaceholderText('Senha')[0], 'SenhaForte1!');
+            fireEvent.changeText(screen.getByPlaceholderText('Confirmar senha'), 'SenhaForte1!');
             await Promise.resolve();
         });
         await act(async () => {
@@ -279,8 +279,8 @@ describe('Autenticação no App', () => {
                     body: JSON.stringify({
                         nome: 'Maria Silva',
                         email: 'maria@email.com',
-                        documento: '12345678901',
-                        senha: 'Senha1!',
+                        documento: '52998224725',
+                        senha: 'SenhaForte1!',
                         tipo_perfil: 'Tutor',
                     }),
                 })

@@ -4,6 +4,12 @@ const { salvarImagem } = require('../services/imageStorage');
 async function modificarPerfil(req, res) {
     try {
         const { id } = req.params;
+        if (String(req.usuario?.id) !== String(id)) {
+            return res.status(403).json({
+                mensagem: 'Somente o usuário logado pode alterar este perfil.'
+            });
+        }
+
         const { nome, localizacao, foto, latitude, longitude } = req.body;
         const atualizacaoLocalizacao = latitude != null && longitude != null;
 

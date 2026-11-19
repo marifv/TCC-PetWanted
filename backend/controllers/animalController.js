@@ -290,6 +290,12 @@ async function listarAnimaisAdocao(req, res) {
 
 async function criarRegistro(req, res) {
     try {
+        if (String(req.usuario?.id) !== String(req.params.usuarioId)) {
+            return res.status(403).json({
+                mensagem: 'Somente o usuário logado pode criar um registro para esta conta.'
+            });
+        }
+
         const dados = obterDadosRegistro(req.body, req.params.usuarioId);
         const falhas = validarRegistro(dados);
         if (dados.tipoRegistro === 'Adocao' && dados.fotos.length === 0) {

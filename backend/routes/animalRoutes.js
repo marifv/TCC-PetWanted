@@ -14,7 +14,7 @@ const router = express.Router();
 router.get('/perdidos', autenticarToken, listarAnimaisPerdidos);
 router.get('/adocao', autenticarToken, listarAnimaisAdocao);
 router.get('/encontrados', listarAnimaisEncontrados);
-router.post('/:usuarioId', criarRegistro);
+router.post('/:usuarioId', autenticarToken, criarRegistro);
 router.put('/:usuarioId/:id', autenticarToken, atualizarRegistro);
 router.delete('/:usuarioId/:id', autenticarToken, excluirRegistro);
 
