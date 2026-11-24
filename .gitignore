@@ -3,6 +3,17 @@ backend/node_modules/
 frontend/node_modules/
 
 .env
+**/.env
+.env.*
+**/.env.*
+!**/.env.example
+
+google-services.json
+**/google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+*service-account*.json
+**/*service-account*.json
 
 .expo/
 frontend/.expo/

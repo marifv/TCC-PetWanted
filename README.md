@@ -1,110 +1,317 @@
-
 # PetWanted
 
-## Backend
+## Integrantes
 
-Configure the database variables already used by the project and add the secrets for login tokens and transactional email:
+- Mariana Vieira
+- Fernando Palmieri
+- Leticia Sudan
 
-```env
-JWT_SECRET=use-a-long-random-value-here
-GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
-BREVO_API_KEY=your-brevo-api-key
-BREVO_SENDER_EMAIL=verified-sender@example.com
-BREVO_SENDER_NAME=PetWanted
-```
+## Explicação do projeto
 
-`GOOGLE_CLIENT_ID` must be the Web OAuth client ID from the same Google Cloud project configured in the Android app. Never put a Google client secret in the app.
+O **PetWanted** é uma plataforma para ajudar tutores e ONGs a divulgar animais perdidos, encontrados e disponíveis para adoção.
 
-The backend sends password recovery email through the Brevo transactional email API over HTTPS. Create an API key with transactional email sending permission, verify the sender address in Brevo, and configure `BREVO_API_KEY`, `BREVO_SENDER_EMAIL`, and optionally `BREVO_SENDER_NAME` in `backend/.env` and in the backend service's Render environment. Never put the API key in the mobile app or commit it.
+O aplicativo reúne anúncios de animais perdidos, encontrados e disponíveis para adoção em um só lugar. O usuário pode publicar fotos, informar o local da ocorrência, visualizar os registros em um mapa e conversar diretamente com outras pessoas interessadas.
 
-## Painel administrativo
+Uma das dificuldades que o PetWanted pretende reduzir é a perda de informações entre redes sociais e grupos de mensagens. Características do animal, fotos, local do ocorrido e situação do anúncio ficam organizados na própria plataforma. O sistema também sugere possíveis correspondências entre animais perdidos e encontrados e envia notificações aos usuários.
 
-O painel web administrativo fica separado do app mobile e é servido pelo backend em `/admin`. As rotas do painel usam contas administrativas separadas das contas de tutores/ONGs, uma sessão em cookie `HttpOnly`, `SameSite=Strict`, HTTPS em produção e permissões `owner` ou `analyst`. O primeiro administrador é criado uma única vez por comando; depois, um `owner` pode convidar outras pessoas pela tela. Não existe cadastro público de administradores.
+## Tecnologias utilizadas
 
-Configure um segredo exclusivo para as sessões administrativas no ambiente do backend:
+### Aplicativo mobile
 
-```env
-ADMIN_JWT_SECRET=gere-um-segredo-aleatorio-com-pelo-menos-32-caracteres
-ADMIN_PANEL_URL=https://seu-dominio-do-backend/admin
-```
+- React Native
+- Expo
+- JavaScript
+- React Native Maps
+- Google Places
+- Google Sign-In
+- Firebase Cloud Messaging
+- Socket.IO Client
+- Jest e React Native Testing Library
 
-Gere o segredo fora do código e mantenha-o apenas no `.env` local ou no gerenciador de variáveis do serviço, por exemplo no Render. `ADMIN_PANEL_URL` é o endereço usado nos convites por e-mail; em produção deve ser HTTPS. O envio de convites usa o Brevo, portanto `BREVO_API_KEY` e `BREVO_SENDER_EMAIL` também precisam estar configurados.
+### Backend
 
-Após implantar o backend (que aplica as tabelas administrativas pelo `schema.sql`), abra um terminal interativo na pasta `backend` com acesso ao mesmo banco e execute:
+- Node.js
+- Express
+- PostgreSQL
+- JWT
+- bcrypt
+- Socket.IO
+- Google Auth Library
+- Cloudinary
+- Firebase Admin
+- Brevo
+- Google Gemini
+- Jest e Supertest
 
-```powershell
-npm run admin:bootstrap
-```
+### Painel administrativo
 
-O comando solicita e-mail e senha sem exibir a senha, exige pelo menos 12 caracteres (limite de 72 bytes por usar bcrypt) e só funciona enquanto ainda não existir nenhum administrador. A primeira conta recebe o perfil `owner`. Não passe a senha como argumento de linha de comando. Depois, acesse `https://seu-dominio-do-backend/admin`, entre e convide os demais pelo e-mail. `owner` pode ver estatísticas e gerenciar convites/perfis; `analyst` pode consultar somente estatísticas. Convites expiram em 48 horas e só podem ser usados uma vez. Mantenha pelo menos um `owner` ativo.
+- HTML
+- CSS
+- JavaScript
+- API REST fornecida pelo backend
 
-O painel mostra usuários ativos nos últimos 30 dias com base em requisições autenticadas (o registro de atividade começa após a implantação), anúncios por estado, matches pendentes e resultados confirmados/rejeitados. A “precisão com feedback” é a proporção de confirmações entre as respostas dos tutores; não representa uma verificação independente do reencontro. Os totais refletem os registros ainda armazenados, e exclusões feitas antes da instalação do painel não podem ser reconstruídas.
-
-For a new PostgreSQL database, run the complete schema script once:
+## Estrutura do projeto
 
 ```text
-backend/database/schema.sql
+TCC-PetWanted/
+├── frontend/                # Aplicativo mobile com React Native e Expo
+│   ├── assets/              # Ícones, imagens e recursos visuais
+│   ├── config/              # Configuração da API
+│   ├── services/            # Serviços de IA e notificações
+│   ├── utils/               # Funções auxiliares
+│   ├── App.js               # Fluxo principal e telas de autenticação
+│   └── package.json
+├── backend/                 # API REST e servidor em tempo real
+│   ├── controllers/         # Regras de negócio e respostas das rotas
+│   ├── database/            # Conexão PostgreSQL e schema
+│   ├── middleware/          # Autenticação de usuários e administradores
+│   ├── routes/              # Endpoints da API
+│   ├── services/            # Chat, email, IA, Firebase e imagens
+│   ├── admin-panel/         # Painel administrativo web
+│   ├── tests/               # Testes automatizados
+│   ├── app.js               # Configuração do Express
+│   ├── server.js            # Inicialização do servidor
+│   └── package.json
+└── README.md
 ```
 
-You can run it in the SQL editor of your PostgreSQL provider (for example, Render or pgAdmin). It creates the `usuarios`, `animais`, `password_reset_requests`, and chat tables, including Google sign-in, photo URLs, and password recovery fields. Run it only for a new, empty database; it does not migrate an existing schema.
+## Funcionalidades
 
-For an existing database that does not yet have the password recovery table, run `backend/database/migration_password_reset_requests.sql` once in the provider's SQL editor.
+### Usuários
 
-For an existing database, run `backend/database/migration_chat.sql` once before deploying the chat backend. It creates private conversations, message history, and registered mobile device tokens.
+- Cadastro com CPF ou CNPJ
+- Login com email e senha
+- Login com Google
+- Recuperação de senha por código enviado por email
+- Edição e exclusão do perfil
+- Cadastro e edição de foto de perfil
+- Sessão persistida no aplicativo
 
-Run `backend/database/migration_chat_notifications.sql` to add unread-message tracking. Run `backend/database/migration_remove_contact_fields.sql` to permanently remove previously stored phone and contact fields from an existing database.
+### Animais
 
-Run `backend/database/migration_chat_actions.sql` to enable per-user conversation mute/delete preferences and persist reports. Muting suppresses FCM pushes for that recipient; deleting removes the conversation only from the current user's list. Reports are stored for review.
+- Cadastro de animais perdidos
+- Cadastro de animais encontrados
+- Cadastro de animais para adoção
+- Até três fotos por anúncio
+- Dados de espécie, raça, cor, porte, sexo, idade e localização
+- Atualização e exclusão dos registros
+- Listagem por categoria
+- Visualização em mapa
 
-Run `backend/database/migration_animal_photos.sql` once in an existing database to support up to three photos per animal record. New databases already include this column in `backend/database/schema.sql`.
+### Inteligência artificial e correspondências
 
-Animal and profile photos are uploaded by the backend to Cloudinary when the following credentials are set in `backend/.env`:
+- Análise de anúncios com Google Gemini
+- Comparação entre animais perdidos e encontrados
+- Pontuação visual, textual, geográfica e temporal
+- Lista de correspondências possíveis
+- Aceite ou descarte das sugestões pelo usuário
 
-```env
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-```
+### Chat
 
-Create a Cloudinary account on its free plan and copy these values from the Cloudinary Console. Keep the API secret private and never commit `backend/.env`. The app stores only each Cloudinary image URL in PostgreSQL; uploads are limited to 1200 × 1200 pixels and use automatic quality/format optimization. Without Cloudinary credentials, the backend keeps using its local `backend/uploads` storage, which is intended only for local development and is not persistent on many hosting providers. Existing local photos are not moved automatically; upload them again after Cloudinary is configured.
+- Busca de usuários
+- Conversas privadas
+- Histórico de mensagens armazenado no PostgreSQL
+- Comunicação em tempo real por Socket.IO
+- Contador de mensagens não lidas
+- Silenciamento, exclusão e denúncia de conversas
+- Notificações por Firebase Cloud Messaging
 
-Password recovery is available through `POST /api/usuarios/recuperar-senha/enviar-codigo`, `POST /api/usuarios/recuperar-senha/verificar-codigo`, and `POST /api/usuarios/recuperar-senha/redefinir`. Codes expire after 10 minutes, are limited to five verification attempts, and code requests for existing accounts are throttled to one email per minute. The API returns a generic response when requesting a code to avoid revealing whether an address is registered.
+### Painel administrativo
 
-Start the backend from the `backend` directory:
+- Login administrativo separado
+- Perfis `owner` e `analyst`
+- Estatísticas de usuários e anúncios
+- Gerenciamento de administradores e convites
+- Registro de auditoria
+- Inicialização da primeira conta por terminal
+
+## Manual básico de uso do aplicativo
+
+### 1. Criar uma conta
+
+1. Abra o aplicativo na tela de entrada.
+2. Escolha se o perfil será de **Tutor** ou **ONG**.
+3. Informe nome, email, CPF ou CNPJ, localização e senha.
+4. Confirme a senha e finalize o cadastro.
+5. Também é possível entrar ou vincular uma conta pelo Google.
+
+### 2. Entrar e recuperar a conta
+
+1. Informe o email e a senha cadastrados e toque em entrar.
+2. Para recuperar o acesso, selecione a opção de recuperação de senha.
+3. Informe o email cadastrado e aguarde o código.
+4. Digite o código recebido, confira-o e informe a nova senha.
+
+### 3. Consultar anúncios no mapa
+
+1. Após entrar, a tela inicial exibirá o mapa.
+2. Toque nos marcadores para visualizar os anúncios próximos.
+3. Use o menu inferior para alternar entre **Perdidos**, **Encontrados** e **Adoção**.
+4. Abra o perfil de outro usuário ou um anúncio para iniciar um chat.
+
+### 4. Cadastrar um animal perdido
+
+1. Toque em **Perdidos** no menu inferior.
+2. Selecione a opção de cadastrar um novo anúncio.
+3. Informe nome, espécie, raça, cor, porte, sexo, faixa etária, data, local e descrição.
+4. Selecione até três fotos.
+5. Confirme o cadastro.
+
+### 5. Cadastrar um animal encontrado
+
+1. Toque em **Encontrados** no menu inferior.
+2. Abra o formulário de cadastro.
+3. Informe as características do animal, a data e o local onde ele foi encontrado.
+4. Adicione fotos e finalize o anúncio.
+5. Use o status do anúncio quando o dono ou responsável já tiver sido encontrado.
+
+### 6. Cadastrar ou encontrar um animal para adoção
+
+1. Toque em **Adoção** no menu inferior.
+2. Use os filtros de espécie, porte e idade para pesquisar animais.
+3. Para anunciar, selecione o botão de cadastrar animal e preencha todos os dados exigidos.
+4. Adicione até três fotos e confirme.
+5. Quando o animal for adotado, o autor pode atualizar o status do anúncio.
+
+### 7. Editar ou excluir um anúncio
+
+1. Acesse a categoria correspondente ao anúncio.
+2. Utilize o filtro **Meus animais** para localizar registros próprios.
+3. Abra o menu do anúncio e escolha editar ou excluir.
+4. Confirme a ação. A exclusão remove permanentemente o anúncio.
+
+### 8. Usar correspondências sugeridas
+
+1. Abra um anúncio perdido ou encontrado.
+2. Caso existam possíveis correspondências, o sistema mostrará os resultados calculados pela inteligência artificial.
+3. Consulte as pontuações e os detalhes da sugestão.
+4. Confirme como correspondência válida ou descarte o resultado.
+
+### 9. Conversar com outros usuários
+
+1. Toque em **Chat** no menu inferior.
+2. Selecione uma conversa existente ou crie uma nova.
+3. Para iniciar uma conversa nova, busque o usuário pelo nome.
+4. Envie texto ou uma imagem pelo campo de mensagem.
+5. O número no ícone de Chat indica mensagens não lidas.
+6. Pelo menu da conversa, é possível silenciar, denunciar ou excluir a conversa.
+
+### 10. Gerenciar o perfil
+
+1. Toque no avatar no canto superior da tela inicial.
+2. Consulte seus dados pessoais e localização.
+3. Toque no botão de edição para alterar nome, contato, localização, foto ou outras informações permitidas.
+4. Use **Sair da conta** para encerrar a sessão.
+5. A opção **Excluir perfil** remove permanentemente a conta após confirmação.
+
+## Configuração do banco de dados
+
+O projeto utiliza PostgreSQL.
+
+Ao iniciar o backend, o servidor executa o arquivo `backend/database/schema.sql`, responsável pela criação das tabelas utilizadas pelo sistema.
+
+Para um banco novo, execute o schema no PostgreSQL ou deixe o backend aplicá-lo na primeira inicialização.
+
+## Variáveis de ambiente
+
+Os arquivos `backend/.env.example` e `frontend/.env.example` mostram as variáveis utilizadas pelo projeto. Para configurar o ambiente local:
 
 ```powershell
-npm.cmd install
-npm.cmd start
+Copy-Item backend/.env.example backend/.env
+Copy-Item frontend/.env.example frontend/.env
 ```
 
-On Android, the login button sends Google's ID token to the backend for verification. New users complete their PetWanted profile with a name, profile type, and CPF/CNPJ. To link Google to an existing PetWanted account, the user must confirm the existing account password once.
+Preencha os arquivos `.env` com as configurações próprias de cada ambiente. Arquivos `.env`, credenciais do Firebase e contas de serviço não devem ser enviados ao repositório.
 
-After installing frontend dependencies, rebuild the Android development app so the native Google Sign-In module is included:
+Em produção, as variáveis devem ser cadastradas diretamente no painel da plataforma de hospedagem. Isso vale principalmente para senha do banco, `JWT_SECRET`, `ADMIN_JWT_SECRET` e chaves privadas dos serviços integrados.
+
+## Requisitos para execução
+
+- Node.js
+- npm
+- PostgreSQL
+- Android Studio ou dispositivo Android
+- Conta Google Cloud para login, Maps e Places
+- Conta opcional no Cloudinary
+- Conta opcional no Brevo
+- Conta opcional no Firebase
+- Conta opcional no Google Gemini
+
+## Instalação e execução
+
+### Backend
+
+```powershell
+cd backend
+npm install
+npm start
+```
+
+O backend ficará disponível em:
+
+```text
+http://localhost:3000
+```
+
+Verifique o funcionamento em:
+
+```text
+http://localhost:3000/api/health
+```
+
+### Aplicativo
 
 ```powershell
 cd frontend
+npm install
+npm start
+```
+
+Para iniciar diretamente no Android:
+
+```powershell
+npm run android
+```
+
+Para incluir os módulos nativos de Google Sign-In e Firebase:
+
+```powershell
 npx expo run:android
 ```
 
-## Chat and notifications
+O script `frontend/scripts/configure-api-env.js` detecta o endereço IPv4 do computador e configura o aplicativo para a rede local.
 
-The chat authenticates REST and Socket.IO with the existing JWT. PostgreSQL stores conversations and message history; a Socket.IO message is persisted before the server broadcasts `mensagem:nova` to both participants. The Chat tab searches users and opens a private conversation. Firebase push delivery requires a native development/production build; Expo Go does not include the native Firebase Messaging module.
+Em um dispositivo Android físico, não utilize `localhost`. Use o endereço IPv4 do computador e mantenha o computador e o celular na mesma rede.
 
-For Android, download `google-services.json` from the Firebase project configured for package `com.petwanted.app` and place it in `frontend/`. The file is ignored by Git. Add a Firebase Admin service account to the backend environment as `FIREBASE_SERVICE_ACCOUNT` (JSON) or `FIREBASE_SERVICE_ACCOUNT_BASE64`; keep this private credential on the server only. Without it, chat works over Socket.IO but push delivery remains disabled. Run `npm install` in both `backend/` and `frontend/` to install the new dependencies and update their lockfiles, then rebuild the Android app after adding the Firebase file.
+### Painel administrativo
 
-Authenticated chat endpoints:
-
-- `GET /api/chat/usuarios?q=nome` searches people to start a conversation.
-- `GET /api/chat/conversas` lists conversations.
-- `POST /api/chat/conversas` accepts `{ "destinatarioId": 12 }`.
-- `GET /api/chat/conversas/:id/mensagens` loads history.
-- `POST /api/chat/dispositivos` registers the device FCM token.
-
-Socket.IO authenticates with `{ auth: { token } }` and receives `mensagem:enviar` with `{ conversaId, conteudo }`. The callback confirms persistence; `mensagem:nova` is emitted after the message is stored.
-
-After logging in, authenticated users can load all lost animals through:
+O painel ficará disponível em:
 
 ```text
-GET /api/animais/perdidos
-Authorization: Bearer <token returned by login>
+http://localhost:3000/admin
+```
+
+Crie o primeiro administrador:
+
+```powershell
+cd backend
+npm run admin:bootstrap
+```
+
+A primeira conta criada será do tipo `owner`. Convites e demais contas podem ser gerenciados pelo painel.
+
+## Como testar
+
+Backend:
+
+```powershell
+cd backend
+npm test
+```
+
+Frontend:
+
+```powershell
+cd frontend
+npm test -- --runInBand
 ```
